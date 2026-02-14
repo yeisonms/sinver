@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, ArrowLeft, MessageSquare, X, Check, Minus, Plus, Loader2 } from "lucide-react";
+import { Search, ArrowLeft, MessageSquare, X, Check, Minus, Plus, Loader2, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useFavoriteProducts, useSearchProducts } from "@/hooks/useOrders";
@@ -10,17 +10,20 @@ interface Props {
   cart: CartItem[];
   total: number;
   onAddToCart: (item: CartItem) => void;
+  onRemoveFromCart: (index: number) => void;
+  onUpdateCartItem: (index: number, updated: CartItem) => void;
   onCloseOrder: () => void;
   isSubmitting: boolean;
   onBack: () => void;
 }
 
-export function OrderStep2({ cart, total, onAddToCart, onCloseOrder, isSubmitting, onBack }: Props) {
+export function OrderStep2({ cart, total, onAddToCart, onRemoveFromCart, onUpdateCartItem, onCloseOrder, isSubmitting, onBack }: Props) {
   const [search, setSearch] = useState("");
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [qty, setQty] = useState(1);
   const [itemNotes, setItemNotes] = useState("");
   const [showNotes, setShowNotes] = useState(false);
+  const [editingCartIndex, setEditingCartIndex] = useState<number | null>(null);
 
   const { data: favorites = [], isLoading: loadFav } = useFavoriteProducts();
   const { data: searchResults = [] } = useSearchProducts(search);
@@ -32,23 +35,42 @@ export function OrderStep2({ cart, total, onAddToCart, onCloseOrder, isSubmittin
     setQty(1);
     setItemNotes("");
     setShowNotes(false);
+    setEditingCartIndex(null);
+  };
+
+  const handleEditCartItem = (index: number) => {
+    const item = cart[index];
+    setEditingProduct({ id: item.product_id, name: item.product_name, price: item.unit_price } as Product);
+    setQty(item.quantity);
+    setItemNotes(item.notes || "");
+    setShowNotes(!!item.notes);
+    setEditingCartIndex(index);
   };
 
   const handleConfirm = () => {
     if (!editingProduct) return;
-    onAddToCart({
+    const cartItem: CartItem = {
       product_id: editingProduct.id,
       product_name: editingProduct.name,
       quantity: qty,
       unit_price: editingProduct.price,
       notes: itemNotes || null,
-    });
+    };
+    if (editingCartIndex !== null) {
+      onUpdateCartItem(editingCartIndex, cartItem);
+    } else {
+      onAddToCart(cartItem);
+    }
     setEditingProduct(null);
+    setEditingCartIndex(null);
   };
 
   const handleCancel = () => {
     setEditingProduct(null);
+    setEditingCartIndex(null);
   };
+
+  const itemTotal = editingProduct ? qty * editingProduct.price : 0;
 
   return (
     <div className="flex flex-col h-full">
@@ -63,36 +85,52 @@ export function OrderStep2({ cart, total, onAddToCart, onCloseOrder, isSubmittin
         </div>
       </div>
 
-      {/* Item edit row */}
+      {/* Item edit row - matching reference image */}
       {editingProduct && (
-        <div className="bg-amber-100 border-b-2 border-amber-400 px-4 py-3 space-y-2">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold text-sm text-amber-900 truncate">{editingProduct.name}</p>
-              <p className="text-xs text-amber-700">${editingProduct.price.toLocaleString()} c/u</p>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Button size="icon" variant="outline" className="h-7 w-7 border-amber-400" onClick={() => setQty(Math.max(1, qty - 1))}>
-                <Minus className="h-3 w-3" />
-              </Button>
-              <span className="w-8 text-center font-bold text-sm">{qty}</span>
-              <Button size="icon" variant="outline" className="h-7 w-7 border-amber-400" onClick={() => setQty(qty + 1)}>
-                <Plus className="h-3 w-3" />
-              </Button>
-            </div>
-            <Button size="icon" variant="ghost" onClick={() => setShowNotes(!showNotes)} className="text-amber-800 h-7 w-7">
+        <div className="border-b-2 border-amber-400">
+          <div className="bg-amber-100 px-3 py-2 flex items-center gap-2">
+            {/* Quantity controls */}
+            <Button size="icon" variant="outline" className="h-8 w-8 shrink-0 border-amber-300 bg-amber-50" onClick={() => setQty(Math.max(1, qty - 1))}>
+              <Minus className="h-3 w-3" />
+            </Button>
+            <span className="w-7 text-center font-bold text-sm">{qty}</span>
+            <Button size="icon" variant="outline" className="h-8 w-8 shrink-0 border-amber-300 bg-amber-50" onClick={() => setQty(qty + 1)}>
+              <Plus className="h-3 w-3" />
+            </Button>
+
+            {/* Product name */}
+            <span className="flex-1 text-sm font-medium truncate">{editingProduct.name}</span>
+
+            {/* Price */}
+            <span className="text-sm font-semibold shrink-0">$ {itemTotal.toLocaleString()}</span>
+
+            {/* Notes toggle */}
+            <Button size="icon" variant="ghost" onClick={() => setShowNotes(!showNotes)} className="h-8 w-8 shrink-0 text-amber-800">
               <MessageSquare className="h-4 w-4" />
             </Button>
-            <Button size="icon" className="h-7 w-7 bg-green-600 hover:bg-green-700" onClick={handleConfirm}>
-              <Check className="h-3 w-3 text-white" />
+
+            {/* Confirm */}
+            <Button size="icon" className="h-8 w-8 shrink-0 bg-green-600 hover:bg-green-700" onClick={handleConfirm}>
+              <Check className="h-3.5 w-3.5 text-white" />
             </Button>
-            <Button size="icon" variant="ghost" className="h-7 w-7 text-amber-800" onClick={handleCancel}>
-              <X className="h-3 w-3" />
+
+            {/* Cancel / Delete */}
+            <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0 text-destructive" onClick={handleCancel}>
+              <X className="h-4 w-4" />
             </Button>
           </div>
+
+          {/* Notes input */}
           {showNotes && (
-            <Input placeholder="Notas del ítem..." value={itemNotes} onChange={(e) => setItemNotes(e.target.value)} className="h-8 text-xs bg-white" />
+            <div className="bg-amber-50 px-3 py-2 border-t border-amber-200">
+              <Input placeholder="Comentario del ítem..." value={itemNotes} onChange={(e) => setItemNotes(e.target.value)} className="h-8 text-xs bg-white" />
+            </div>
           )}
+
+          {/* Total to confirm */}
+          <div className="bg-amber-50 px-3 py-1.5 border-t border-amber-200">
+            <p className="text-xs font-semibold text-amber-800">Total a confirmar: ${itemTotal.toLocaleString()}</p>
+          </div>
         </div>
       )}
 
@@ -140,15 +178,26 @@ export function OrderStep2({ cart, total, onAddToCart, onCloseOrder, isSubmittin
           </>
         )}
 
-        {/* Cart summary */}
+        {/* Cart summary with edit/delete */}
         {cart.length > 0 && (
           <div className="mt-4 pt-3 border-t border-border">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Resumen ({cart.length} ítems)</p>
             <div className="space-y-1">
               {cart.map((item, i) => (
-                <div key={i} className="flex justify-between text-sm">
-                  <span>{item.quantity}x {item.product_name}</span>
-                  <span className="font-medium">${(item.quantity * item.unit_price).toLocaleString()}</span>
+                <div key={i} className="flex items-center gap-2 text-sm py-1 group">
+                  <button onClick={() => handleEditCartItem(i)} className="flex-1 text-left hover:text-primary transition-colors">
+                    <span>{item.quantity}x {item.product_name}</span>
+                    {item.notes && <span className="text-xs text-muted-foreground ml-1">({item.notes})</span>}
+                  </button>
+                  <span className="font-medium shrink-0">${(item.quantity * item.unit_price).toLocaleString()}</span>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-6 w-6 opacity-0 group-hover:opacity-100 text-destructive transition-opacity"
+                    onClick={() => onRemoveFromCart(i)}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
                 </div>
               ))}
             </div>
