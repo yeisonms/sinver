@@ -1,0 +1,158 @@
+import { useState } from "react";
+import { Plus, Pencil, Trash2, Eye, EyeOff, GripVertical } from "lucide-react";
+import { useCategories, useCreateCategory, useUpdateCategory, useDeleteCategory } from "@/hooks/useCategories";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import type { Category } from "@/types/database";
+
+export default function CategoriesPage() {
+  const { data: categories = [], isLoading } = useCategories();
+  const createCategory = useCreateCategory();
+  const updateCategory = useUpdateCategory();
+  const deleteCategory = useDeleteCategory();
+  const { toast } = useToast();
+
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editing, setEditing] = useState<Category | null>(null);
+  const [form, setForm] = useState({ name: "", sort_order: 0, is_visible_online: true });
+
+  const openCreate = () => {
+    setEditing(null);
+    setForm({ name: "", sort_order: (categories.length + 1) * 10, is_visible_online: true });
+    setDialogOpen(true);
+  };
+
+  const openEdit = (cat: Category) => {
+    setEditing(cat);
+    setForm({ name: cat.name, sort_order: cat.sort_order, is_visible_online: cat.is_visible_online });
+    setDialogOpen(true);
+  };
+
+  const handleSave = async () => {
+    try {
+      if (editing) {
+        await updateCategory.mutateAsync({ id: editing.id, ...form });
+        toast({ title: "Categoría actualizada" });
+      } else {
+        await createCategory.mutateAsync(form);
+        toast({ title: "Categoría creada" });
+      }
+      setDialogOpen(false);
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteCategory.mutateAsync(id);
+      toast({ title: "Categoría eliminada" });
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    }
+  };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Categorías</h1>
+          <p className="text-sm text-muted-foreground mt-1">Gestiona las categorías de tu menú</p>
+        </div>
+        <Button onClick={openCreate} className="gap-2">
+          <Plus className="h-4 w-4" /> Nueva Categoría
+        </Button>
+      </div>
+
+      {isLoading ? (
+        <div className="text-muted-foreground text-sm">Cargando...</div>
+      ) : categories.length === 0 ? (
+        <div className="border border-dashed border-border rounded-lg p-12 text-center">
+          <Grid3XIcon className="mx-auto h-10 w-10 text-muted-foreground/50 mb-3" />
+          <p className="text-muted-foreground">No hay categorías aún</p>
+          <Button onClick={openCreate} variant="outline" className="mt-4 gap-2">
+            <Plus className="h-4 w-4" /> Crear primera categoría
+          </Button>
+        </div>
+      ) : (
+        <div className="border border-border rounded-lg overflow-hidden">
+          <table className="w-full">
+            <thead>
+              <tr className="bg-muted/50 text-left text-xs text-muted-foreground uppercase tracking-wider">
+                <th className="px-4 py-3 w-10">#</th>
+                <th className="px-4 py-3">Nombre</th>
+                <th className="px-4 py-3 w-32 text-center">Visible Online</th>
+                <th className="px-4 py-3 w-24 text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {categories.map((cat) => (
+                <tr key={cat.id} className="hover:bg-muted/30 transition-colors">
+                  <td className="px-4 py-3 text-sm text-muted-foreground font-mono">{cat.sort_order}</td>
+                  <td className="px-4 py-3 font-medium text-foreground">{cat.name}</td>
+                  <td className="px-4 py-3 text-center">
+                    {cat.is_visible_online ? (
+                      <Eye className="h-4 w-4 text-primary mx-auto" />
+                    ) : (
+                      <EyeOff className="h-4 w-4 text-muted-foreground mx-auto" />
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <div className="flex justify-end gap-1">
+                      <Button variant="ghost" size="icon" onClick={() => openEdit(cat)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(cat.id)} className="text-destructive hover:text-destructive">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editing ? "Editar Categoría" : "Nueva Categoría"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <Label>Nombre</Label>
+              <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Ej: Bebidas" />
+            </div>
+            <div>
+              <Label>Orden</Label>
+              <Input type="number" value={form.sort_order} onChange={(e) => setForm({ ...form, sort_order: Number(e.target.value) })} />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label>Visible Online</Label>
+              <Switch checked={form.is_visible_online} onCheckedChange={(v) => setForm({ ...form, is_visible_online: v })} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={handleSave} disabled={!form.name.trim()}>
+              {editing ? "Guardar" : "Crear"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function Grid3XIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <rect width="7" height="7" x="3" y="3" rx="1" /><rect width="7" height="7" x="14" y="3" rx="1" /><rect width="7" height="7" x="14" y="14" rx="1" /><rect width="7" height="7" x="3" y="14" rx="1" />
+    </svg>
+  );
+}
