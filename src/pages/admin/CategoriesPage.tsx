@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Pencil, Trash2, Eye, EyeOff, GripVertical } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, EyeOff, Loader2, LayoutGrid } from "lucide-react";
 import { useCategories, useCreateCategory, useUpdateCategory, useDeleteCategory } from "@/hooks/useCategories";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -57,41 +57,43 @@ export default function CategoriesPage() {
   };
 
   return (
-    <div>
+    <div className="p-4 md:p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Categorías</h1>
+          <h1 className="text-xl font-bold text-foreground">Categorías de Productos</h1>
           <p className="text-sm text-muted-foreground mt-1">Gestiona las categorías de tu menú</p>
         </div>
-        <Button onClick={openCreate} className="gap-2">
+        <Button onClick={openCreate} size="sm" className="gap-2">
           <Plus className="h-4 w-4" /> Nueva Categoría
         </Button>
       </div>
 
       {isLoading ? (
-        <div className="text-muted-foreground text-sm">Cargando...</div>
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
       ) : categories.length === 0 ? (
         <div className="border border-dashed border-border rounded-lg p-12 text-center">
-          <Grid3XIcon className="mx-auto h-10 w-10 text-muted-foreground/50 mb-3" />
+          <LayoutGrid className="mx-auto h-10 w-10 text-muted-foreground/50 mb-3" />
           <p className="text-muted-foreground">No hay categorías aún</p>
           <Button onClick={openCreate} variant="outline" className="mt-4 gap-2">
             <Plus className="h-4 w-4" /> Crear primera categoría
           </Button>
         </div>
       ) : (
-        <div className="border border-border rounded-lg overflow-hidden">
-          <table className="w-full">
+        <div className="border border-border rounded-lg overflow-x-auto">
+          <table className="w-full min-w-[400px]">
             <thead>
-              <tr className="bg-muted/50 text-left text-xs text-muted-foreground uppercase tracking-wider">
-                <th className="px-4 py-3 w-10">#</th>
-                <th className="px-4 py-3">Nombre</th>
-                <th className="px-4 py-3 w-32 text-center">Visible Online</th>
-                <th className="px-4 py-3 w-24 text-right">Acciones</th>
+              <tr className="bg-muted text-left text-xs text-muted-foreground uppercase tracking-wider">
+                <th className="px-4 py-2.5 w-16">#</th>
+                <th className="px-4 py-2.5">Nombre</th>
+                <th className="px-4 py-2.5 w-32 text-center">Visible Online</th>
+                <th className="px-4 py-2.5 w-24 text-right">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {categories.map((cat) => (
-                <tr key={cat.id} className="hover:bg-muted/30 transition-colors">
+                <tr key={cat.id} className="hover:bg-muted/50 transition-colors">
                   <td className="px-4 py-3 text-sm text-muted-foreground font-mono">{cat.sort_order}</td>
                   <td className="px-4 py-3 font-medium text-foreground">{cat.name}</td>
                   <td className="px-4 py-3 text-center">
@@ -102,11 +104,11 @@ export default function CategoriesPage() {
                     )}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(cat)}>
+                    <div className="flex justify-end gap-0.5">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(cat)}>
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(cat.id)} className="text-destructive hover:text-destructive">
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDelete(cat.id)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
@@ -146,13 +148,5 @@ export default function CategoriesPage() {
         </DialogContent>
       </Dialog>
     </div>
-  );
-}
-
-function Grid3XIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <rect width="7" height="7" x="3" y="3" rx="1" /><rect width="7" height="7" x="14" y="3" rx="1" /><rect width="7" height="7" x="14" y="14" rx="1" /><rect width="7" height="7" x="3" y="14" rx="1" />
-    </svg>
   );
 }
