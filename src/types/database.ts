@@ -52,3 +52,26 @@ export interface CategoryPrinter {
   category_id: string;
   printer_id: string;
 }
+
+export interface ModifierGroup {
+  id: string;
+  name: string;
+  public_name: string | null;
+  price_logic: 'sum' | 'max' | 'average';
+  min_selection: number;
+  max_selection: number;
+}
+
+export interface ModifierOption {
+  id: string;
+  modifier_group_id: string;
+  name: string;
+  price_extra: number;
+  max_quantity: number;
+}
+
+export interface ProductModifier {
+  id: string;
+  product_id: string;
+  modifier_group_id: string;
+}

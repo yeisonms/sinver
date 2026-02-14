@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 
 const mainSections = [
-  { title: "Productos", url: "/admin/products", icon: UtensilsCrossed, match: ["/admin/products", "/admin/categories"] },
+  { title: "Productos", url: "/admin/products", icon: UtensilsCrossed, match: ["/admin/products", "/admin/categories", "/admin/modifiers"] },
   { title: "Ventas", url: "/admin/orders", icon: ShoppingCart, match: ["/admin/orders"] },
   { title: "Configuración", url: "/admin/settings", icon: Settings, match: ["/admin/settings"] },
 ];
@@ -19,10 +19,17 @@ const subTabs: Record<string, { title: string; url: string }[]> = {
   "/admin/products": [
     { title: "Productos", url: "/admin/products" },
     { title: "Cat. de Productos", url: "/admin/categories" },
+    { title: "Modificadores", url: "/admin/modifiers" },
   ],
   "/admin/categories": [
     { title: "Productos", url: "/admin/products" },
     { title: "Cat. de Productos", url: "/admin/categories" },
+    { title: "Modificadores", url: "/admin/modifiers" },
+  ],
+  "/admin/modifiers": [
+    { title: "Productos", url: "/admin/products" },
+    { title: "Cat. de Productos", url: "/admin/categories" },
+    { title: "Modificadores", url: "/admin/modifiers" },
   ],
   "/admin/orders": [
     { title: "Pedidos", url: "/admin/orders" },
