@@ -9,7 +9,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import type { Product } from "@/types/database";
 
@@ -36,11 +35,11 @@ export default function ProductsPage() {
   const [editing, setEditing] = useState<Product | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [search, setSearch] = useState("");
-  const [filterCategory, setFilterCategory] = useState<string>("all");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   const openCreate = () => {
     setEditing(null);
-    setForm(emptyForm);
+    setForm({ ...emptyForm, category_id: selectedCategory || "" });
     setDialogOpen(true);
   };
 
@@ -90,102 +89,119 @@ export default function ProductsPage() {
     }
   };
 
-  const categoryName = (id: string | null) => categories.find((c) => c.id === id)?.name || "Sin categoría";
-
   const filtered = products.filter((p) => {
-    const matchSearch = p.name.toLowerCase().includes(search.toLowerCase());
-    const matchCat = filterCategory === "all" || p.category_id === filterCategory;
+    const matchSearch = !search || p.name.toLowerCase().includes(search.toLowerCase());
+    const matchCat = !selectedCategory || p.category_id === selectedCategory;
     return matchSearch && matchCat;
   });
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Productos</h1>
-          <p className="text-sm text-muted-foreground mt-1">Gestiona los productos de tu menú</p>
+    <div className="flex h-full">
+      {/* Left: Category sidebar */}
+      <aside className="w-52 shrink-0 border-r border-border bg-card overflow-y-auto">
+        <div className="py-3">
+          <button
+            onClick={() => setSelectedCategory(null)}
+            className={`w-full text-left px-5 py-3 text-sm font-medium transition-colors ${
+              !selectedCategory
+                ? "text-primary border-l-2 border-primary bg-primary/5"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+            }`}
+          >
+            Todos
+          </button>
+          {categories.map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => setSelectedCategory(cat.id)}
+              className={`w-full text-left px-5 py-3 text-sm font-medium transition-colors ${
+                selectedCategory === cat.id
+                  ? "text-primary border-l-2 border-primary bg-primary/5"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+              }`}
+            >
+              {cat.name}
+            </button>
+          ))}
         </div>
-        <Button onClick={openCreate} className="gap-2">
-          <Plus className="h-4 w-4" /> Nuevo Producto
-        </Button>
-      </div>
+      </aside>
 
-      {/* Filters */}
-      <div className="flex gap-3 mb-4">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Buscar producto..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+      {/* Right: Product list */}
+      <div className="flex-1 flex flex-col p-5">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-xl font-bold text-foreground">Productos</h1>
+          <Button onClick={openCreate} size="sm" className="gap-2">
+            <Plus className="h-4 w-4" /> Nuevo Producto
+          </Button>
         </div>
-        <Select value={filterCategory} onValueChange={setFilterCategory}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Categoría" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas las categorías</SelectItem>
-            {categories.map((c) => (
-              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
 
-      {isLoading ? (
-        <div className="text-muted-foreground text-sm">Cargando...</div>
-      ) : filtered.length === 0 ? (
-        <div className="border border-dashed border-border rounded-lg p-12 text-center">
-          <p className="text-muted-foreground">{products.length === 0 ? "No hay productos aún" : "Sin resultados"}</p>
-          {products.length === 0 && (
-            <Button onClick={openCreate} variant="outline" className="mt-4 gap-2">
-              <Plus className="h-4 w-4" /> Crear primer producto
-            </Button>
-          )}
+        {/* Search */}
+        <div className="flex items-center gap-2 mb-4">
+          <span className="text-sm text-muted-foreground whitespace-nowrap">Buscar en todas las categorías:</span>
+          <div className="relative max-w-xs">
+            <Input
+              placeholder=""
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="h-8"
+            />
+          </div>
         </div>
-      ) : (
-        <div className="border border-border rounded-lg overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-muted/50 text-left text-xs text-muted-foreground uppercase tracking-wider">
-                <th className="px-4 py-3">Producto</th>
-                <th className="px-4 py-3">Categoría</th>
-                <th className="px-4 py-3 text-right">Precio</th>
-                <th className="px-4 py-3 text-right">Costo</th>
-                <th className="px-4 py-3 text-center">Disponible</th>
-                <th className="px-4 py-3 text-center">IVA incl.</th>
-                <th className="px-4 py-3 w-24 text-right">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {filtered.map((p) => (
-                <tr key={p.id} className="hover:bg-muted/30 transition-colors">
-                  <td className="px-4 py-3">
-                    <div className="font-medium text-foreground">{p.name}</div>
-                    {p.description && <div className="text-xs text-muted-foreground truncate max-w-xs">{p.description}</div>}
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge variant="secondary" className="font-normal">{categoryName(p.category_id)}</Badge>
-                  </td>
-                  <td className="px-4 py-3 text-right font-mono text-sm">${p.price.toLocaleString()}</td>
-                  <td className="px-4 py-3 text-right font-mono text-sm text-muted-foreground">{p.cost ? `$${p.cost.toLocaleString()}` : "—"}</td>
-                  <td className="px-4 py-3 text-center">
-                    <span className={`inline-block w-2 h-2 rounded-full ${p.is_available ? "bg-primary" : "bg-destructive"}`} />
-                  </td>
-                  <td className="px-4 py-3 text-center text-xs text-muted-foreground">{p.is_tax_included ? "Sí" : "No"}</td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(p)}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(p.id)} className="text-destructive hover:text-destructive">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </td>
+
+        {/* Table */}
+        {isLoading ? (
+          <div className="text-muted-foreground text-sm">Cargando...</div>
+        ) : filtered.length === 0 ? (
+          <div className="border border-dashed border-border rounded-lg p-12 text-center flex-1 flex flex-col items-center justify-center">
+            <p className="text-muted-foreground">{products.length === 0 ? "No hay productos aún" : "Sin resultados"}</p>
+            {products.length === 0 && (
+              <Button onClick={openCreate} variant="outline" className="mt-4 gap-2">
+                <Plus className="h-4 w-4" /> Crear primer producto
+              </Button>
+            )}
+          </div>
+        ) : (
+          <div className="border border-border rounded-lg overflow-hidden flex-1">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-muted/50 text-left text-xs text-muted-foreground uppercase tracking-wider">
+                  <th className="px-4 py-2.5">Producto</th>
+                  <th className="px-4 py-2.5 text-right">Precio</th>
+                  <th className="px-4 py-2.5 text-right">Costo</th>
+                  <th className="px-4 py-2.5 text-center w-20">Disp.</th>
+                  <th className="px-4 py-2.5 w-20 text-right">Acciones</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+              </thead>
+              <tbody className="divide-y divide-border">
+                {filtered.map((p) => (
+                  <tr key={p.id} className="hover:bg-muted/30 transition-colors">
+                    <td className="px-4 py-2.5">
+                      <div className="font-medium text-foreground text-sm">{p.name}</div>
+                      {p.description && <div className="text-xs text-muted-foreground truncate max-w-xs">{p.description}</div>}
+                    </td>
+                    <td className="px-4 py-2.5 text-right font-mono text-sm">${p.price.toLocaleString()}</td>
+                    <td className="px-4 py-2.5 text-right font-mono text-sm text-muted-foreground">{p.cost ? `$${p.cost.toLocaleString()}` : "—"}</td>
+                    <td className="px-4 py-2.5 text-center">
+                      <span className={`inline-block w-2 h-2 rounded-full ${p.is_available ? "bg-primary" : "bg-destructive"}`} />
+                    </td>
+                    <td className="px-4 py-2.5 text-right">
+                      <div className="flex justify-end gap-0.5">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(p)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleDelete(p.id)}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
       {/* Create / Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
