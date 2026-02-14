@@ -18,6 +18,7 @@ export interface Product {
   image_url: string | null;
   is_available: boolean;
   is_tax_included: boolean;
+  is_favorite: boolean;
 }
 
 export interface Order {
@@ -25,11 +26,23 @@ export interface Order {
   order_number: number;
   table_id: string | null;
   waiter_id: string | null;
-  status: 'pendiente' | 'en_preparacion' | 'listo' | 'entregado' | 'cerrado' | 'cancelado';
+  client_name: string | null;
+  general_notes: string | null;
+  status: 'pendiente' | 'pendiente_online' | 'en_preparacion' | 'listo' | 'entregado' | 'cerrado' | 'cancelado';
   type: 'mesa' | 'domicilio' | 'recoger';
   total_amount: number;
   tip_amount: number;
   created_at: string;
+}
+
+export interface OrderItem {
+  id?: string;
+  order_id?: string;
+  product_id: string;
+  product_name: string;
+  quantity: number;
+  unit_price: number;
+  notes: string | null;
 }
 
 export interface Table {

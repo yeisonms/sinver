@@ -6,9 +6,11 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminLayout from "@/layouts/AdminLayout";
+import RestaurantLayout from "@/layouts/RestaurantLayout";
 import ProductsPage from "@/pages/admin/ProductsPage";
 import CategoriesPage from "@/pages/admin/CategoriesPage";
 import ModifiersPage from "@/pages/admin/ModifiersPage";
+import CounterPage from "@/pages/restaurant/CounterPage";
 import AuthPage from "@/pages/AuthPage";
 import NotFound from "./pages/NotFound";
 
@@ -43,6 +45,17 @@ const App = () => (
               <Route path="products" element={<ProductsPage />} />
               <Route path="categories" element={<CategoriesPage />} />
               <Route path="modifiers" element={<ModifiersPage />} />
+            </Route>
+            <Route
+              path="/restaurant"
+              element={
+                <ProtectedRoute>
+                  <RestaurantLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<Navigate to="counter" replace />} />
+              <Route path="counter" element={<CounterPage />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
