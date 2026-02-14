@@ -3,6 +3,9 @@ export interface Category {
   name: string;
   sort_order: number;
   is_visible_online: boolean;
+  show_in_app: boolean;
+  show_in_store: boolean;
+  show_in_qr: boolean;
 }
 
 export interface Product {
@@ -37,4 +40,15 @@ export interface Table {
   status: 'libre' | 'ocupada' | 'reservada';
   x_position: number | null;
   y_position: number | null;
+}
+
+export interface Printer {
+  id: string;
+  name: string;
+}
+
+export interface CategoryPrinter {
+  id: string;
+  category_id: string;
+  printer_id: string;
 }

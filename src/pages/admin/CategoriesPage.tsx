@@ -1,16 +1,39 @@
-import { useState } from "react";
-import { Plus, Pencil, Trash2, Eye, EyeOff, Loader2, LayoutGrid } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Plus, Pencil, Trash2, Eye, EyeOff, Loader2, LayoutGrid, Printer } from "lucide-react";
 import { useCategories, useCreateCategory, useUpdateCategory, useDeleteCategory } from "@/hooks/useCategories";
+import { usePrinters, useCategoryPrinters } from "@/hooks/usePrinters";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import type { Category } from "@/types/database";
 
+interface CategoryForm {
+  name: string;
+  sort_order: number;
+  is_visible_online: boolean;
+  show_in_app: boolean;
+  show_in_store: boolean;
+  show_in_qr: boolean;
+}
+
+const defaultForm: CategoryForm = {
+  name: "",
+  sort_order: 0,
+  is_visible_online: true,
+  show_in_app: false,
+  show_in_store: true,
+  show_in_qr: true,
+};
+
 export default function CategoriesPage() {
   const { data: categories = [], isLoading } = useCategories();
+  const { data: printers = [], isLoading: printersLoading } = usePrinters();
   const createCategory = useCreateCategory();
   const updateCategory = useUpdateCategory();
   const deleteCategory = useDeleteCategory();
@@ -18,32 +41,69 @@ export default function CategoriesPage() {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Category | null>(null);
-  const [form, setForm] = useState({ name: "", sort_order: 0, is_visible_online: true });
+  const [form, setForm] = useState<CategoryForm>(defaultForm);
+  const [selectedPrinters, setSelectedPrinters] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
+
+  const { data: editPrinterIds } = useCategoryPrinters(editing?.id ?? null);
+
+  useEffect(() => {
+    if (editPrinterIds) setSelectedPrinters(editPrinterIds);
+  }, [editPrinterIds]);
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ name: "", sort_order: (categories.length + 1) * 10, is_visible_online: true });
+    setForm({ ...defaultForm, sort_order: (categories.length + 1) * 10 });
+    setSelectedPrinters([]);
     setDialogOpen(true);
   };
 
   const openEdit = (cat: Category) => {
     setEditing(cat);
-    setForm({ name: cat.name, sort_order: cat.sort_order, is_visible_online: cat.is_visible_online });
+    setForm({
+      name: cat.name,
+      sort_order: cat.sort_order,
+      is_visible_online: cat.is_visible_online,
+      show_in_app: cat.show_in_app,
+      show_in_store: cat.show_in_store,
+      show_in_qr: cat.show_in_qr,
+    });
+    setSelectedPrinters([]);
     setDialogOpen(true);
   };
 
+  const togglePrinter = (printerId: string) => {
+    setSelectedPrinters((prev) =>
+      prev.includes(printerId) ? prev.filter((id) => id !== printerId) : [...prev, printerId]
+    );
+  };
+
   const handleSave = async () => {
+    setSaving(true);
     try {
+      let categoryId: string;
       if (editing) {
         await updateCategory.mutateAsync({ id: editing.id, ...form });
-        toast({ title: "Categoría actualizada" });
+        categoryId = editing.id;
       } else {
-        await createCategory.mutateAsync(form);
-        toast({ title: "Categoría creada" });
+        const created = await createCategory.mutateAsync(form);
+        categoryId = created.id;
       }
+
+      // Sync category_printers
+      await supabase.from("category_printers").delete().eq("category_id", categoryId);
+      if (selectedPrinters.length > 0) {
+        const rows = selectedPrinters.map((printer_id) => ({ category_id: categoryId, printer_id }));
+        const { error } = await supabase.from("category_printers").insert(rows);
+        if (error) throw error;
+      }
+
+      toast({ title: editing ? "Categoría actualizada" : "Categoría creada" });
       setDialogOpen(false);
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -120,28 +180,106 @@ export default function CategoriesPage() {
         </div>
       )}
 
+      {/* Category Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{editing ? "Editar Categoría" : "Nueva Categoría"}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div>
-              <Label>Nombre</Label>
-              <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Ej: Bebidas" />
+
+          <div className="space-y-5 py-2">
+            {/* Basic Data */}
+            <div className="space-y-3">
+              <div>
+                <Label htmlFor="cat-name">Nombre *</Label>
+                <Input
+                  id="cat-name"
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  placeholder="Ej: Bebidas"
+                />
+              </div>
+              <div>
+                <Label htmlFor="cat-order">Orden</Label>
+                <Input
+                  id="cat-order"
+                  type="number"
+                  value={form.sort_order}
+                  onChange={(e) => setForm({ ...form, sort_order: Number(e.target.value) })}
+                />
+              </div>
             </div>
-            <div>
-              <Label>Orden</Label>
-              <Input type="number" value={form.sort_order} onChange={(e) => setForm({ ...form, sort_order: Number(e.target.value) })} />
+
+            <Separator />
+
+            {/* Printer Section */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Printer className="h-4 w-4 text-muted-foreground" />
+                <Label className="text-sm font-semibold">Enviar pedidos a:</Label>
+              </div>
+              {printersLoading ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Cargando impresoras...
+                </div>
+              ) : printers.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No hay impresoras configuradas</p>
+              ) : (
+                <div className="space-y-2">
+                  {printers.map((printer) => (
+                    <label
+                      key={printer.id}
+                      className="flex items-center gap-3 p-2 rounded-md border border-border hover:bg-muted/50 cursor-pointer transition-colors"
+                    >
+                      <Checkbox
+                        checked={selectedPrinters.includes(printer.id)}
+                        onCheckedChange={() => togglePrinter(printer.id)}
+                      />
+                      <span className="text-sm font-medium text-foreground">{printer.name}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
             </div>
-            <div className="flex items-center justify-between">
-              <Label>Visible Online</Label>
-              <Switch checked={form.is_visible_online} onCheckedChange={(v) => setForm({ ...form, is_visible_online: v })} />
+
+            <Separator />
+
+            {/* Visibility Section */}
+            <div className="space-y-3">
+              <Label className="text-sm font-semibold">Visibilidad en plataformas</Label>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="sw-app" className="font-normal">App comensal</Label>
+                  <Switch
+                    id="sw-app"
+                    checked={form.show_in_app}
+                    onCheckedChange={(v) => setForm({ ...form, show_in_app: v })}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="sw-store" className="font-normal">Tienda Online</Label>
+                  <Switch
+                    id="sw-store"
+                    checked={form.show_in_store}
+                    onCheckedChange={(v) => setForm({ ...form, show_in_store: v })}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="sw-qr" className="font-normal">Carta QR</Label>
+                  <Switch
+                    id="sw-qr"
+                    checked={form.show_in_qr}
+                    onCheckedChange={(v) => setForm({ ...form, show_in_qr: v })}
+                  />
+                </div>
+              </div>
             </div>
           </div>
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSave} disabled={!form.name.trim()}>
+            <Button onClick={handleSave} disabled={!form.name.trim() || saving}>
+              {saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
               {editing ? "Guardar" : "Crear"}
             </Button>
           </DialogFooter>
