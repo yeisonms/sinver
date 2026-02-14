@@ -33,15 +33,15 @@ const TicketPreview = forwardRef<HTMLDivElement, TicketProps>(
       <div
         id="ticket-preview"
         ref={ref}
-        className="w-[80mm] bg-ticket text-ticket-foreground font-mono text-[11px] leading-relaxed p-6 shadow-2xl mx-auto"
+        className="w-[80mm] bg-ticket text-ticket-foreground font-mono text-sm leading-relaxed p-6 shadow-2xl mx-auto"
         style={{ minHeight: "200px" }}
       >
         {/* Header */}
         <div className="text-center mb-2">
-          <div className="text-base font-bold tracking-wide uppercase">
+          <div className="text-lg font-bold tracking-wide uppercase">
             {restaurant || "RESTAURANTE"}
           </div>
-          <div className="text-ticket-muted text-[10px] mt-1">
+          <div className="text-ticket-muted text-xs mt-1">
             Ticket de Prueba
           </div>
         </div>
@@ -93,7 +93,7 @@ const TicketPreview = forwardRef<HTMLDivElement, TicketProps>(
         <div className="text-ticket-muted">{doubleDashes}</div>
 
         {/* Total */}
-        <div className="flex justify-between font-bold text-sm my-1">
+        <div className="flex justify-between font-bold text-base my-1">
           <span>TOTAL</span>
           <span>${total.toFixed(2)}</span>
         </div>
@@ -101,7 +101,7 @@ const TicketPreview = forwardRef<HTMLDivElement, TicketProps>(
         <div className="text-ticket-muted">{doubleDashes}</div>
 
         {/* Footer */}
-        <div className="text-center text-ticket-muted text-[10px] mt-3 space-y-1">
+        <div className="text-center text-ticket-muted text-xs mt-3 space-y-1">
           <div>¡Gracias por su visita!</div>
           <div>*** TICKET DE PRUEBA ***</div>
         </div>
