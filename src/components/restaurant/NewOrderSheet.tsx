@@ -50,7 +50,7 @@ export function NewOrderSheet({ open, onOpenChange }: Props) {
       await createOrder.mutateAsync({
         order: {
           table_id: null,
-          waiter_id: user?.id ?? null,
+          waiter_id: null,
           client_name: clientName || null,
           general_notes: notes || null,
           status: "pendiente",
