@@ -1,10 +1,13 @@
-import { Outlet, useLocation } from "react-router-dom";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   UtensilsCrossed,
   ShoppingCart,
   Settings,
+  LogOut,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const mainSections = [
   { title: "Productos", url: "/admin/products", icon: UtensilsCrossed, match: ["/admin/products", "/admin/categories"] },
@@ -31,35 +34,53 @@ const subTabs: Record<string, { title: string; url: string }[]> = {
 
 export default function AdminLayout() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, signOut } = useAuth();
   const currentPath = location.pathname;
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate("/auth", { replace: true });
+  };
   const currentTabs = subTabs[currentPath] || subTabs["/admin/products"] || [];
 
   return (
     <div className="min-h-screen flex flex-col w-full bg-background">
       {/* Top Icon Bar */}
       <header className="bg-card border-b border-border shadow-sm">
-        <div className="flex items-center h-14 px-4 gap-1">
-          <span className="text-lg font-bold text-primary mr-6 tracking-tight">🍽️ Mi Restaurante</span>
-          <nav className="flex items-center gap-0.5">
-            {mainSections.map((section) => {
-              const isActive = section.match.some((m) => currentPath.startsWith(m));
-              return (
-                <NavLink
-                  key={section.url}
-                  to={section.url}
-                  className={`flex flex-col items-center gap-0.5 px-5 py-1.5 rounded-md transition-colors ${
-                    isActive
-                      ? "text-primary-foreground bg-primary"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                  }`}
-                  activeClassName=""
-                >
-                  <section.icon className="h-5 w-5" />
-                  <span className="text-[10px] font-medium">{section.title}</span>
-                </NavLink>
-              );
-            })}
-          </nav>
+        <div className="flex items-center h-14 px-4 gap-1 justify-between">
+          <div className="flex items-center gap-1">
+            <span className="text-lg font-bold text-primary mr-6 tracking-tight">🍽️ Mi Restaurante</span>
+            <nav className="flex items-center gap-0.5">
+              {mainSections.map((section) => {
+                const isActive = section.match.some((m) => currentPath.startsWith(m));
+                return (
+                  <NavLink
+                    key={section.url}
+                    to={section.url}
+                    className={`flex flex-col items-center gap-0.5 px-5 py-1.5 rounded-md transition-colors ${
+                      isActive
+                        ? "text-primary-foreground bg-primary"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                    }`}
+                    activeClassName=""
+                  >
+                    <section.icon className="h-5 w-5" />
+                    <span className="text-[10px] font-medium">{section.title}</span>
+                  </NavLink>
+                );
+              })}
+            </nav>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleLogout}
+            className="text-muted-foreground hover:text-destructive"
+          >
+            <LogOut className="h-4 w-4 mr-1" />
+            <span className="text-xs">Salir</span>
+          </Button>
         </div>
       </header>
 
