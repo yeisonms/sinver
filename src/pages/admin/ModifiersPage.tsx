@@ -135,10 +135,9 @@ export default function ModifiersPage() {
     if (!selectedId || !oName.trim()) return;
     try {
       await createOption.mutateAsync({
-        modifier_group_id: selectedId,
+        group_id: selectedId,
         name: oName.trim(),
         price_extra: parseFloat(oPrice) || 0,
-        max_quantity: 1,
       });
       setOptionModal(false);
       setOName("");
@@ -252,7 +251,6 @@ export default function ModifiersPage() {
                     <span>{o.name}</span>
                     <div className="flex items-center gap-2 text-muted-foreground text-xs">
                       <span>${o.price_extra}</span>
-                      <span>{o.max_quantity} max</span>
                       <button
                         className="text-destructive hover:text-destructive/80"
                         onClick={() => deleteOption.mutate({ id: o.id, groupId: selected.id })}
