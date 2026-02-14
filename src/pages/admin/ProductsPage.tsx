@@ -1,7 +1,8 @@
-import { useState } from "react";
-import { Plus, Pencil, Trash2, Search, Loader2 } from "lucide-react";
+import { useState, useRef } from "react";
+import { Plus, Pencil, Trash2, Search, Loader2, Upload, X, ImageIcon } from "lucide-react";
 import { useProducts, useCreateProduct, useUpdateProduct, useDeleteProduct } from "@/hooks/useProducts";
 import { useCategories } from "@/hooks/useCategories";
+import { useProductImageUpload } from "@/hooks/useProductImage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -29,6 +30,7 @@ export default function ProductsPage() {
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
   const deleteProduct = useDeleteProduct();
+  const { upload, remove, uploading } = useProductImageUpload();
   const { toast } = useToast();
 
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -36,10 +38,15 @@ export default function ProductsPage() {
   const [form, setForm] = useState(emptyForm);
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const openCreate = () => {
     setEditing(null);
     setForm({ ...emptyForm, category_id: selectedCategory || "" });
+    setImageFile(null);
+    setImagePreview(null);
     setDialogOpen(true);
   };
 
@@ -55,16 +62,46 @@ export default function ProductsPage() {
       is_available: p.is_available,
       is_tax_included: p.is_tax_included,
     });
+    setImageFile(null);
+    setImagePreview(p.image_url || null);
     setDialogOpen(true);
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+  };
+
+  const clearImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    setForm({ ...form, image_url: "" });
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+
+
+
   const handleSave = async () => {
     try {
+      let imageUrl = form.image_url;
+
+      // Upload new image if selected
+      if (imageFile) {
+        // Remove old image if replacing
+        if (editing?.image_url) {
+          await remove(editing.image_url);
+        }
+        imageUrl = await upload(imageFile);
+      }
+
       const payload = {
         ...form,
         category_id: form.category_id || null,
         description: form.description || null,
-        image_url: form.image_url || null,
+        image_url: imageUrl || null,
         cost: form.cost || null,
       };
       if (editing) {
@@ -269,8 +306,48 @@ export default function ProductsPage() {
               </Select>
             </div>
             <div>
-              <Label>URL de Imagen</Label>
-              <Input value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} placeholder="https://..." />
+              <Label>Imagen del producto</Label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="hidden"
+              />
+              {imagePreview ? (
+                <div className="relative mt-2 w-full h-40 rounded-lg border border-border overflow-hidden bg-muted">
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    className="w-full h-full object-cover"
+                  />
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="icon"
+                    className="absolute top-2 right-2 h-7 w-7"
+                    onClick={clearImage}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="mt-2 w-full h-32 rounded-lg border-2 border-dashed border-border bg-muted/50 flex flex-col items-center justify-center gap-2 hover:bg-muted transition-colors cursor-pointer"
+                >
+                  <ImageIcon className="h-8 w-8 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">
+                    Haz clic para subir una imagen
+                  </span>
+                </button>
+              )}
+              {uploading && (
+                <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Subiendo imagen...
+                </div>
+              )}
             </div>
             <div className="flex items-center justify-between">
               <Label>Disponible</Label>
