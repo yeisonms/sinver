@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 
 const mainSections = [
   { title: "Productos", url: "/admin/products", icon: UtensilsCrossed, match: ["/admin/products", "/admin/categories", "/admin/modifiers"] },
-  { title: "Ventas", url: "/admin/orders", icon: ShoppingCart, match: ["/admin/orders"] },
+  { title: "Restaurante", url: "/restaurant/counter", icon: ShoppingCart, match: ["/restaurant"] },
   { title: "Configuración", url: "/admin/settings", icon: Settings, match: ["/admin/settings"] },
 ];
 
