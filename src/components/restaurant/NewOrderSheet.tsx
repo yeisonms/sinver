@@ -63,8 +63,10 @@ export function NewOrderSheet({ open, onOpenChange }: Props) {
       toast({ title: "Pedido creado exitosamente" });
       resetAll();
       onOpenChange(false);
-    } catch {
-      toast({ title: "Error al crear pedido", variant: "destructive" });
+    } catch (err: any) {
+      const msg = err?.message || "Error desconocido";
+      console.error("Error al crear pedido:", err);
+      toast({ title: "Error al crear pedido", description: msg, variant: "destructive" });
     }
   };
 
