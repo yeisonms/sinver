@@ -60,7 +60,7 @@ export function useModifierOptions(groupId: string | null) {
       const { data, error } = await supabase
         .from("modifier_options")
         .select("*")
-        .eq("modifier_group_id", groupId!)
+        .eq("group_id", groupId!)
         .order("name", { ascending: true });
       if (error) throw error;
       return data;
@@ -77,7 +77,7 @@ export function useCreateModifierOption() {
       return data;
     },
     onSuccess: (_d, vars) => {
-      qc.invalidateQueries({ queryKey: ["modifier_options", vars.modifier_group_id] });
+      qc.invalidateQueries({ queryKey: ["modifier_options", vars.group_id] });
     },
   });
 }
@@ -105,7 +105,7 @@ export function useAssociatedProducts(groupId: string | null) {
       const { data, error } = await supabase
         .from("product_modifiers")
         .select("product_id, products(name)")
-        .eq("modifier_group_id", groupId!);
+        .eq("group_id", groupId!);
       if (error) throw error;
       return (data || []).map((r: any) => ({ id: r.product_id, name: r.products?.name || "Sin nombre" }));
     },
