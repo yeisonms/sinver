@@ -45,6 +45,14 @@ export function NewOrderSheet({ open, onOpenChange }: Props) {
     });
   };
 
+  const handleRemoveFromCart = (index: number) => {
+    setCart((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleUpdateCartItem = (index: number, updated: CartItem) => {
+    setCart((prev) => prev.map((item, i) => (i === index ? updated : item)));
+  };
+
   const handleCloseOrder = async () => {
     try {
       await createOrder.mutateAsync({
@@ -91,6 +99,8 @@ export function NewOrderSheet({ open, onOpenChange }: Props) {
               cart={cart}
               total={total}
               onAddToCart={handleAddToCart}
+              onRemoveFromCart={handleRemoveFromCart}
+              onUpdateCartItem={handleUpdateCartItem}
               onCloseOrder={handleCloseOrder}
               isSubmitting={createOrder.isPending}
               onBack={() => setStep(1)}
