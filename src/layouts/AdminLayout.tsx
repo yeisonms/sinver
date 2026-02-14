@@ -1,16 +1,15 @@
 import { Outlet, useLocation } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
 import {
-  Package,
+  UtensilsCrossed,
   ShoppingCart,
   Settings,
-  UtensilsCrossed,
 } from "lucide-react";
 
 const mainSections = [
-  { title: "Productos", url: "/admin/products", icon: UtensilsCrossed },
-  { title: "Ventas", url: "/admin/orders", icon: ShoppingCart },
-  { title: "Configuración", url: "/admin/settings", icon: Settings },
+  { title: "Productos", url: "/admin/products", icon: UtensilsCrossed, match: ["/admin/products", "/admin/categories"] },
+  { title: "Ventas", url: "/admin/orders", icon: ShoppingCart, match: ["/admin/orders"] },
+  { title: "Configuración", url: "/admin/settings", icon: Settings, match: ["/admin/settings"] },
 ];
 
 const subTabs: Record<string, { title: string; url: string }[]> = {
@@ -36,20 +35,23 @@ export default function AdminLayout() {
   const currentTabs = subTabs[currentPath] || subTabs["/admin/products"] || [];
 
   return (
-    <div className="min-h-screen flex flex-col w-full">
+    <div className="min-h-screen flex flex-col w-full bg-background">
       {/* Top Icon Bar */}
-      <header className="bg-card border-b border-border">
+      <header className="bg-card border-b border-border shadow-sm">
         <div className="flex items-center h-14 px-4 gap-1">
           <span className="text-lg font-bold text-primary mr-6 tracking-tight">🍽️ Mi Restaurante</span>
-          <nav className="flex items-center gap-1">
+          <nav className="flex items-center gap-0.5">
             {mainSections.map((section) => {
-              const isActive = currentPath.startsWith(section.url) ||
-                (section.url === "/admin/products" && currentPath === "/admin/categories");
+              const isActive = section.match.some((m) => currentPath.startsWith(m));
               return (
                 <NavLink
                   key={section.url}
                   to={section.url}
-                  className={`flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-md transition-colors text-muted-foreground hover:text-foreground hover:bg-muted/50 ${isActive ? "text-primary bg-primary/10" : ""}`}
+                  className={`flex flex-col items-center gap-0.5 px-5 py-1.5 rounded-md transition-colors ${
+                    isActive
+                      ? "text-primary-foreground bg-primary"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                  }`}
                   activeClassName=""
                 >
                   <section.icon className="h-5 w-5" />
@@ -63,7 +65,7 @@ export default function AdminLayout() {
 
       {/* Sub-tabs Bar */}
       {currentTabs.length > 0 && (
-        <div className="bg-muted/40 border-b border-border">
+        <div className="bg-muted/60 border-b border-border">
           <div className="flex items-center h-10 px-4 gap-0">
             {currentTabs.map((tab) => {
               const isActive = currentPath === tab.url;
@@ -71,7 +73,11 @@ export default function AdminLayout() {
                 <NavLink
                   key={tab.url}
                   to={tab.url}
-                  className={`px-4 h-10 flex items-center text-sm font-medium transition-colors border-b-2 ${isActive ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+                  className={`px-5 h-10 flex items-center text-sm font-medium transition-colors border-b-2 ${
+                    isActive
+                      ? "border-primary text-primary"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
                   activeClassName=""
                 >
                   {tab.title}
