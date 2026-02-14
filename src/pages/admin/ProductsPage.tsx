@@ -1,8 +1,10 @@
-import { useState, useRef } from "react";
-import { Plus, Pencil, Trash2, Search, Loader2, Upload, X, ImageIcon } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Plus, Pencil, Trash2, Search, Loader2, Upload, X, ImageIcon, ChevronDown } from "lucide-react";
 import { useProducts, useCreateProduct, useUpdateProduct, useDeleteProduct } from "@/hooks/useProducts";
 import { useCategories } from "@/hooks/useCategories";
+import { useModifierGroups } from "@/hooks/useModifiers";
 import { useProductImageUpload } from "@/hooks/useProductImage";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -10,6 +12,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 import type { Product } from "@/types/database";
 
@@ -27,6 +32,7 @@ const emptyForm = {
 export default function ProductsPage() {
   const { data: products = [], isLoading: loadingProducts } = useProducts();
   const { data: categories = [], isLoading: loadingCategories } = useCategories();
+  const { data: modifierGroups = [] } = useModifierGroups();
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
   const deleteProduct = useDeleteProduct();
@@ -40,6 +46,8 @@ export default function ProductsPage() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [selectedModifierGroups, setSelectedModifierGroups] = useState<string[]>([]);
+  const [modifierPopoverOpen, setModifierPopoverOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const openCreate = () => {
@@ -47,10 +55,11 @@ export default function ProductsPage() {
     setForm({ ...emptyForm, category_id: selectedCategory || "" });
     setImageFile(null);
     setImagePreview(null);
+    setSelectedModifierGroups([]);
     setDialogOpen(true);
   };
 
-  const openEdit = (p: Product) => {
+  const openEdit = async (p: Product) => {
     setEditing(p);
     setForm({
       name: p.name,
@@ -64,7 +73,19 @@ export default function ProductsPage() {
     });
     setImageFile(null);
     setImagePreview(p.image_url || null);
+    // Load assigned modifier groups
+    const { data } = await supabase
+      .from("product_modifiers")
+      .select("group_id")
+      .eq("product_id", p.id);
+    setSelectedModifierGroups((data || []).map((r: any) => r.group_id));
     setDialogOpen(true);
+  };
+
+  const toggleModifierGroup = (groupId: string) => {
+    setSelectedModifierGroups((prev) =>
+      prev.includes(groupId) ? prev.filter((id) => id !== groupId) : [...prev, groupId]
+    );
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -84,13 +105,21 @@ export default function ProductsPage() {
 
 
 
+  const saveModifierGroups = async (productId: string) => {
+    // Delete existing relations
+    await supabase.from("product_modifiers").delete().eq("product_id", productId);
+    // Insert new ones
+    if (selectedModifierGroups.length > 0) {
+      const rows = selectedModifierGroups.map((group_id) => ({ product_id: productId, group_id }));
+      await supabase.from("product_modifiers").insert(rows);
+    }
+  };
+
   const handleSave = async () => {
     try {
       let imageUrl = form.image_url;
 
-      // Upload new image if selected
       if (imageFile) {
-        // Remove old image if replacing
         if (editing?.image_url) {
           await remove(editing.image_url);
         }
@@ -106,9 +135,11 @@ export default function ProductsPage() {
       };
       if (editing) {
         await updateProduct.mutateAsync({ id: editing.id, ...payload });
+        await saveModifierGroups(editing.id);
         toast({ title: "Producto actualizado" });
       } else {
-        await createProduct.mutateAsync(payload as Omit<Product, "id">);
+        const newProduct = await createProduct.mutateAsync(payload as Omit<Product, "id">);
+        await saveModifierGroups(newProduct.id);
         toast({ title: "Producto creado" });
       }
       setDialogOpen(false);
@@ -304,6 +335,61 @@ export default function ProductsPage() {
                   )}
                 </SelectContent>
               </Select>
+            </div>
+            {/* Modifier Groups Multi-Select */}
+            <div>
+              <Label>Grupos Modificadores</Label>
+              <Popover open={modifierPopoverOpen} onOpenChange={setModifierPopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-between mt-1 font-normal" type="button">
+                    <span className="text-muted-foreground">
+                      {selectedModifierGroups.length === 0
+                        ? "Seleccionar grupos..."
+                        : `${selectedModifierGroups.length} grupo(s) seleccionado(s)`}
+                    </span>
+                    <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                  <div className="max-h-48 overflow-y-auto p-2 space-y-1">
+                    {modifierGroups.length === 0 ? (
+                      <p className="text-sm text-muted-foreground p-2">No hay grupos disponibles</p>
+                    ) : (
+                      modifierGroups.map((g) => (
+                        <label
+                          key={g.id}
+                          className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer text-sm"
+                        >
+                          <Checkbox
+                            checked={selectedModifierGroups.includes(g.id)}
+                            onCheckedChange={() => toggleModifierGroup(g.id)}
+                          />
+                          <span>{g.public_name || g.name}</span>
+                        </label>
+                      ))
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
+              {selectedModifierGroups.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {selectedModifierGroups.map((gId) => {
+                    const g = modifierGroups.find((mg) => mg.id === gId);
+                    return (
+                      <Badge key={gId} variant="secondary" className="gap-1 text-xs">
+                        {g?.public_name || g?.name || gId}
+                        <button
+                          type="button"
+                          className="ml-0.5 hover:text-destructive"
+                          onClick={() => toggleModifierGroup(gId)}
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    );
+                  })}
+                </div>
+              )}
             </div>
             <div>
               <Label>Imagen del producto</Label>
