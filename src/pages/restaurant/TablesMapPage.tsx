@@ -45,6 +45,27 @@ export default function TablesMapPage() {
   const selectedAreaId = activeAreaId || (areas.length > 0 ? areas[0].id : null);
   const { data: tables = [] } = useTablesByArea(selectedAreaId);
 
+  // Fetch waiter names for occupied tables
+  const waiterIds = tables
+    .filter((t) => t.status === "ocupada" && t.current_waiter_id)
+    .map((t) => t.current_waiter_id!);
+  const { data: waiterProfiles = [] } = useQuery({
+    queryKey: ["waiter-profiles", waiterIds],
+    queryFn: async () => {
+      if (waiterIds.length === 0) return [];
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, full_name")
+        .in("id", waiterIds);
+      if (error) throw error;
+      return data as { id: string; full_name: string | null }[];
+    },
+    enabled: waiterIds.length > 0,
+  });
+  const waiterNameMap = Object.fromEntries(
+    waiterProfiles.map((p) => [p.id, p.full_name ?? ""])
+  );
+
   const openTable = useOpenTable();
 
   // Dialog state
@@ -148,9 +169,9 @@ export default function TablesMapPage() {
                       }}
                     >
                       <span className="text-sm leading-none">{table.name}</span>
-                      {isOccupied && (
-                        <span className="text-[10px] leading-none opacity-90 flex items-center gap-0.5">
-                          <Users className="h-2.5 w-2.5" />
+                      {isOccupied && table.current_waiter_id && waiterNameMap[table.current_waiter_id] && (
+                        <span className="text-[9px] leading-tight opacity-90 max-w-full truncate px-1 text-center">
+                          {waiterNameMap[table.current_waiter_id]}
                         </span>
                       )}
                     </button>
