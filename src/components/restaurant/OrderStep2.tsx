@@ -8,6 +8,7 @@ import type { Product } from "@/types/database";
 
 interface Props {
   cart: CartItem[];
+  existingItems?: CartItem[];
   total: number;
   onAddToCart: (item: CartItem) => void;
   onRemoveFromCart: (index: number) => void;
@@ -15,9 +16,10 @@ interface Props {
   onCloseOrder: () => void;
   isSubmitting: boolean;
   onBack: () => void;
+  mode?: "counter" | "mesa";
 }
 
-export function OrderStep2({ cart, total, onAddToCart, onRemoveFromCart, onUpdateCartItem, onCloseOrder, isSubmitting, onBack }: Props) {
+export function OrderStep2({ cart, existingItems = [], total, onAddToCart, onRemoveFromCart, onUpdateCartItem, onCloseOrder, isSubmitting, onBack, mode = "counter" }: Props) {
   const [search, setSearch] = useState("");
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [qty, setQty] = useState(1);
@@ -178,10 +180,27 @@ export function OrderStep2({ cart, total, onAddToCart, onRemoveFromCart, onUpdat
           </>
         )}
 
+        {/* Existing items (for mesa re-entry) */}
+        {existingItems.length > 0 && (
+          <div className="mt-4 pt-3 border-t border-border">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">🕒 Pedidos anteriores ({existingItems.length})</p>
+            <div className="space-y-1">
+              {existingItems.map((item, i) => (
+                <div key={`existing-${i}`} className="flex items-center gap-2 text-sm py-1 text-muted-foreground">
+                  <span className="flex-1">{item.quantity}x {item.product_name}</span>
+                  <span className="font-medium shrink-0">${(item.quantity * item.unit_price).toLocaleString()}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Cart summary with edit/delete */}
         {cart.length > 0 && (
           <div className="mt-4 pt-3 border-t border-border">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Resumen ({cart.length} ítems)</p>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+              {mode === "mesa" ? "🆕 Nueva comanda" : "Resumen"} ({cart.length} ítems)
+            </p>
             <div className="space-y-1">
               {cart.map((item, i) => (
                 <div key={i} className="flex items-center gap-2 text-sm py-1 group">
@@ -208,12 +227,12 @@ export function OrderStep2({ cart, total, onAddToCart, onRemoveFromCart, onUpdat
       {/* Footer */}
       <div className="border-t border-border bg-card px-4 py-3 flex items-center justify-between">
         <div>
-          <p className="text-xs text-muted-foreground">Total</p>
+          <p className="text-xs text-muted-foreground">{mode === "mesa" ? "Nueva comanda" : "Total"}</p>
           <p className="text-lg font-bold text-primary">${total.toLocaleString()}</p>
         </div>
         <Button onClick={onCloseOrder} disabled={cart.length === 0 || isSubmitting} className="gap-2">
           {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-          Cerrar Pedido
+          {mode === "mesa" ? "Enviar a Cocina" : "Cerrar Pedido"}
         </Button>
       </div>
     </div>

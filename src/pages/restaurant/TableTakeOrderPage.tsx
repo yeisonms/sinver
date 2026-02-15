@@ -13,7 +13,7 @@ export default function TableTakeOrderPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
 
-  const { data: order, isLoading } = useQuery({
+  const { data: order, isLoading: loadingOrder } = useQuery({
     queryKey: ["order", orderId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -23,6 +23,26 @@ export default function TableTakeOrderPage() {
         .single();
       if (error) throw error;
       return data;
+    },
+    enabled: !!orderId,
+  });
+
+  // Load existing items for this order
+  const { data: existingItems = [], isLoading: loadingItems } = useQuery<CartItem[]>({
+    queryKey: ["order-items", orderId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("order_items")
+        .select("*, products:product_id(name)")
+        .eq("order_id", orderId!);
+      if (error) throw error;
+      return (data ?? []).map((item: any) => ({
+        product_id: item.product_id,
+        product_name: item.products?.name ?? "Producto",
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        notes: item.notes,
+      }));
     },
     enabled: !!orderId,
   });
@@ -52,11 +72,11 @@ export default function TableTakeOrderPage() {
     setCart((prev) => prev.map((item, i) => (i === index ? updated : item)));
   };
 
-  const handleCloseOrder = async () => {
+  const handleSendToKitchen = async () => {
     if (!orderId || cart.length === 0) return;
     setSubmitting(true);
     try {
-      // Insert order items
+      // Insert new order items
       const items = cart.map(({ product_name, ...item }) => ({
         ...item,
         order_id: orderId,
@@ -64,24 +84,30 @@ export default function TableTakeOrderPage() {
       const { error: itemsErr } = await supabase.from("order_items").insert(items);
       if (itemsErr) throw itemsErr;
 
-      // Update order total
+      // Update order total (existing + new)
+      const existingTotal = existingItems.reduce((s, i) => s + i.unit_price * i.quantity, 0);
       const { error: orderErr } = await supabase
         .from("orders")
-        .update({ total_amount: total })
+        .update({
+          total_amount: existingTotal + total,
+          status: "en_preparacion",
+        })
         .eq("id", orderId);
       if (orderErr) throw orderErr;
 
       qc.invalidateQueries({ queryKey: ["orders"] });
-      toast.success("Productos agregados al pedido");
+      qc.invalidateQueries({ queryKey: ["order-items", orderId] });
+      qc.invalidateQueries({ queryKey: ["tables"] });
+      toast.success("Comanda enviada a cocina");
       navigate("/restaurant/tables");
     } catch (err: any) {
-      toast.error(err?.message || "Error al guardar");
+      toast.error(err?.message || "Error al enviar comanda");
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (isLoading) {
+  if (loadingOrder || loadingItems) {
     return (
       <div className="flex items-center justify-center h-full">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -102,13 +128,15 @@ export default function TableTakeOrderPage() {
       <div className="flex-1 overflow-hidden">
         <OrderStep2
           cart={cart}
+          existingItems={existingItems}
           total={total}
           onAddToCart={handleAddToCart}
           onRemoveFromCart={handleRemoveFromCart}
           onUpdateCartItem={handleUpdateCartItem}
-          onCloseOrder={handleCloseOrder}
+          onCloseOrder={handleSendToKitchen}
           isSubmitting={submitting}
           onBack={() => navigate("/restaurant/tables")}
+          mode="mesa"
         />
       </div>
     </div>
