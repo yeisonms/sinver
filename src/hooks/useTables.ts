@@ -51,7 +51,7 @@ export function useTablesByArea(areaId: string | null) {
 export function useUpsertTable() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (table: Omit<Table, "status">) => {
+    mutationFn: async (table: Omit<Table, "status" | "current_order_id" | "current_waiter_id">) => {
       const { data, error } = await supabase
         .from("tables")
         .upsert(table)
