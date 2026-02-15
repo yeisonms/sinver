@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { Loader2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +16,7 @@ import {
 import { useAreas, useTablesByArea } from "@/hooks/useTables";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOpenTable } from "@/hooks/useOpenTable";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { Table } from "@/types/database";
 
@@ -24,6 +26,19 @@ const GRID_COLS = 10;
 export default function TablesMapPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { data: profile } = useQuery({
+    queryKey: ["profile", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", user!.id)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
   const { data: areas = [], isLoading: areasLoading } = useAreas();
   const [activeAreaId, setActiveAreaId] = useState<string | null>(null);
 
@@ -172,7 +187,7 @@ export default function TablesMapPage() {
             </div>
             <div>
               <Label>Mesero</Label>
-              <Input value={user?.email ?? "—"} disabled className="bg-muted" />
+              <Input value={profile?.full_name ?? user?.email ?? "—"} disabled className="bg-muted" />
             </div>
             <div>
               <Label>Comentario</Label>
