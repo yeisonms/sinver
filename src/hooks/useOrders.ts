@@ -36,7 +36,7 @@ export function useCreateOrder() {
       if (orderError) throw orderError;
 
       if (items.length > 0) {
-        const orderItems = items.map(({ product_name, ...item }) => ({
+        const orderItems = items.map(({ product_name, modifiers, ...item }) => ({
           ...item,
           order_id: newOrder.id,
         }));
