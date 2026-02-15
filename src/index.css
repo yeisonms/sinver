@@ -15,7 +15,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 12%;
 
-    --primary: 0 72% 51%;
+    --primary: 22 90% 46%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 0 0% 96%;
@@ -24,26 +24,29 @@
     --muted: 0 0% 96%;
     --muted-foreground: 0 0% 45%;
 
-    --accent: 0 72% 96%;
-    --accent-foreground: 0 72% 40%;
+    --accent: 22 90% 95%;
+    --accent-foreground: 22 90% 35%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
     --border: 0 0% 90%;
     --input: 0 0% 90%;
-    --ring: 0 72% 51%;
+    --ring: 22 90% 46%;
 
     --radius: 0.5rem;
 
+    --navbar: 215 28% 17%;
+    --navbar-foreground: 0 0% 100%;
+
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 0 0% 12%;
-    --sidebar-primary: 0 72% 51%;
+    --sidebar-primary: 22 90% 46%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 72% 96%;
-    --sidebar-accent-foreground: 0 72% 40%;
+    --sidebar-accent: 22 90% 95%;
+    --sidebar-accent-foreground: 22 90% 35%;
     --sidebar-border: 0 0% 90%;
-    --sidebar-ring: 0 72% 51%;
+    --sidebar-ring: 22 90% 46%;
   }
 }
 
@@ -54,5 +57,13 @@
   body {
     @apply bg-background text-foreground;
     font-family: 'Inter', sans-serif;
+  }
+
+  /* Mobile touch-friendly targets */
+  @media (max-width: 767px) {
+    input, select, textarea, button {
+      min-height: 44px;
+      font-size: 16px;
+    }
   }
 }

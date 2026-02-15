@@ -8,11 +8,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { OrderStep2 } from "@/components/restaurant/OrderStep2";
 import type { CartItem } from "@/components/restaurant/NewOrderSheet";
 import { toast } from "sonner";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function TableTakeOrderPage() {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const isMobile = useIsMobile();
 
   const { data: order, isLoading: loadingOrder } = useQuery({
     queryKey: ["order", orderId],
@@ -49,8 +51,6 @@ export default function TableTakeOrderPage() {
 
   const [cart, setCart] = useState<CartItem[]>([]);
   const [submitting, setSubmitting] = useState(false);
-
-  // Checkout dialog state
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [closing, setClosing] = useState(false);
 
@@ -194,24 +194,27 @@ export default function TableTakeOrderPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center gap-3 px-4 py-2 border-b border-border bg-card">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/restaurant/tables")}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <h2 className="text-sm font-bold flex-1">
-          Pedido Mesa — #{order?.order_number ?? "..."}
-        </h2>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-1.5"
-          disabled={!hasExistingItems}
-          onClick={() => setCheckoutOpen(true)}
-        >
-          <Receipt className="h-4 w-4" />
-          Cobrar
-        </Button>
-      </div>
+      {/* Header - only on desktop; mobile uses OrderStep2's built-in header */}
+      {!isMobile && (
+        <div className="flex items-center gap-3 px-4 py-2 border-b border-border bg-card">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/restaurant/tables")}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <h2 className="text-sm font-bold flex-1">
+            Pedido Mesa — #{order?.order_number ?? "..."}
+          </h2>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            disabled={!hasExistingItems}
+            onClick={() => setCheckoutOpen(true)}
+          >
+            <Receipt className="h-4 w-4" />
+            Cobrar
+          </Button>
+        </div>
+      )}
       <div className="flex-1 overflow-hidden">
         <OrderStep2
           cart={cart}
