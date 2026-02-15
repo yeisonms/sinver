@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 const mainSections = [
   { title: "Productos", url: "/admin/products", icon: UtensilsCrossed, match: ["/admin/products", "/admin/categories", "/admin/modifiers"] },
   { title: "Restaurante", url: "/restaurant/counter", icon: ShoppingCart, match: ["/restaurant"] },
-  { title: "Configuración", url: "/admin/settings", icon: Settings, match: ["/admin/settings"] },
+  { title: "Configuración", url: "/admin/tables", icon: Settings, match: ["/admin/tables", "/admin/settings"] },
 ];
 
 const subTabs: Record<string, { title: string; url: string }[]> = {
@@ -36,6 +36,11 @@ const subTabs: Record<string, { title: string; url: string }[]> = {
   ],
   "/admin/settings": [
     { title: "General", url: "/admin/settings" },
+    { title: "Salas y Mesas", url: "/admin/tables" },
+  ],
+  "/admin/tables": [
+    { title: "General", url: "/admin/settings" },
+    { title: "Salas y Mesas", url: "/admin/tables" },
   ],
 };
 
