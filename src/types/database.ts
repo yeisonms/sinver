@@ -38,6 +38,10 @@ export interface Order {
   closed_at: string | null;
   invoice_status: string | null;
   payment_method: string | null;
+  delivery_address: string | null;
+  delivery_phone: string | null;
+  delivery_fee: number | null;
+  rejection_reason: string | null;
 }
 
 export interface SelectedModifier {

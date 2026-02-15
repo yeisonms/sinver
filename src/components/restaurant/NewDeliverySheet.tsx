@@ -1,9 +1,14 @@
 import { useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { ArrowRight, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCreateOrder } from "@/hooks/useOrders";
 import { useToast } from "@/hooks/use-toast";
-import { OrderStep1 } from "./OrderStep1";
+import { CustomerCombobox } from "./CustomerCombobox";
 import { OrderStep2 } from "./OrderStep2";
 import type { OrderItem, Customer } from "@/types/database";
 
@@ -19,7 +24,7 @@ interface Props {
   onOpenChange: (open: boolean) => void;
 }
 
-export function NewOrderSheet({ open, onOpenChange }: Props) {
+export function NewDeliverySheet({ open, onOpenChange }: Props) {
   const { user } = useAuth();
   const { toast } = useToast();
   const createOrder = useCreateOrder();
@@ -27,6 +32,9 @@ export function NewOrderSheet({ open, onOpenChange }: Props) {
   const [step, setStep] = useState<1 | 2>(1);
   const [customerSelection, setCustomerSelection] = useState<CustomerSelection>({ customer: null, displayName: "" });
   const [notes, setNotes] = useState("");
+  const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [deliveryPhone, setDeliveryPhone] = useState("");
+  const [deliveryFee, setDeliveryFee] = useState(0);
   const [cart, setCart] = useState<CartItem[]>([]);
 
   const total = cart.reduce((sum, item) => sum + item.unit_price * item.quantity, 0);
@@ -35,7 +43,18 @@ export function NewOrderSheet({ open, onOpenChange }: Props) {
     setStep(1);
     setCustomerSelection({ customer: null, displayName: "" });
     setNotes("");
+    setDeliveryAddress("");
+    setDeliveryPhone("");
+    setDeliveryFee(0);
     setCart([]);
+  };
+
+  // Pre-fill phone when customer is selected
+  const handleCustomerChange = (sel: CustomerSelection) => {
+    setCustomerSelection(sel);
+    if (sel.customer?.phone) {
+      setDeliveryPhone(sel.customer.phone);
+    }
   };
 
   const handleAddToCart = (item: CartItem) => {
@@ -68,27 +87,27 @@ export function NewOrderSheet({ open, onOpenChange }: Props) {
           customer_id: customerSelection.customer?.id || null,
           general_notes: notes || null,
           status: "pendiente",
-          type: "recoger",
+          type: "domicilio",
           total_amount: total,
           tip_amount: 0,
           diner_count: null,
           closed_at: null,
           invoice_status: null,
           payment_method: null,
-          delivery_address: null,
-          delivery_phone: null,
-          delivery_fee: null,
+          delivery_address: deliveryAddress || null,
+          delivery_phone: deliveryPhone || null,
+          delivery_fee: deliveryFee || 0,
           rejection_reason: null,
         },
         items: cart,
       });
-      toast({ title: "Pedido creado exitosamente" });
+      toast({ title: "Domicilio creado exitosamente" });
       resetAll();
       onOpenChange(false);
     } catch (err: any) {
       const msg = err?.message || "Error desconocido";
-      console.error("Error al crear pedido:", err);
-      toast({ title: "Error al crear pedido", description: msg, variant: "destructive" });
+      console.error("Error al crear domicilio:", err);
+      toast({ title: "Error al crear domicilio", description: msg, variant: "destructive" });
     }
   };
 
@@ -96,22 +115,60 @@ export function NewOrderSheet({ open, onOpenChange }: Props) {
     <Sheet open={open} onOpenChange={(v) => { if (!v) resetAll(); onOpenChange(v); }}>
       <SheetContent side="right" className="w-full sm:max-w-lg flex flex-col p-0">
         <SheetHeader className="px-4 pt-4 pb-2 border-b border-border">
-          <SheetTitle>{step === 1 ? "Nuevo Pedido" : "Seleccionar Productos"}</SheetTitle>
+          <SheetTitle>{step === 1 ? "Nuevo Domicilio" : "Seleccionar Productos"}</SheetTitle>
         </SheetHeader>
         <div className="flex-1 overflow-auto">
           {step === 1 ? (
-            <OrderStep1
-              customerSelection={customerSelection}
-              setCustomerSelection={setCustomerSelection}
-              notes={notes}
-              setNotes={setNotes}
-              userId={user?.email ?? "—"}
-              onContinue={() => setStep(2)}
-            />
+            <div className="p-4 space-y-4">
+              <div className="space-y-2">
+                <Label>Cliente</Label>
+                <CustomerCombobox value={customerSelection} onChange={handleCustomerChange} />
+              </div>
+              <div className="space-y-2">
+                <Label>Dirección de Entrega *</Label>
+                <Textarea
+                  placeholder="Calle, barrio, indicaciones..."
+                  value={deliveryAddress}
+                  onChange={(e) => setDeliveryAddress(e.target.value)}
+                  rows={2}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Teléfono</Label>
+                  <Input
+                    placeholder="300 123 4567"
+                    value={deliveryPhone}
+                    onChange={(e) => setDeliveryPhone(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Costo Domicilio</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={deliveryFee}
+                    onChange={(e) => setDeliveryFee(Number(e.target.value))}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Comentario General</Label>
+                <Textarea placeholder="Notas del pedido..." value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
+              </div>
+              <Button
+                className="w-full gap-2"
+                onClick={() => setStep(2)}
+                disabled={!deliveryAddress.trim()}
+              >
+                Continuar a Productos
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </div>
           ) : (
             <OrderStep2
               cart={cart}
-              total={total}
+              total={total + deliveryFee}
               onAddToCart={handleAddToCart}
               onRemoveFromCart={handleRemoveFromCart}
               onUpdateCartItem={handleUpdateCartItem}
