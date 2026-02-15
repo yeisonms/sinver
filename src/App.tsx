@@ -16,6 +16,7 @@ import TablesMapPage from "@/pages/restaurant/TablesMapPage";
 import TableTakeOrderPage from "@/pages/restaurant/TableTakeOrderPage";
 import SalesPage from "@/pages/restaurant/SalesPage";
 import DeliveryPage from "@/pages/restaurant/DeliveryPage";
+import OnlineStoreSettingsPage from "@/pages/admin/OnlineStoreSettingsPage";
 import AuthPage from "@/pages/AuthPage";
 import NotFound from "./pages/NotFound";
 
@@ -52,6 +53,7 @@ const App = () => (
               <Route path="modifiers" element={<ModifiersPage />} />
               <Route path="tables" element={<TablesPage />} />
               <Route path="sales" element={<SalesPage />} />
+              <Route path="online-store" element={<OnlineStoreSettingsPage />} />
             </Route>
             <Route
               path="/restaurant"
