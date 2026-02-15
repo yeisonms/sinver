@@ -1,77 +1,128 @@
 import { useState } from "react";
-import { Search, Plus, ChevronDown, ChevronRight, Loader2 } from "lucide-react";
+import { Search, Plus, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useOrders } from "@/hooks/useOrders";
+import { useOrderItems } from "@/hooks/useOrderItems";
 import { NewOrderSheet } from "@/components/restaurant/NewOrderSheet";
+import { OrderDetailPanel } from "@/components/restaurant/OrderDetailPanel";
 import type { Order } from "@/types/database";
 import { format } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
-const typeLabels: Record<string, string> = {
-  mesa: "Mesa",
-  domicilio: "Domicilio",
-  recoger: "Recoger",
+const statusLabels: Record<string, string> = {
+  pendiente: "Pendiente",
+  en_preparacion: "En Curso",
+  pendiente_online: "Pendiente",
 };
-
-function OrderTable({ orders, loading }: { orders: Order[]; loading: boolean }) {
-  if (loading) return <div className="flex justify-center py-4"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
-  if (!orders.length) return <p className="text-sm text-muted-foreground py-3 px-4">Sin órdenes.</p>;
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead className="w-20">ID</TableHead>
-          <TableHead className="w-24">Hora</TableHead>
-          <TableHead>Origen</TableHead>
-          <TableHead>Cliente</TableHead>
-          <TableHead className="text-right">Total</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {orders.map((o) => (
-          <TableRow key={o.id}>
-            <TableCell className="font-mono text-xs">#{o.order_number}</TableCell>
-            <TableCell className="text-xs">{format(new Date(o.created_at), "HH:mm")}</TableCell>
-            <TableCell className="text-xs">{typeLabels[o.type] ?? o.type}</TableCell>
-            <TableCell className="text-sm">{o.client_name ?? "—"}</TableCell>
-            <TableCell className="text-right font-medium">${o.total_amount.toLocaleString()}</TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  );
-}
 
 export default function CounterPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [pendingOpen, setPendingOpen] = useState(true);
-  const [activeOpen, setActiveOpen] = useState(true);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
 
-  const { data: pendingOnline = [], isLoading: loadPending } = useOrders(["pendiente_online"]);
+  // Checkout dialog state
+  const [checkoutOrder, setCheckoutOrder] = useState<Order | null>(null);
+  const [tip, setTip] = useState("0");
+  const [paymentMethod, setPaymentMethod] = useState("efectivo");
+  const [closing, setClosing] = useState(false);
+
+  const qc = useQueryClient();
+
   const { data: allActive = [], isLoading: loadActive } = useOrders(["pendiente", "en_preparacion"]);
-
-  // Filter out "mesa" orders — they are managed in the tables view
   const active = allActive.filter((o) => o.type !== "mesa");
 
-  const filteredPending = searchTerm
-    ? pendingOnline.filter((o) => o.client_name?.toLowerCase().includes(searchTerm.toLowerCase()) || String(o.order_number).includes(searchTerm))
-    : pendingOnline;
-
-  const filteredActive = searchTerm
-    ? active.filter((o) => o.client_name?.toLowerCase().includes(searchTerm.toLowerCase()) || String(o.order_number).includes(searchTerm))
+  const filtered = searchTerm
+    ? active.filter((o) =>
+        o.client_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        String(o.order_number).includes(searchTerm)
+      )
     : active;
+
+  const selectedOrder = active.find((o) => o.id === selectedOrderId) ?? null;
+
+  // Checkout items for total calculation
+  const { data: checkoutItems = [] } = useOrderItems(checkoutOrder?.id ?? null);
+  const checkoutActiveItems = checkoutItems.filter((i) => i.status !== "cancelado");
+  const consumedTotal = checkoutActiveItems.reduce((s, i) => s + i.quantity * i.unit_price, 0);
+  const tipAmount = parseFloat(tip) || 0;
+  const grandTotal = consumedTotal + tipAmount;
+
+  const handleCheckout = async () => {
+    if (!checkoutOrder) return;
+    setClosing(true);
+    try {
+      const { data: openRegister } = await supabase
+        .from("cash_registers")
+        .select("id")
+        .eq("status", "open")
+        .maybeSingle();
+
+      const { error: payErr } = await supabase.from("payments").insert({
+        order_id: checkoutOrder.id,
+        cash_register_id: openRegister?.id ?? null,
+        amount: grandTotal,
+        method: paymentMethod,
+      });
+      if (payErr) throw payErr;
+
+      const { error: orderErr } = await supabase
+        .from("orders")
+        .update({
+          status: "cerrado",
+          total_amount: consumedTotal,
+          tip_amount: tipAmount,
+          closed_at: new Date().toISOString(),
+          payment_method: paymentMethod,
+        })
+        .eq("id", checkoutOrder.id);
+      if (orderErr) throw orderErr;
+
+      qc.invalidateQueries({ queryKey: ["orders"] });
+      qc.invalidateQueries({ queryKey: ["sales-orders"] });
+      toast.success("Pedido cerrado y cobro registrado");
+      setCheckoutOrder(null);
+      setSelectedOrderId(null);
+    } catch (err: any) {
+      toast.error(err?.message || "Error al cerrar pedido");
+    } finally {
+      setClosing(false);
+    }
+  };
+
+  const openCheckout = (order: Order) => {
+    setTip("0");
+    setPaymentMethod("efectivo");
+    setCheckoutOrder(order);
+  };
 
   return (
     <div className="flex flex-col h-full">
-      {/* Search bar + new order */}
+      {/* Top bar */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-card">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar por etiqueta/ID..."
+            placeholder="Buscar por cliente/ID..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-9"
@@ -83,36 +134,111 @@ export default function CounterPage() {
         </Button>
       </div>
 
-      {/* Order sections */}
-      <div className="flex-1 overflow-auto p-4 space-y-4">
-        <Collapsible open={pendingOpen} onOpenChange={setPendingOpen}>
-          <CollapsibleTrigger className="flex items-center gap-2 w-full text-left font-semibold text-sm py-2">
-            {pendingOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-            <span className="uppercase tracking-wide text-amber-600">Pendiente</span>
-            <span className="text-xs font-normal text-muted-foreground">({filteredPending.length})</span>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <div className="rounded-lg border border-border bg-card overflow-hidden">
-              <OrderTable orders={filteredPending} loading={loadPending} />
+      {/* Split view */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Left: Order list (40%) */}
+        <div className="w-2/5 overflow-auto border-r border-border">
+          {loadActive ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
-          </CollapsibleContent>
-        </Collapsible>
+          ) : filtered.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-8">Sin pedidos en curso.</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-16 text-xs">ID</TableHead>
+                  <TableHead className="text-xs">Hora Inicio</TableHead>
+                  <TableHead className="text-xs">Estado</TableHead>
+                  <TableHead className="text-xs">Cliente</TableHead>
+                  <TableHead className="text-right text-xs">Total</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.map((o) => (
+                  <TableRow
+                    key={o.id}
+                    className={`cursor-pointer transition-colors ${
+                      selectedOrderId === o.id
+                        ? "bg-yellow-100 hover:bg-yellow-100"
+                        : "hover:bg-muted/50"
+                    }`}
+                    onClick={() => setSelectedOrderId(o.id)}
+                  >
+                    <TableCell className="font-mono text-xs font-bold">{o.order_number}</TableCell>
+                    <TableCell className="text-xs">{format(new Date(o.created_at), "dd/MM/yy HH:mm:ss")}</TableCell>
+                    <TableCell>
+                      <span className="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-green-100 text-green-700 border border-green-300">
+                        {statusLabels[o.status] ?? o.status}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-sm">{o.client_name ?? "—"}</TableCell>
+                    <TableCell className="text-right font-medium text-sm">${o.total_amount.toLocaleString()}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </div>
 
-        <Collapsible open={activeOpen} onOpenChange={setActiveOpen}>
-          <CollapsibleTrigger className="flex items-center gap-2 w-full text-left font-semibold text-sm py-2">
-            {activeOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-            <span className="uppercase tracking-wide text-primary">En Curso</span>
-            <span className="text-xs font-normal text-muted-foreground">({filteredActive.length})</span>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <div className="rounded-lg border border-border bg-card overflow-hidden">
-              <OrderTable orders={filteredActive} loading={loadActive} />
+        {/* Right: Detail panel (60%) */}
+        <div className="w-3/5 overflow-hidden">
+          {selectedOrder ? (
+            <OrderDetailPanel
+              order={selectedOrder}
+              onCheckout={openCheckout}
+            />
+          ) : (
+            <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+              Selecciona un pedido para ver detalles
             </div>
-          </CollapsibleContent>
-        </Collapsible>
+          )}
+        </div>
       </div>
 
       <NewOrderSheet open={sheetOpen} onOpenChange={setSheetOpen} />
+
+      {/* Checkout Dialog */}
+      <Dialog open={!!checkoutOrder} onOpenChange={(v) => { if (!v) setCheckoutOrder(null); }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Cerrar Pedido</DialogTitle>
+            <DialogDescription>Pedido #{checkoutOrder?.order_number}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between py-2 border-b border-border">
+              <span className="text-sm text-muted-foreground">Total Consumido</span>
+              <span className="text-lg font-bold">${consumedTotal.toLocaleString()}</span>
+            </div>
+            <div>
+              <Label className="text-xs">Propina (opcional)</Label>
+              <Input type="number" min={0} value={tip} onChange={(e) => setTip(e.target.value)} placeholder="0" />
+            </div>
+            <div>
+              <Label className="text-xs">Método de Pago</Label>
+              <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="efectivo">💵 Efectivo</SelectItem>
+                  <SelectItem value="tarjeta">💳 Tarjeta</SelectItem>
+                  <SelectItem value="transferencia">🏦 Transferencia</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center justify-between py-3 border-t border-border bg-muted/50 -mx-6 px-6 rounded-b-lg">
+              <span className="font-semibold">Total a Pagar</span>
+              <span className="text-xl font-bold text-primary">${grandTotal.toLocaleString()}</span>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={handleCheckout} disabled={closing} className="w-full">
+              {closing && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Cobrar y Cerrar Pedido
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
