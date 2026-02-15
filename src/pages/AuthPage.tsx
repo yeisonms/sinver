@@ -1,24 +1,44 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, ShieldAlert } from "lucide-react";
 
 export default function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
+  const [inactiveAlert, setInactiveAlert] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
+  const { session, isActive, profileLoading } = useAuth();
+
+  // Show inactive alert if redirected from ProtectedRoute
+  useEffect(() => {
+    if (searchParams.get("inactive") === "true") {
+      setInactiveAlert(true);
+    }
+  }, [searchParams]);
+
+  // If already logged in and active, redirect
+  useEffect(() => {
+    if (session && !profileLoading && isActive === true) {
+      navigate("/admin/products", { replace: true });
+    }
+  }, [session, isActive, profileLoading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setInactiveAlert(false);
 
     try {
       if (isSignUp) {
@@ -30,14 +50,30 @@ export default function AuthPage() {
         if (error) throw error;
         toast({
           title: "Cuenta creada",
-          description: "Revisa tu email para confirmar tu cuenta.",
+          description: "Tu cuenta ha sido creada y está pendiente de aprobación por el Administrador.",
         });
+        // Sign out immediately after signup since is_active defaults to false
+        await supabase.auth.signOut();
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
         if (error) throw error;
+
+        // Check is_active before allowing access
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("is_active")
+          .eq("id", data.user.id)
+          .single();
+
+        if (!profile?.is_active) {
+          await supabase.auth.signOut();
+          setInactiveAlert(true);
+          return;
+        }
+
         navigate("/admin/products", { replace: true });
       }
     } catch (error: any) {
@@ -62,6 +98,14 @@ export default function AuthPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {inactiveAlert && (
+            <Alert variant="destructive" className="mb-4">
+              <ShieldAlert className="h-4 w-4" />
+              <AlertDescription>
+                Tu cuenta ha sido creada pero está pendiente de aprobación por el Administrador. Por favor contacta a soporte.
+              </AlertDescription>
+            </Alert>
+          )}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
@@ -95,7 +139,7 @@ export default function AuthPage() {
             {isSignUp ? "¿Ya tienes cuenta?" : "¿No tienes cuenta?"}{" "}
             <button
               type="button"
-              onClick={() => setIsSignUp(!isSignUp)}
+              onClick={() => { setIsSignUp(!isSignUp); setInactiveAlert(false); }}
               className="text-primary underline-offset-4 hover:underline"
             >
               {isSignUp ? "Inicia sesión" : "Regístrate"}
