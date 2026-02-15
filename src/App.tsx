@@ -15,6 +15,7 @@ import CounterPage from "@/pages/restaurant/CounterPage";
 import TablesMapPage from "@/pages/restaurant/TablesMapPage";
 import TableTakeOrderPage from "@/pages/restaurant/TableTakeOrderPage";
 import SalesPage from "@/pages/restaurant/SalesPage";
+import DeliveryPage from "@/pages/restaurant/DeliveryPage";
 import AuthPage from "@/pages/AuthPage";
 import NotFound from "./pages/NotFound";
 
@@ -64,6 +65,7 @@ const App = () => (
               <Route path="counter" element={<CounterPage />} />
               <Route path="tables" element={<TablesMapPage />} />
               <Route path="tables/:orderId/take-order" element={<TableTakeOrderPage />} />
+              <Route path="delivery" element={<DeliveryPage />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
