@@ -51,7 +51,10 @@ export default function CounterPage() {
   const [activeOpen, setActiveOpen] = useState(true);
 
   const { data: pendingOnline = [], isLoading: loadPending } = useOrders(["pendiente_online"]);
-  const { data: active = [], isLoading: loadActive } = useOrders(["pendiente", "en_preparacion"]);
+  const { data: allActive = [], isLoading: loadActive } = useOrders(["pendiente", "en_preparacion"]);
+
+  // Filter out "mesa" orders — they are managed in the tables view
+  const active = allActive.filter((o) => o.type !== "mesa");
 
   const filteredPending = searchTerm
     ? pendingOnline.filter((o) => o.client_name?.toLowerCase().includes(searchTerm.toLowerCase()) || String(o.order_number).includes(searchTerm))
