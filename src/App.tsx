@@ -19,6 +19,9 @@ import DeliveryPage from "@/pages/restaurant/DeliveryPage";
 import OnlineStoreSettingsPage from "@/pages/admin/OnlineStoreSettingsPage";
 import AuthPage from "@/pages/AuthPage";
 import NotFound from "./pages/NotFound";
+import { CartProvider } from "@/contexts/CartContext";
+import StorePage from "@/pages/store/StorePage";
+import CheckoutPage from "@/pages/store/CheckoutPage";
 
 const queryClient = new QueryClient();
 
@@ -28,8 +31,11 @@ const App = () => (
       <Toaster />
       <Sonner />
       <AuthProvider>
+        <CartProvider>
         <BrowserRouter>
           <Routes>
+            <Route path="/menu" element={<StorePage />} />
+            <Route path="/menu/checkout" element={<CheckoutPage />} />
             <Route path="/auth" element={<AuthPage />} />
             <Route
               path="/"
@@ -72,6 +78,7 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
+        </CartProvider>
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
