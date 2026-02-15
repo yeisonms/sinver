@@ -23,7 +23,21 @@ interface Props {
 
 export function ScheduleTab({ info }: Props) {
   const { update, isUpdating, DEFAULT_OPENING_HOURS } = useRestaurantInfo();
-  const [hours, setHours] = useState<OpeningHours>(info.opening_hours || DEFAULT_OPENING_HOURS);
+
+  // Merge saved hours with defaults to ensure all days exist
+  const initialHours: OpeningHours = {
+    ...DEFAULT_OPENING_HOURS,
+    ...(info.opening_hours && typeof info.opening_hours === "object"
+      ? Object.fromEntries(
+          DAYS.map(({ key }) => [
+            key,
+            (info.opening_hours as OpeningHours)[key] || DEFAULT_OPENING_HOURS[key],
+          ])
+        )
+      : {}),
+  };
+
+  const [hours, setHours] = useState<OpeningHours>(initialHours);
 
   const updateDay = (day: keyof OpeningHours, partial: Partial<DaySchedule>) => {
     setHours((prev) => ({
