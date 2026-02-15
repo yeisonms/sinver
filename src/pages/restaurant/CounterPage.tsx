@@ -2,27 +2,12 @@ import { useState } from "react";
 import { Search, Plus, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useOrders } from "@/hooks/useOrders";
 import { useOrderItems } from "@/hooks/useOrderItems";
 import { NewOrderSheet } from "@/components/restaurant/NewOrderSheet";
 import { OrderDetailPanel } from "@/components/restaurant/OrderDetailPanel";
+import { CheckoutDialog } from "@/components/restaurant/CheckoutDialog";
 import type { Order } from "@/types/database";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,10 +25,7 @@ export default function CounterPage() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
 
-  // Checkout dialog state
   const [checkoutOrder, setCheckoutOrder] = useState<Order | null>(null);
-  const [tip, setTip] = useState("0");
-  const [paymentMethod, setPaymentMethod] = useState("efectivo");
   const [closing, setClosing] = useState(false);
 
   const qc = useQueryClient();
@@ -60,14 +42,11 @@ export default function CounterPage() {
 
   const selectedOrder = active.find((o) => o.id === selectedOrderId) ?? null;
 
-  // Checkout items for total calculation
   const { data: checkoutItems = [] } = useOrderItems(checkoutOrder?.id ?? null);
   const checkoutActiveItems = checkoutItems.filter((i) => i.status !== "cancelado");
   const consumedTotal = checkoutActiveItems.reduce((s, i) => s + i.quantity * i.unit_price, 0);
-  const tipAmount = parseFloat(tip) || 0;
-  const grandTotal = consumedTotal + tipAmount;
 
-  const handleCheckout = async () => {
+  const handleCheckout = async (data: { tipAmount: number; paymentMethod: string; grandTotal: number }) => {
     if (!checkoutOrder) return;
     setClosing(true);
     try {
@@ -80,8 +59,8 @@ export default function CounterPage() {
       const { error: payErr } = await supabase.from("payments").insert({
         order_id: checkoutOrder.id,
         cash_register_id: openRegister?.id ?? null,
-        amount: grandTotal,
-        method: paymentMethod,
+        amount: data.grandTotal,
+        method: data.paymentMethod,
       });
       if (payErr) throw payErr;
 
@@ -90,9 +69,9 @@ export default function CounterPage() {
         .update({
           status: "cerrado",
           total_amount: consumedTotal,
-          tip_amount: tipAmount,
+          tip_amount: data.tipAmount,
           closed_at: new Date().toISOString(),
-          payment_method: paymentMethod,
+          payment_method: data.paymentMethod,
         })
         .eq("id", checkoutOrder.id);
       if (orderErr) throw orderErr;
@@ -107,12 +86,6 @@ export default function CounterPage() {
     } finally {
       setClosing(false);
     }
-  };
-
-  const openCheckout = (order: Order) => {
-    setTip("0");
-    setPaymentMethod("efectivo");
-    setCheckoutOrder(order);
   };
 
   return (
@@ -187,7 +160,7 @@ export default function CounterPage() {
           {selectedOrder ? (
             <OrderDetailPanel
               order={selectedOrder}
-              onCheckout={openCheckout}
+              onCheckout={(order) => setCheckoutOrder(order)}
             />
           ) : (
             <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
@@ -199,46 +172,15 @@ export default function CounterPage() {
 
       <NewOrderSheet open={sheetOpen} onOpenChange={setSheetOpen} />
 
-      {/* Checkout Dialog */}
-      <Dialog open={!!checkoutOrder} onOpenChange={(v) => { if (!v) setCheckoutOrder(null); }}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Cerrar Pedido</DialogTitle>
-            <DialogDescription>Pedido #{checkoutOrder?.order_number}</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between py-2 border-b border-border">
-              <span className="text-sm text-muted-foreground">Total Consumido</span>
-              <span className="text-lg font-bold">${consumedTotal.toLocaleString()}</span>
-            </div>
-            <div>
-              <Label className="text-xs">Propina (opcional)</Label>
-              <Input type="number" min={0} value={tip} onChange={(e) => setTip(e.target.value)} placeholder="0" />
-            </div>
-            <div>
-              <Label className="text-xs">Método de Pago</Label>
-              <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="efectivo">💵 Efectivo</SelectItem>
-                  <SelectItem value="tarjeta">💳 Tarjeta</SelectItem>
-                  <SelectItem value="transferencia">🏦 Transferencia</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center justify-between py-3 border-t border-border bg-muted/50 -mx-6 px-6 rounded-b-lg">
-              <span className="font-semibold">Total a Pagar</span>
-              <span className="text-xl font-bold text-primary">${grandTotal.toLocaleString()}</span>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button onClick={handleCheckout} disabled={closing} className="w-full">
-              {closing && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-              Cobrar y Cerrar Pedido
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <CheckoutDialog
+        open={!!checkoutOrder}
+        onOpenChange={(v) => { if (!v) setCheckoutOrder(null); }}
+        title="Cerrar Pedido"
+        subtitle={`Pedido #${checkoutOrder?.order_number ?? ""}`}
+        consumedTotal={consumedTotal}
+        closing={closing}
+        onConfirm={handleCheckout}
+      />
     </div>
   );
 }
