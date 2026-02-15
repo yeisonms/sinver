@@ -8,6 +8,7 @@ const tabs = [
   { title: "Mostrador", url: "/restaurant/counter" },
   { title: "Mesas", url: "/restaurant/tables" },
   { title: "Domicilio", url: "/restaurant/delivery" },
+  { title: "Ventas", url: "/restaurant/sales" },
 ];
 
 export default function RestaurantLayout() {
