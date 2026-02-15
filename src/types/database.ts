@@ -40,6 +40,14 @@ export interface Order {
   payment_method: string | null;
 }
 
+export interface SelectedModifier {
+  group_id: string;
+  group_name: string;
+  option_id: string;
+  option_name: string;
+  price_extra: number;
+}
+
 export interface OrderItem {
   id?: string;
   order_id?: string;
@@ -48,6 +56,7 @@ export interface OrderItem {
   quantity: number;
   unit_price: number;
   notes: string | null;
+  modifiers?: SelectedModifier[];
 }
 
 export interface Table {

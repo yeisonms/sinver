@@ -111,3 +111,43 @@ export function useAssociatedProducts(groupId: string | null) {
     },
   });
 }
+
+// Fetch modifier groups + options for a specific product
+export function useProductModifierGroups(productId: string | null) {
+  return useQuery<(ModifierGroup & { options: ModifierOption[] })[]>({
+    queryKey: ["product_modifier_groups", productId],
+    enabled: !!productId,
+    queryFn: async () => {
+      // Get group IDs linked to this product
+      const { data: links, error: linkErr } = await supabase
+        .from("product_modifiers")
+        .select("group_id")
+        .eq("product_id", productId!);
+      if (linkErr) throw linkErr;
+      if (!links || links.length === 0) return [];
+
+      const groupIds = links.map((l) => l.group_id);
+
+      // Get groups
+      const { data: groups, error: groupErr } = await supabase
+        .from("modifier_groups")
+        .select("*")
+        .in("id", groupIds)
+        .order("name");
+      if (groupErr) throw groupErr;
+
+      // Get all options for these groups
+      const { data: options, error: optErr } = await supabase
+        .from("modifier_options")
+        .select("*")
+        .in("group_id", groupIds)
+        .order("name");
+      if (optErr) throw optErr;
+
+      return (groups || []).map((g) => ({
+        ...g,
+        options: (options || []).filter((o) => o.group_id === g.id),
+      }));
+    },
+  });
+}
