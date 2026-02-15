@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Loader2, Receipt } from "lucide-react";
+import { ArrowLeft, Loader2, Receipt, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CheckoutDialog } from "@/components/restaurant/CheckoutDialog";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -9,12 +9,15 @@ import { OrderStep2 } from "@/components/restaurant/OrderStep2";
 import type { CartItem } from "@/components/restaurant/NewOrderSheet";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function TableTakeOrderPage() {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const isMobile = useIsMobile();
+  const { role } = useAuth();
+  const canCheckout = role === "admin" || role === "cajero";
 
   const { data: order, isLoading: loadingOrder } = useQuery({
     queryKey: ["order", orderId],
@@ -211,16 +214,29 @@ export default function TableTakeOrderPage() {
           <h2 className="text-sm font-bold flex-1">
             Pedido Mesa — #{order?.order_number ?? "..."}
           </h2>
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1.5"
-            disabled={!hasExistingItems}
-            onClick={() => setCheckoutOpen(true)}
-          >
-            <Receipt className="h-4 w-4" />
-            Cobrar
-          </Button>
+          {canCheckout ? (
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              disabled={!hasExistingItems}
+              onClick={() => setCheckoutOpen(true)}
+            >
+              <Receipt className="h-4 w-4" />
+              Cobrar
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              disabled={!hasExistingItems}
+              onClick={() => toast.info("Imprimiendo pre-cuenta...")}
+            >
+              <Printer className="h-4 w-4" />
+              Pre-cuenta
+            </Button>
+          )}
         </div>
       )}
       <div className="flex-1 overflow-hidden">
@@ -238,15 +254,17 @@ export default function TableTakeOrderPage() {
         />
       </div>
 
-      <CheckoutDialog
-        open={checkoutOpen}
-        onOpenChange={setCheckoutOpen}
-        title="Cerrar Cuenta"
-        subtitle={`Mesa #${order?.order_number ?? ""}`}
-        consumedTotal={consumedTotal}
-        closing={closing}
-        onConfirm={handleCheckout}
-      />
+      {canCheckout && (
+        <CheckoutDialog
+          open={checkoutOpen}
+          onOpenChange={setCheckoutOpen}
+          title="Cerrar Cuenta"
+          subtitle={`Mesa #${order?.order_number ?? ""}`}
+          consumedTotal={consumedTotal}
+          closing={closing}
+          onConfirm={handleCheckout}
+        />
+      )}
     </div>
   );
 }

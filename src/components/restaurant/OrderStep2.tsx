@@ -7,6 +7,7 @@ import { useFavoriteProducts, useSearchProducts } from "@/hooks/useOrders";
 import { useProductModifierGroups } from "@/hooks/useModifiers";
 import { useCategories } from "@/hooks/useCategories";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import type { CartItem } from "./NewOrderSheet";
@@ -37,6 +38,7 @@ export function OrderStep2({ cart, existingItems = [], total, onAddToCart, onRem
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
 
   const isMobile = useIsMobile();
+  const { role } = useAuth();
   const { data: favorites = [], isLoading: loadFav } = useFavoriteProducts();
   const { data: searchResults = [] } = useSearchProducts(search);
   const { data: modifierGroups = [] } = useProductModifierGroups(editingProduct?.id ?? null);
@@ -226,7 +228,7 @@ export function OrderStep2({ cart, existingItems = [], total, onAddToCart, onRem
               disabled={cart.length === 0 || isSubmitting}
             >
               {isSubmitting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-              {mode === "mesa" ? "Confirmar y cobrar total" : "Cerrar Pedido"}
+              {mode === "mesa" ? "Enviar a Cocina" : "Cerrar Pedido"}
             </Button>
           </div>
         </div>
