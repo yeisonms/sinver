@@ -26,6 +26,7 @@ export interface Order {
   order_number: number;
   table_id: string | null;
   waiter_id: string | null;
+  customer_id: string | null;
   client_name: string | null;
   general_notes: string | null;
   status: 'pendiente' | 'pendiente_online' | 'en_preparacion' | 'listo' | 'entregado' | 'cerrado' | 'cancelado';
@@ -85,4 +86,11 @@ export interface ModifierOption {
 export interface ProductModifier {
   product_id: string;
   group_id: string;
+}
+
+export interface Customer {
+  id: string;
+  name: string;
+  phone: string | null;
+  notes: string | null;
 }

@@ -1,24 +1,31 @@
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { ArrowRight } from "lucide-react";
+import { CustomerCombobox } from "./CustomerCombobox";
+import type { Customer } from "@/types/database";
+
+interface CustomerSelection {
+  customer: Customer | null;
+  displayName: string;
+}
 
 interface Props {
-  clientName: string;
-  setClientName: (v: string) => void;
+  customerSelection: CustomerSelection;
+  setCustomerSelection: (v: CustomerSelection) => void;
   notes: string;
   setNotes: (v: string) => void;
   userId: string;
   onContinue: () => void;
 }
 
-export function OrderStep1({ clientName, setClientName, notes, setNotes, userId, onContinue }: Props) {
+export function OrderStep1({ customerSelection, setCustomerSelection, notes, setNotes, userId, onContinue }: Props) {
   return (
     <div className="p-4 space-y-5">
       <div className="space-y-2">
         <Label>Cliente</Label>
-        <Input placeholder="Nombre del cliente..." value={clientName} onChange={(e) => setClientName(e.target.value)} />
+        <CustomerCombobox value={customerSelection} onChange={setCustomerSelection} />
       </div>
       <div className="space-y-2">
         <Label>Mesero / Cajero</Label>
