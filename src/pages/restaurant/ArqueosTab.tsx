@@ -1,10 +1,14 @@
 import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { format, startOfDay, endOfDay, differenceInMinutes } from "date-fns";
 import { CalendarIcon, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -34,6 +38,37 @@ export default function ArqueosTab() {
   const now = new Date();
   const [dateFrom, setDateFrom] = useState<Date>(startOfDay(now));
   const [dateTo, setDateTo] = useState<Date>(endOfDay(now));
+  const [showOpenDialog, setShowOpenDialog] = useState(false);
+  const [startAmount, setStartAmount] = useState("");
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  const openCashMutation = useMutation({
+    mutationFn: async (amount: number) => {
+      const { error } = await supabase.from("cash_registers").insert({
+        opened_by: user?.id ?? null,
+        start_amount: amount,
+        status: "open",
+        total_sold: 0,
+        total_withdrawn: 0,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["cash-registers"] });
+      toast.success("Caja abierta correctamente");
+      setShowOpenDialog(false);
+      setStartAmount("");
+    },
+    onError: (err: any) => {
+      toast.error("Error al abrir caja: " + err.message);
+    },
+  });
+
+  const handleOpenCash = () => {
+    const amount = parseFloat(startAmount) || 0;
+    openCashMutation.mutate(amount);
+  };
 
   const { data: registers = [], isLoading } = useQuery({
     queryKey: ["cash-registers", dateFrom.toISOString(), dateTo.toISOString()],
@@ -72,10 +107,35 @@ export default function ArqueosTab() {
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-card">
         <h1 className="text-sm font-bold tracking-tight uppercase text-foreground">Arqueos</h1>
-        <Button size="sm" className="bg-amber-500 hover:bg-amber-600 text-white text-xs h-8">
+        <Button size="sm" className="bg-amber-500 hover:bg-amber-600 text-white text-xs h-8" onClick={() => setShowOpenDialog(true)}>
           Abrir la caja
         </Button>
       </div>
+
+      {/* Dialog Abrir Caja */}
+      <Dialog open={showOpenDialog} onOpenChange={setShowOpenDialog}>
+        <DialogContent className="sm:max-w-[360px]">
+          <DialogHeader>
+            <DialogTitle>Abrir Caja</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <label className="text-sm text-muted-foreground">Monto inicial (base)</label>
+            <Input
+              type="number"
+              placeholder="0"
+              value={startAmount}
+              onChange={(e) => setStartAmount(e.target.value)}
+              min={0}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setShowOpenDialog(false)}>Cancelar</Button>
+            <Button size="sm" className="bg-amber-500 hover:bg-amber-600 text-white" onClick={handleOpenCash} disabled={openCashMutation.isPending}>
+              {openCashMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Abrir"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Filters */}
       <div className="border-b border-border bg-card px-4 py-2">
