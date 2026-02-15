@@ -13,10 +13,14 @@ export interface CartItem {
   modifiers: SelectedModifier[];
 }
 
+export type ScheduleOption = { type: "asap" } | { type: "scheduled"; date: string; time: string };
+
 interface CartContextType {
   items: CartItem[];
   deliveryMethod: "pickup" | "delivery";
   setDeliveryMethod: (m: "pickup" | "delivery") => void;
+  schedule: ScheduleOption;
+  setSchedule: (s: ScheduleOption) => void;
   addItem: (item: Omit<CartItem, "id">) => void;
   updateItem: (id: string, item: Partial<CartItem>) => void;
   removeItem: (id: string) => void;
@@ -30,6 +34,7 @@ const CartContext = createContext<CartContextType | null>(null);
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [deliveryMethod, setDeliveryMethod] = useState<"pickup" | "delivery">("pickup");
+  const [schedule, setSchedule] = useState<ScheduleOption>({ type: "asap" });
 
   const addItem = useCallback((item: Omit<CartItem, "id">) => {
     const id = crypto.randomUUID();
@@ -51,7 +56,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <CartContext.Provider
-      value={{ items, deliveryMethod, setDeliveryMethod, addItem, updateItem, removeItem, clearCart, itemCount, subtotal }}
+      value={{ items, deliveryMethod, setDeliveryMethod, schedule, setSchedule, addItem, updateItem, removeItem, clearCart, itemCount, subtotal }}
     >
       {children}
     </CartContext.Provider>

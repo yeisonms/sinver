@@ -16,7 +16,7 @@ function formatPrice(n: number) {
 }
 
 export default function CheckoutPage() {
-  const { items, subtotal, deliveryMethod, removeItem, clearCart } = useCart();
+  const { items, subtotal, deliveryMethod, schedule, removeItem, clearCart } = useCart();
   const { info } = useRestaurantInfo();
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
@@ -30,7 +30,7 @@ export default function CheckoutPage() {
     paymentMethod: "efectivo",
   });
 
-  const deliveryFee = deliveryMethod === "delivery" ? 5000 : 0;
+  const deliveryFee = deliveryMethod === "delivery" ? 1000 : 0;
   const total = subtotal + deliveryFee;
 
   const isFormValid = form.name.trim() && form.phone.trim().length >= 7 && (deliveryMethod !== "delivery" || form.address.trim());
@@ -52,7 +52,10 @@ export default function CheckoutPage() {
           total_amount: total,
           tip_amount: 0,
           payment_method: form.paymentMethod,
-          general_notes: form.email ? `Email: ${form.email}` : null,
+          general_notes: [
+            form.email ? `Email: ${form.email}` : null,
+            schedule.type === "scheduled" ? `Programado: ${schedule.date} ${schedule.time}` : null,
+          ].filter(Boolean).join(" | ") || null,
         } as any)
         .select("id, order_number")
         .single();
