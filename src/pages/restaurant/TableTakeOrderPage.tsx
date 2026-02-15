@@ -82,9 +82,13 @@ export default function TableTakeOrderPage() {
     if (!orderId || cart.length === 0) return;
     setSubmitting(true);
     try {
-      const items = cart.map(({ product_name, modifiers, ...item }) => ({
-        ...item,
+      const items = cart.map((item) => ({
         order_id: orderId,
+        product_id: item.product_id,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        notes: item.notes || null,
+        status: "activo",
       }));
       const { error: itemsErr } = await supabase.from("order_items").insert(items);
       if (itemsErr) throw itemsErr;
@@ -115,9 +119,13 @@ export default function TableTakeOrderPage() {
     setClosing(true);
     try {
       if (cart.length > 0) {
-        const items = cart.map(({ product_name, modifiers, ...item }) => ({
-          ...item,
+        const items = cart.map((item) => ({
           order_id: orderId,
+          product_id: item.product_id,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          notes: item.notes || null,
+          status: "activo",
         }));
         const { error: itemsErr } = await supabase.from("order_items").insert(items);
         if (itemsErr) throw itemsErr;

@@ -37,8 +37,12 @@ export function useCreateOrder() {
 
       if (items.length > 0) {
         const orderItems = items.map(({ product_name, modifiers, ...item }) => ({
-          ...item,
           order_id: newOrder.id,
+          product_id: item.product_id,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          notes: item.notes || null,
+          status: "activo",
         }));
         const { error: itemsError } = await supabase
           .from("order_items")
