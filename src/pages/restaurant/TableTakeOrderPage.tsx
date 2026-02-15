@@ -102,7 +102,7 @@ export default function TableTakeOrderPage() {
     if (!orderId || cart.length === 0) return;
     setSubmitting(true);
     try {
-      const items = cart.map(({ product_name, ...item }) => ({
+      const items = cart.map(({ product_name, modifiers, ...item }) => ({
         ...item,
         order_id: orderId,
       }));
@@ -136,7 +136,7 @@ export default function TableTakeOrderPage() {
     try {
       // If there are unsaved cart items, save them first
       if (cart.length > 0) {
-        const items = cart.map(({ product_name, ...item }) => ({
+        const items = cart.map(({ product_name, modifiers, ...item }) => ({
           ...item,
           order_id: orderId,
         }));
