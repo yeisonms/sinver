@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { format, startOfDay, endOfDay, subDays, startOfMonth } from "date-fns";
+import { format, startOfDay, endOfDay, subDays, startOfMonth, startOfWeek, endOfWeek } from "date-fns";
 import { es } from "date-fns/locale";
 import { CalendarIcon, Loader2, Pencil, FileText, Printer, Trash2, Filter } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -13,31 +13,52 @@ import { Calendar } from "@/components/ui/calendar";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
 import type { Order, OrderItem } from "@/types/database";
 
-type DateRange = "today" | "yesterday" | "this_month" | "custom";
+type PeriodType = "diario" | "semanal" | "mensual" | "rango";
 
-function getDateRange(range: DateRange, customFrom?: Date, customTo?: Date) {
+const MONTHS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+
+function buildDateRange(
+  period: PeriodType,
+  dailyDay: number,
+  dailyMonth: number,
+  dailyYear: number,
+  customFrom?: Date,
+  customTo?: Date
+) {
   const now = new Date();
-  switch (range) {
-    case "today":
-      return { from: startOfDay(now), to: endOfDay(now) };
-    case "yesterday":
-      return { from: startOfDay(subDays(now, 1)), to: endOfDay(subDays(now, 1)) };
-    case "this_month":
+  switch (period) {
+    case "diario": {
+      const d = new Date(dailyYear, dailyMonth, dailyDay);
+      return { from: startOfDay(d), to: endOfDay(d) };
+    }
+    case "semanal": {
+      return { from: startOfWeek(now, { weekStartsOn: 1 }), to: endOfWeek(now, { weekStartsOn: 1 }) };
+    }
+    case "mensual": {
       return { from: startOfMonth(now), to: endOfDay(now) };
-    case "custom":
+    }
+    case "rango": {
       return {
         from: customFrom ? startOfDay(customFrom) : startOfDay(now),
         to: customTo ? endOfDay(customTo) : endOfDay(now),
       };
+    }
   }
 }
 
 const typeLabels: Record<string, string> = { mesa: "Mesas", domicilio: "Domicilio", recoger: "Mostrador" };
 
 export default function SalesPage() {
-  const [dateRange, setDateRange] = useState<DateRange>("today");
+  const now = new Date();
+  const [hourFilter, setHourFilter] = useState("hora_cierre");
+  const [turnoFilter, setTurnoFilter] = useState("all");
+  const [periodType, setPeriodType] = useState<PeriodType>("diario");
+  const [dailyDay, setDailyDay] = useState(now.getDate());
+  const [dailyMonth, setDailyMonth] = useState(now.getMonth());
+  const [dailyYear, setDailyYear] = useState(now.getFullYear());
   const [customFrom, setCustomFrom] = useState<Date>();
   const [customTo, setCustomTo] = useState<Date>();
   const [statusFilter, setStatusFilter] = useState("all");
@@ -46,7 +67,7 @@ export default function SalesPage() {
   const [paymentFilter, setPaymentFilter] = useState("all");
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
 
-  const { from, to } = getDateRange(dateRange, customFrom, customTo);
+  const { from, to } = buildDateRange(periodType, dailyDay, dailyMonth, dailyYear, customFrom, customTo);
 
   const { data: orders = [], isLoading } = useQuery({
     queryKey: ["sales-orders", from.toISOString(), to.toISOString()],
@@ -164,18 +185,64 @@ export default function SalesPage() {
 
         {/* Filters area */}
         <div className="border-b border-border bg-card px-4 py-2 space-y-2">
-          {/* Row 1: Date filters */}
+          {/* Row 1: Hour filter, Turno, Period type, Day/Month/Year inputs */}
           <div className="flex items-center gap-2 flex-wrap">
-            <Select value={dateRange} onValueChange={(v) => setDateRange(v as DateRange)}>
-              <SelectTrigger className="w-[120px] h-7 text-xs"><SelectValue /></SelectTrigger>
+            <Select value={hourFilter} onValueChange={setHourFilter}>
+              <SelectTrigger className="w-[120px] h-7 text-xs bg-green-600 text-white border-green-600 hover:bg-green-700">
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
-                <SelectItem value="today">Hoy</SelectItem>
-                <SelectItem value="yesterday">Ayer</SelectItem>
-                <SelectItem value="this_month">Este mes</SelectItem>
-                <SelectItem value="custom">Personalizado</SelectItem>
+                <SelectItem value="hora_cierre">Hora Cierre</SelectItem>
+                <SelectItem value="hora_inicio">Hora Inicio</SelectItem>
               </SelectContent>
             </Select>
-            {dateRange === "custom" && (
+            <Select value={turnoFilter} onValueChange={setTurnoFilter}>
+              <SelectTrigger className="w-[100px] h-7 text-xs"><SelectValue placeholder="Turno" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Turno</SelectItem>
+                <SelectItem value="manana">Mañana</SelectItem>
+                <SelectItem value="tarde">Tarde</SelectItem>
+                <SelectItem value="noche">Noche</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={periodType} onValueChange={(v) => setPeriodType(v as PeriodType)}>
+              <SelectTrigger className="w-[110px] h-7 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="diario">Diario</SelectItem>
+                <SelectItem value="semanal">Semanal</SelectItem>
+                <SelectItem value="mensual">Mensual</SelectItem>
+                <SelectItem value="rango">Rango</SelectItem>
+              </SelectContent>
+            </Select>
+            {periodType === "diario" && (
+              <>
+                <Input
+                  type="number"
+                  value={dailyDay}
+                  onChange={(e) => setDailyDay(Number(e.target.value))}
+                  className="w-14 h-7 text-xs text-center"
+                  min={1}
+                  max={31}
+                />
+                <Select value={String(dailyMonth)} onValueChange={(v) => setDailyMonth(Number(v))}>
+                  <SelectTrigger className="w-[80px] h-7 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {MONTHS.map((m, i) => (
+                      <SelectItem key={i} value={String(i)}>{m}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Input
+                  type="number"
+                  value={dailyYear}
+                  onChange={(e) => setDailyYear(Number(e.target.value))}
+                  className="w-[70px] h-7 text-xs text-center"
+                  min={2020}
+                  max={2030}
+                />
+              </>
+            )}
+            {periodType === "rango" && (
               <>
                 <Popover>
                   <PopoverTrigger asChild>
@@ -204,7 +271,6 @@ export default function SalesPage() {
           </div>
           {/* Row 2: Other filters */}
           <div className="flex items-center gap-2 flex-wrap">
-            <Filter className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-[130px] h-7 text-xs"><SelectValue placeholder="Estado de Venta" /></SelectTrigger>
               <SelectContent>
