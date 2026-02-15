@@ -10,6 +10,7 @@ import RestaurantLayout from "@/layouts/RestaurantLayout";
 import ProductsPage from "@/pages/admin/ProductsPage";
 import CategoriesPage from "@/pages/admin/CategoriesPage";
 import ModifiersPage from "@/pages/admin/ModifiersPage";
+import TablesPage from "@/pages/admin/TablesPage";
 import CounterPage from "@/pages/restaurant/CounterPage";
 import AuthPage from "@/pages/AuthPage";
 import NotFound from "./pages/NotFound";
@@ -45,6 +46,7 @@ const App = () => (
               <Route path="products" element={<ProductsPage />} />
               <Route path="categories" element={<CategoriesPage />} />
               <Route path="modifiers" element={<ModifiersPage />} />
+              <Route path="tables" element={<TablesPage />} />
             </Route>
             <Route
               path="/restaurant"

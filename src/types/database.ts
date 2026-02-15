@@ -54,6 +54,13 @@ export interface Table {
   status: 'libre' | 'ocupada' | 'reservada';
   x_position: number | null;
   y_position: number | null;
+  shape: 'square' | 'round';
+  size_label: 'small' | 'medium';
+}
+
+export interface Area {
+  id: string;
+  name: string;
 }
 
 export interface Printer {
