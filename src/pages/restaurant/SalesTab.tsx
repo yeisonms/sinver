@@ -114,8 +114,9 @@ export default function SalesTab() {
     }
     if (typeFilter !== "all") result = result.filter((o) => o.type === typeFilter);
     if (waiterFilter !== "all") result = result.filter((o) => o.waiter_id === waiterFilter);
+    if (paymentFilter !== "all") result = result.filter((o) => o.payment_method === paymentFilter);
     return result;
-  }, [orders, statusFilter, typeFilter, waiterFilter]);
+  }, [orders, statusFilter, typeFilter, waiterFilter, paymentFilter]);
 
   const kpis = useMemo(() => {
     const count = filtered.length;
@@ -282,6 +283,7 @@ export default function SalesTab() {
                 <SelectItem value="all">Medio de pago</SelectItem>
                 <SelectItem value="efectivo">Efectivo</SelectItem>
                 <SelectItem value="tarjeta">Tarjeta</SelectItem>
+                <SelectItem value="transferencia">Transferencia</SelectItem>
               </SelectContent>
             </Select>
           </div>
