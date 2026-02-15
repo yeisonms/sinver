@@ -50,20 +50,37 @@ export function useRestaurantInfo() {
   const query = useQuery({
     queryKey: ["restaurant_info"],
     queryFn: async (): Promise<RestaurantInfo> => {
+      // Try to fetch existing record
       const { data, error } = await supabase
         .from("restaurant_info")
         .select("*")
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
+
+      // If no record exists, create one
+      if (!data) {
+        const { data: newData, error: insertError } = await supabase
+          .from("restaurant_info")
+          .insert({ name: "Mi Restaurante", description: "Mi Restaurante" } as any)
+          .select()
+          .single();
+
+        if (insertError) throw insertError;
+
+        return {
+          ...newData,
+          opening_hours: DEFAULT_OPENING_HOURS,
+        } as RestaurantInfo;
+      }
 
       return {
         ...data,
         opening_hours: data.opening_hours
           ? (data.opening_hours as unknown as OpeningHours)
           : DEFAULT_OPENING_HOURS,
-      };
+      } as RestaurantInfo;
     },
   });
 
