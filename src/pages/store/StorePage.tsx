@@ -2,13 +2,16 @@ import { useState, useRef, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useRestaurantInfo, type OpeningHours } from "@/hooks/useRestaurantInfo";
-import { useCart } from "@/contexts/CartContext";
+import { useCart, type ScheduleOption } from "@/contexts/CartContext";
 import type { Category, Product } from "@/types/database";
-import { ShoppingCart, Clock, MapPin, Search } from "lucide-react";
+import { ShoppingCart, Clock, MapPin, Search, CalendarClock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import ProductDetailModal from "@/components/store/ProductDetailModal";
 import CartPanel from "@/components/store/CartPanel";
@@ -32,7 +35,7 @@ function formatPrice(n: number) {
 
 export default function StorePage() {
   const { info, isLoading: infoLoading } = useRestaurantInfo();
-  const { itemCount, subtotal, deliveryMethod, setDeliveryMethod } = useCart();
+  const { itemCount, subtotal, deliveryMethod, setDeliveryMethod, schedule, setSchedule } = useCart();
   const [search, setSearch] = useState("");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
@@ -133,9 +136,7 @@ export default function StorePage() {
                 {info?.enable_delivery !== false && <SelectItem value="delivery"><MapPin className="inline w-3.5 h-3.5 mr-1" />Domicilio</SelectItem>}
               </SelectContent>
             </Select>
-            <Button variant="outline" size="sm" className="gap-1 text-sm">
-              <Clock className="w-3.5 h-3.5" /> Lo antes posible
-            </Button>
+            <ScheduleButton schedule={schedule} onScheduleChange={setSchedule} />
             <Button
               variant="default"
               size="sm"
@@ -294,5 +295,101 @@ function ProductCard({ product, onClick }: { product: Product; onClick: () => vo
         <p className="text-sm font-bold text-primary">{formatPrice(product.price)}</p>
       </div>
     </button>
+  );
+}
+
+function ScheduleButton({ schedule, onScheduleChange }: { schedule: ScheduleOption; onScheduleChange: (s: ScheduleOption) => void }) {
+  const [open, setOpen] = useState(false);
+  const [mode, setMode] = useState<"asap" | "scheduled">(schedule.type);
+  const [date, setDate] = useState(schedule.type === "scheduled" ? schedule.date : "");
+  const [time, setTime] = useState(schedule.type === "scheduled" ? schedule.time : "");
+
+  const handleApply = () => {
+    if (mode === "asap") {
+      onScheduleChange({ type: "asap" });
+    } else if (date && time) {
+      onScheduleChange({ type: "scheduled", date, time });
+    }
+    setOpen(false);
+  };
+
+  const label = schedule.type === "asap"
+    ? "Lo antes posible"
+    : `${schedule.date} ${schedule.time}`;
+
+  // Generate next 7 days
+  const dateOptions = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() + i);
+    const value = d.toISOString().split("T")[0];
+    const dayLabel = i === 0 ? "Hoy" : i === 1 ? "Mañana" : d.toLocaleDateString("es-CO", { weekday: "short", day: "numeric", month: "short" });
+    return { value, label: dayLabel };
+  });
+
+  // Generate time slots (every 30 min)
+  const timeOptions: string[] = [];
+  for (let h = 8; h <= 22; h++) {
+    timeOptions.push(`${String(h).padStart(2, "0")}:00`);
+    timeOptions.push(`${String(h).padStart(2, "0")}:30`);
+  }
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="outline" size="sm" className="gap-1 text-sm max-w-[200px]">
+          {schedule.type === "asap" ? <Clock className="w-3.5 h-3.5 shrink-0" /> : <CalendarClock className="w-3.5 h-3.5 shrink-0" />}
+          <span className="truncate">{label}</span>
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-72 p-4 space-y-4" align="end">
+        <p className="font-semibold text-sm">¿Cuándo lo quieres?</p>
+        <RadioGroup value={mode} onValueChange={(v) => setMode(v as "asap" | "scheduled")}>
+          <div className="flex items-center gap-2">
+            <RadioGroupItem value="asap" id="sched-asap" />
+            <Label htmlFor="sched-asap" className="text-sm">Lo antes posible</Label>
+          </div>
+          <div className="flex items-center gap-2">
+            <RadioGroupItem value="scheduled" id="sched-later" />
+            <Label htmlFor="sched-later" className="text-sm">Programar</Label>
+          </div>
+        </RadioGroup>
+
+        {mode === "scheduled" && (
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs text-muted-foreground">Fecha</Label>
+              <Select value={date} onValueChange={setDate}>
+                <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Selecciona día" /></SelectTrigger>
+                <SelectContent>
+                  {dateOptions.map((d) => (
+                    <SelectItem key={d.value} value={d.value}>{d.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Hora</Label>
+              <Select value={time} onValueChange={setTime}>
+                <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Selecciona hora" /></SelectTrigger>
+                <SelectContent>
+                  {timeOptions.map((t) => (
+                    <SelectItem key={t} value={t}>{t}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        )}
+
+        <Button
+          size="sm"
+          className="w-full"
+          disabled={mode === "scheduled" && (!date || !time)}
+          onClick={handleApply}
+        >
+          Aplicar
+        </Button>
+      </PopoverContent>
+    </Popover>
   );
 }
