@@ -10,13 +10,22 @@ import {
   LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useMemo } from "react";
 
-const mainSections = [
+interface NavSection {
+  title: string;
+  url: string;
+  icon: typeof UtensilsCrossed;
+  match: string[];
+  allowedRoles?: string[];
+}
+
+const allMainSections: NavSection[] = [
   { title: "Productos", url: "/admin/products", icon: UtensilsCrossed, match: ["/admin/products", "/admin/categories", "/admin/modifiers"] },
-  { title: "Ventas", url: "/admin/sales", icon: DollarSign, match: ["/admin/sales"] },
+  { title: "Ventas", url: "/admin/sales", icon: DollarSign, match: ["/admin/sales"], allowedRoles: ["admin"] },
   { title: "Restaurante", url: "/restaurant/counter", icon: ShoppingCart, match: ["/restaurant"] },
-  { title: "Tienda Online", url: "/admin/online-store", icon: Store, match: ["/admin/online-store"] },
-  { title: "Configuración", url: "/admin/tables", icon: Settings, match: ["/admin/tables", "/admin/settings", "/admin/team"] },
+  { title: "Tienda Online", url: "/admin/online-store", icon: Store, match: ["/admin/online-store"], allowedRoles: ["admin"] },
+  { title: "Configuración", url: "/admin/tables", icon: Settings, match: ["/admin/tables", "/admin/settings", "/admin/team"], allowedRoles: ["admin"] },
 ];
 
 const subTabs: Record<string, { title: string; url: string }[]> = {
@@ -64,8 +73,13 @@ const subTabs: Record<string, { title: string; url: string }[]> = {
 export default function AdminLayout() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, signOut } = useAuth();
+  const { user, signOut, role } = useAuth();
   const currentPath = location.pathname;
+
+  const visibleSections = useMemo(() =>
+    allMainSections.filter(s => !s.allowedRoles || (role && s.allowedRoles.includes(role))),
+    [role]
+  );
 
   const handleLogout = async () => {
     await signOut();
@@ -81,7 +95,7 @@ export default function AdminLayout() {
           <div className="flex items-center gap-1">
             <span className="text-lg font-bold text-primary mr-6 tracking-tight">🍽️ Mi Restaurante</span>
             <nav className="flex items-center gap-0.5">
-              {mainSections.map((section) => {
+              {visibleSections.map((section) => {
                 const isActive = section.match.some((m) => currentPath.startsWith(m));
                 return (
                   <NavLink
