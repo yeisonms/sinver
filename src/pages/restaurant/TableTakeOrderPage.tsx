@@ -161,7 +161,7 @@ export default function TableTakeOrderPage() {
       if (payErr) throw payErr;
 
       // Update order: close it
-      const { error: orderErr } = await supabase
+      const { error: orderErr, count: updatedCount } = await supabase
         .from("orders")
         .update({
           status: "cerrado",
@@ -172,6 +172,16 @@ export default function TableTakeOrderPage() {
         })
         .eq("id", orderId);
       if (orderErr) throw orderErr;
+
+      // Verify the update actually happened (RLS can silently block updates)
+      const { data: verifyOrder } = await supabase
+        .from("orders")
+        .select("status")
+        .eq("id", orderId)
+        .maybeSingle();
+      if (verifyOrder && verifyOrder.status !== "cerrado") {
+        throw new Error("La orden no se pudo actualizar. Verifica las políticas de seguridad (RLS) en la tabla 'orders' para permitir UPDATE a usuarios autenticados.");
+      }
 
       // Free the table
       if (order.table_id) {
