@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, ArrowLeft, MessageSquare, X, Check, Minus, Plus, Loader2, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useFavoriteProducts, useSearchProducts } from "@/hooks/useOrders";
+import { useProductModifierGroups } from "@/hooks/useModifiers";
 import type { CartItem } from "./NewOrderSheet";
-import type { Product } from "@/types/database";
+import type { Product, SelectedModifier } from "@/types/database";
 
 interface Props {
   cart: CartItem[];
@@ -26,11 +28,20 @@ export function OrderStep2({ cart, existingItems = [], total, onAddToCart, onRem
   const [itemNotes, setItemNotes] = useState("");
   const [showNotes, setShowNotes] = useState(false);
   const [editingCartIndex, setEditingCartIndex] = useState<number | null>(null);
+  const [selectedModifiers, setSelectedModifiers] = useState<Record<string, SelectedModifier>>({});
 
   const { data: favorites = [], isLoading: loadFav } = useFavoriteProducts();
   const { data: searchResults = [] } = useSearchProducts(search);
+  const { data: modifierGroups = [] } = useProductModifierGroups(editingProduct?.id ?? null);
 
   const displayProducts = search.length >= 2 ? searchResults : [];
+
+  // Reset modifiers when product changes
+  useEffect(() => {
+    if (editingProduct && editingCartIndex === null) {
+      setSelectedModifiers({});
+    }
+  }, [editingProduct?.id]);
 
   const handleSelectProduct = (p: Product) => {
     setEditingProduct(p);
@@ -38,6 +49,7 @@ export function OrderStep2({ cart, existingItems = [], total, onAddToCart, onRem
     setItemNotes("");
     setShowNotes(false);
     setEditingCartIndex(null);
+    setSelectedModifiers({});
   };
 
   const handleEditCartItem = (index: number) => {
@@ -47,7 +59,29 @@ export function OrderStep2({ cart, existingItems = [], total, onAddToCart, onRem
     setItemNotes(item.notes || "");
     setShowNotes(!!item.notes);
     setEditingCartIndex(index);
+    // Restore modifiers
+    const mods: Record<string, SelectedModifier> = {};
+    (item.modifiers || []).forEach((m) => { mods[m.group_id] = m; });
+    setSelectedModifiers(mods);
   };
+
+  const handleModifierChange = (groupId: string, optionId: string) => {
+    const group = modifierGroups.find((g) => g.id === groupId);
+    const option = group?.options.find((o) => o.id === optionId);
+    if (!group || !option) return;
+    setSelectedModifiers((prev) => ({
+      ...prev,
+      [groupId]: {
+        group_id: groupId,
+        group_name: group.name,
+        option_id: option.id,
+        option_name: option.name,
+        price_extra: option.price_extra,
+      },
+    }));
+  };
+
+  const modifierExtra = Object.values(selectedModifiers).reduce((sum, m) => sum + m.price_extra, 0);
 
   const handleConfirm = () => {
     if (!editingProduct) return;
@@ -55,8 +89,9 @@ export function OrderStep2({ cart, existingItems = [], total, onAddToCart, onRem
       product_id: editingProduct.id,
       product_name: editingProduct.name,
       quantity: qty,
-      unit_price: editingProduct.price,
+      unit_price: editingProduct.price + modifierExtra,
       notes: itemNotes || null,
+      modifiers: Object.values(selectedModifiers),
     };
     if (editingCartIndex !== null) {
       onUpdateCartItem(editingCartIndex, cartItem);
@@ -65,14 +100,16 @@ export function OrderStep2({ cart, existingItems = [], total, onAddToCart, onRem
     }
     setEditingProduct(null);
     setEditingCartIndex(null);
+    setSelectedModifiers({});
   };
 
   const handleCancel = () => {
     setEditingProduct(null);
     setEditingCartIndex(null);
+    setSelectedModifiers({});
   };
 
-  const itemTotal = editingProduct ? qty * editingProduct.price : 0;
+  const itemTotal = editingProduct ? qty * (editingProduct.price + modifierExtra) : 0;
 
   return (
     <div className="flex flex-col h-full">
@@ -126,6 +163,30 @@ export function OrderStep2({ cart, existingItems = [], total, onAddToCart, onRem
           {showNotes && (
             <div className="bg-amber-50 px-3 py-2 border-t border-amber-200">
               <Input placeholder="Comentario del ítem..." value={itemNotes} onChange={(e) => setItemNotes(e.target.value)} className="h-8 text-xs bg-white" />
+            </div>
+          )}
+
+          {/* Modifier selectors */}
+          {modifierGroups.length > 0 && (
+            <div className="bg-amber-50 px-3 py-2 border-t border-amber-200 space-y-2">
+              {modifierGroups.map((group) => (
+                <Select
+                  key={group.id}
+                  value={selectedModifiers[group.id]?.option_id || ""}
+                  onValueChange={(val) => handleModifierChange(group.id, val)}
+                >
+                  <SelectTrigger className="h-8 text-xs bg-white">
+                    <SelectValue placeholder={`--- ${group.public_name || group.name} ---`} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {group.options.map((opt) => (
+                      <SelectItem key={opt.id} value={opt.id}>
+                        {opt.name} {opt.price_extra > 0 ? `(+$${opt.price_extra.toLocaleString()})` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ))}
             </div>
           )}
 
@@ -206,6 +267,11 @@ export function OrderStep2({ cart, existingItems = [], total, onAddToCart, onRem
                 <div key={i} className="flex items-center gap-2 text-sm py-1 group">
                   <button onClick={() => handleEditCartItem(i)} className="flex-1 text-left hover:text-primary transition-colors">
                     <span>{item.quantity}x {item.product_name}</span>
+                    {item.modifiers && item.modifiers.length > 0 && (
+                      <span className="text-xs text-muted-foreground ml-1">
+                        [{item.modifiers.map((m) => m.option_name).join(", ")}]
+                      </span>
+                    )}
                     {item.notes && <span className="text-xs text-muted-foreground ml-1">({item.notes})</span>}
                   </button>
                   <span className="font-medium shrink-0">${(item.quantity * item.unit_price).toLocaleString()}</span>
