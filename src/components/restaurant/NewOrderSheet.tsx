@@ -5,9 +5,14 @@ import { useCreateOrder } from "@/hooks/useOrders";
 import { useToast } from "@/hooks/use-toast";
 import { OrderStep1 } from "./OrderStep1";
 import { OrderStep2 } from "./OrderStep2";
-import type { OrderItem } from "@/types/database";
+import type { OrderItem, Customer } from "@/types/database";
 
 export interface CartItem extends Omit<OrderItem, "id" | "order_id"> {}
+
+interface CustomerSelection {
+  customer: Customer | null;
+  displayName: string;
+}
 
 interface Props {
   open: boolean;
@@ -20,7 +25,7 @@ export function NewOrderSheet({ open, onOpenChange }: Props) {
   const createOrder = useCreateOrder();
 
   const [step, setStep] = useState<1 | 2>(1);
-  const [clientName, setClientName] = useState("");
+  const [customerSelection, setCustomerSelection] = useState<CustomerSelection>({ customer: null, displayName: "" });
   const [notes, setNotes] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
 
@@ -28,7 +33,7 @@ export function NewOrderSheet({ open, onOpenChange }: Props) {
 
   const resetAll = () => {
     setStep(1);
-    setClientName("");
+    setCustomerSelection({ customer: null, displayName: "" });
     setNotes("");
     setCart([]);
   };
@@ -59,7 +64,8 @@ export function NewOrderSheet({ open, onOpenChange }: Props) {
         order: {
           table_id: null,
           waiter_id: null,
-          client_name: clientName || null,
+          client_name: customerSelection.displayName || null,
+          customer_id: customerSelection.customer?.id || null,
           general_notes: notes || null,
           status: "pendiente",
           type: "recoger",
@@ -87,8 +93,8 @@ export function NewOrderSheet({ open, onOpenChange }: Props) {
         <div className="flex-1 overflow-auto">
           {step === 1 ? (
             <OrderStep1
-              clientName={clientName}
-              setClientName={setClientName}
+              customerSelection={customerSelection}
+              setCustomerSelection={setCustomerSelection}
               notes={notes}
               setNotes={setNotes}
               userId={user?.email ?? "—"}
