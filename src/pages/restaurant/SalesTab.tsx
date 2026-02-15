@@ -137,10 +137,13 @@ export default function SalesTab() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("order_items")
-        .select("*")
+        .select("*, products:product_id(name)")
         .eq("order_id", selectedOrderId!);
       if (error) throw error;
-      return data as OrderItem[];
+      return (data ?? []).map((item: any) => ({
+        ...item,
+        product_name: item.products?.name ?? "Producto",
+      })) as OrderItem[];
     },
     enabled: !!selectedOrderId,
   });
