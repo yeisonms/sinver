@@ -33,6 +33,7 @@ export interface Order {
   type: 'mesa' | 'domicilio' | 'recoger';
   total_amount: number;
   tip_amount: number;
+  diner_count: number | null;
   created_at: string;
 }
 
@@ -56,6 +57,8 @@ export interface Table {
   y_position: number | null;
   shape: 'square' | 'round';
   size_label: 'small' | 'medium';
+  current_order_id: string | null;
+  current_waiter_id: string | null;
 }
 
 export interface Area {

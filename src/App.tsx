@@ -12,6 +12,8 @@ import CategoriesPage from "@/pages/admin/CategoriesPage";
 import ModifiersPage from "@/pages/admin/ModifiersPage";
 import TablesPage from "@/pages/admin/TablesPage";
 import CounterPage from "@/pages/restaurant/CounterPage";
+import TablesMapPage from "@/pages/restaurant/TablesMapPage";
+import TableTakeOrderPage from "@/pages/restaurant/TableTakeOrderPage";
 import AuthPage from "@/pages/AuthPage";
 import NotFound from "./pages/NotFound";
 
@@ -58,6 +60,8 @@ const App = () => (
             >
               <Route index element={<Navigate to="counter" replace />} />
               <Route path="counter" element={<CounterPage />} />
+              <Route path="tables" element={<TablesMapPage />} />
+              <Route path="tables/:orderId/take-order" element={<TableTakeOrderPage />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -71,6 +71,7 @@ export function NewOrderSheet({ open, onOpenChange }: Props) {
           type: "recoger",
           total_amount: total,
           tip_amount: 0,
+          diner_count: null,
         },
         items: cart,
       });
