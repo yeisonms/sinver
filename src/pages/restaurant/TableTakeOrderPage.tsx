@@ -161,7 +161,7 @@ export default function TableTakeOrderPage() {
       if (payErr) throw payErr;
 
       // Update order: close it
-      const { error: orderErr } = await supabase
+      const { data: updatedOrder, error: orderErr } = await supabase
         .from("orders")
         .update({
           status: "cerrado",
@@ -170,8 +170,13 @@ export default function TableTakeOrderPage() {
           closed_at: new Date().toISOString(),
           payment_method: paymentMethod,
         })
-        .eq("id", orderId);
+        .eq("id", orderId)
+        .select()
+        .single();
       if (orderErr) throw orderErr;
+      if (!updatedOrder || updatedOrder.status !== "cerrado") {
+        throw new Error("No se pudo actualizar el estado de la orden. Verifica los permisos de la base de datos.");
+      }
 
       // Free the table
       if (order.table_id) {

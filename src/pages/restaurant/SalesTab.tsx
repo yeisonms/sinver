@@ -77,6 +77,8 @@ export default function SalesTab() {
       if (error) throw error;
       return data as Order[];
     },
+    refetchOnMount: "always",
+    staleTime: 0,
   });
 
   const { data: profiles = [] } = useQuery({
