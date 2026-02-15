@@ -64,7 +64,6 @@ const App = () => (
               <Route path="counter" element={<CounterPage />} />
               <Route path="tables" element={<TablesMapPage />} />
               <Route path="tables/:orderId/take-order" element={<TableTakeOrderPage />} />
-              <Route path="sales" element={<SalesPage />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
