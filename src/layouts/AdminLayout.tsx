@@ -5,6 +5,7 @@ import {
   UtensilsCrossed,
   ShoppingCart,
   DollarSign,
+  Store,
   Settings,
   LogOut,
 } from "lucide-react";
@@ -14,6 +15,7 @@ const mainSections = [
   { title: "Productos", url: "/admin/products", icon: UtensilsCrossed, match: ["/admin/products", "/admin/categories", "/admin/modifiers"] },
   { title: "Ventas", url: "/admin/sales", icon: DollarSign, match: ["/admin/sales"] },
   { title: "Restaurante", url: "/restaurant/counter", icon: ShoppingCart, match: ["/restaurant"] },
+  { title: "Tienda Online", url: "/admin/online-store", icon: Store, match: ["/admin/online-store"] },
   { title: "Configuración", url: "/admin/tables", icon: Settings, match: ["/admin/tables", "/admin/settings"] },
 ];
 
@@ -38,6 +40,9 @@ const subTabs: Record<string, { title: string; url: string }[]> = {
   ],
   "/admin/sales": [
     { title: "Ventas", url: "/admin/sales" },
+  ],
+  "/admin/online-store": [
+    { title: "Configuración", url: "/admin/online-store" },
   ],
   "/admin/settings": [
     { title: "General", url: "/admin/settings" },
