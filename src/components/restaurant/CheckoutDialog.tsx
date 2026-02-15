@@ -20,7 +20,8 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 
-const DEFAULT_TAX_RATE = 0.02; // 2% IVA configurable
+// ✏️ Porcentaje de propina por defecto — cambia este valor para ajustar globalmente
+const DEFAULT_TIP_RATE = 0.02; // 2%
 
 interface CheckoutDialogProps {
   open: boolean;
@@ -29,10 +30,9 @@ interface CheckoutDialogProps {
   subtitle?: string;
   consumedTotal: number;
   closing: boolean;
-  taxRate?: number;
+  tipRate?: number;
   onConfirm: (data: {
     tipAmount: number;
-    taxAmount: number;
     paymentMethod: string;
     grandTotal: number;
   }) => void;
@@ -45,7 +45,7 @@ export function CheckoutDialog({
   subtitle,
   consumedTotal,
   closing,
-  taxRate = DEFAULT_TAX_RATE,
+  tipRate = DEFAULT_TIP_RATE,
   onConfirm,
 }: CheckoutDialogProps) {
   const [includeTip, setIncludeTip] = useState(false);
@@ -61,9 +61,9 @@ export function CheckoutDialog({
     }
   }, [open]);
 
-  const taxAmount = Math.round(consumedTotal * taxRate);
-  const tipAmount = includeTip ? Math.round(consumedTotal * 0.1) : 0;
-  const grandTotal = consumedTotal + taxAmount + tipAmount;
+  const tipPercent = Math.round(tipRate * 100);
+  const tipAmount = includeTip ? Math.round(consumedTotal * tipRate) : 0;
+  const grandTotal = consumedTotal + tipAmount;
 
   const paidAmount = parseFloat(paidWith) || 0;
   const change = paidAmount - grandTotal;
@@ -88,17 +88,13 @@ export function CheckoutDialog({
             </span>
           </div>
 
-          {/* IVA */}
-          <div className="flex items-center justify-between px-3 py-1.5 rounded-md bg-muted/60">
-            <span className="text-xs text-muted-foreground">IVA ({(taxRate * 100).toFixed(0)}%)</span>
-            <span className="text-sm font-semibold">+${taxAmount.toLocaleString()}</span>
-          </div>
+          {/* Propina Switch */}
 
           {/* Propina Switch */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label htmlFor="tip-switch" className="text-sm cursor-pointer">
-                Incluir Servicio Voluntario (10%)
+                Incluir Servicio Voluntario ({tipPercent}%)
               </Label>
               <Switch
                 id="tip-switch"
@@ -108,7 +104,7 @@ export function CheckoutDialog({
             </div>
             {includeTip && (
               <div className="flex items-center justify-between px-3 py-1.5 rounded-md bg-muted/60">
-                <span className="text-xs text-muted-foreground">Propina (10%)</span>
+                <span className="text-xs text-muted-foreground">Propina ({tipPercent}%)</span>
                 <span className="text-sm font-semibold">
                   +${tipAmount.toLocaleString()}
                 </span>
@@ -179,7 +175,7 @@ export function CheckoutDialog({
 
         <DialogFooter>
           <Button
-            onClick={() => onConfirm({ tipAmount, taxAmount, paymentMethod, grandTotal })}
+            onClick={() => onConfirm({ tipAmount, paymentMethod, grandTotal })}
             disabled={closing || !canSubmit}
             className="w-full"
           >
