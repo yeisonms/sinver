@@ -3,7 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminLayout from "@/layouts/AdminLayout";
 import RestaurantLayout from "@/layouts/RestaurantLayout";
@@ -24,6 +24,12 @@ import { CartProvider } from "@/contexts/CartContext";
 import StorePage from "@/pages/store/StorePage";
 import CheckoutPage from "@/pages/store/CheckoutPage";
 
+function RoleRedirect() {
+  const { role } = useAuth();
+  const dest = role === "admin" ? "/admin/products" : "/restaurant/tables";
+  return <Navigate to={dest} replace />;
+}
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -42,7 +48,7 @@ const App = () => (
               path="/"
               element={
                 <ProtectedRoute>
-                  <Navigate to="/admin/products" replace />
+                  <RoleRedirect />
                 </ProtectedRoute>
               }
             />

@@ -19,7 +19,7 @@ export default function AuthPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
-  const { session, isActive, profileLoading } = useAuth();
+  const { session, isActive, role, profileLoading } = useAuth();
 
   // Show inactive alert if redirected from ProtectedRoute
   useEffect(() => {
@@ -31,9 +31,10 @@ export default function AuthPage() {
   // If already logged in and active, redirect
   useEffect(() => {
     if (session && !profileLoading && isActive === true) {
-      navigate("/admin/products", { replace: true });
+      const dest = role === "admin" ? "/admin/products" : "/restaurant/tables";
+      navigate(dest, { replace: true });
     }
-  }, [session, isActive, profileLoading, navigate]);
+  }, [session, isActive, role, profileLoading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,7 +65,7 @@ export default function AuthPage() {
         // Check is_active before allowing access
         const { data: profile } = await supabase
           .from("profiles")
-          .select("is_active")
+          .select("is_active, role")
           .eq("id", data.user.id)
           .single();
 
@@ -74,7 +75,8 @@ export default function AuthPage() {
           return;
         }
 
-        navigate("/admin/products", { replace: true });
+        const dest = profile.role === "admin" ? "/admin/products" : "/restaurant/tables";
+        navigate(dest, { replace: true });
       }
     } catch (error: any) {
       toast({
