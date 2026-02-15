@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { Search, Plus, Loader2, Truck, CheckCircle, XCircle, Zap, MapPin, Phone } from "lucide-react";
+import { Search, Plus, Loader2, Truck, CheckCircle, XCircle, MapPin, Phone } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { useOrders, useCreateOrder } from "@/hooks/useOrders";
+import { useOrders } from "@/hooks/useOrders";
 import { useOrderItems } from "@/hooks/useOrderItems";
 import { NewDeliverySheet } from "@/components/restaurant/NewDeliverySheet";
 import { OrderDetailPanel } from "@/components/restaurant/OrderDetailPanel";
@@ -35,7 +35,6 @@ export default function DeliveryPage() {
   const [closing, setClosing] = useState(false);
 
   const qc = useQueryClient();
-  const createOrder = useCreateOrder();
 
   // Inbox: pedidos web entrantes
   const { data: inboxOrders = [], isLoading: loadInbox } = useOrders(["pendiente_online"]);
@@ -89,35 +88,6 @@ export default function DeliveryPage() {
     }
   };
 
-  const handleSimulateWebOrder = async () => {
-    try {
-      await createOrder.mutateAsync({
-        order: {
-          table_id: null,
-          waiter_id: null,
-          client_name: "Cliente Web Simulado",
-          customer_id: null,
-          general_notes: "Pedido simulado desde la web",
-          status: "pendiente_online",
-          type: "domicilio",
-          total_amount: 25000,
-          tip_amount: 0,
-          diner_count: null,
-          closed_at: null,
-          invoice_status: null,
-          payment_method: null,
-          delivery_address: "Calle 45 #12-34, Barrio Centro",
-          delivery_phone: "300 123 4567",
-          delivery_fee: 5000,
-          rejection_reason: null,
-        },
-        items: [],
-      });
-      toast.success("Pedido web simulado creado");
-    } catch (err: any) {
-      toast.error(err?.message || "Error al simular");
-    }
-  };
 
   const handleCheckout = async (data: { tipAmount: number; paymentMethod: string; grandTotal: number }) => {
     if (!checkoutOrder) return;
@@ -177,16 +147,6 @@ export default function DeliveryPage() {
         <Button onClick={() => setSheetOpen(true)} className="gap-1.5">
           <Plus className="h-4 w-4" />
           Nuevo Domicilio
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleSimulateWebOrder}
-          disabled={createOrder.isPending}
-          className="gap-1 text-xs border-dashed"
-        >
-          <Zap className="h-3 w-3" />
-          Simular Pedido Web
         </Button>
       </div>
 
