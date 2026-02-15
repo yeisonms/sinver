@@ -20,6 +20,8 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 
+const DEFAULT_TAX_RATE = 0.02; // 2% IVA configurable
+
 interface CheckoutDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -27,8 +29,10 @@ interface CheckoutDialogProps {
   subtitle?: string;
   consumedTotal: number;
   closing: boolean;
+  taxRate?: number;
   onConfirm: (data: {
     tipAmount: number;
+    taxAmount: number;
     paymentMethod: string;
     grandTotal: number;
   }) => void;
@@ -41,6 +45,7 @@ export function CheckoutDialog({
   subtitle,
   consumedTotal,
   closing,
+  taxRate = DEFAULT_TAX_RATE,
   onConfirm,
 }: CheckoutDialogProps) {
   const [includeTip, setIncludeTip] = useState(false);
@@ -56,8 +61,9 @@ export function CheckoutDialog({
     }
   }, [open]);
 
+  const taxAmount = Math.round(consumedTotal * taxRate);
   const tipAmount = includeTip ? Math.round(consumedTotal * 0.1) : 0;
-  const grandTotal = consumedTotal + tipAmount;
+  const grandTotal = consumedTotal + taxAmount + tipAmount;
 
   const paidAmount = parseFloat(paidWith) || 0;
   const change = paidAmount - grandTotal;
@@ -80,6 +86,12 @@ export function CheckoutDialog({
             <span className="text-lg font-bold">
               ${consumedTotal.toLocaleString()}
             </span>
+          </div>
+
+          {/* IVA */}
+          <div className="flex items-center justify-between px-3 py-1.5 rounded-md bg-muted/60">
+            <span className="text-xs text-muted-foreground">IVA ({(taxRate * 100).toFixed(0)}%)</span>
+            <span className="text-sm font-semibold">+${taxAmount.toLocaleString()}</span>
           </div>
 
           {/* Propina Switch */}
@@ -167,7 +179,7 @@ export function CheckoutDialog({
 
         <DialogFooter>
           <Button
-            onClick={() => onConfirm({ tipAmount, paymentMethod, grandTotal })}
+            onClick={() => onConfirm({ tipAmount, taxAmount, paymentMethod, grandTotal })}
             disabled={closing || !canSubmit}
             className="w-full"
           >
