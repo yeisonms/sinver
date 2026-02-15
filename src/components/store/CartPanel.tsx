@@ -18,7 +18,7 @@ export default function CartPanel({ open, onClose }: Props) {
   const { items, removeItem, subtotal, deliveryMethod } = useCart();
   const navigate = useNavigate();
 
-  const deliveryFee = deliveryMethod === "delivery" ? 5000 : 0;
+  const deliveryFee = deliveryMethod === "delivery" ? 1000 : 0;
   const total = subtotal + deliveryFee;
 
   return (
