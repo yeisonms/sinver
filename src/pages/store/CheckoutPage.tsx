@@ -145,12 +145,16 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            {deliveryMethod === "delivery" && (
-              <div>
-                <Label className="text-sm">Dirección de entrega *</Label>
-                <Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
-              </div>
-            )}
+            <div>
+              <Label className="text-sm">
+                Dirección {deliveryMethod === "delivery" ? "de entrega *" : "(opcional)"}
+              </Label>
+              <Input
+                placeholder={deliveryMethod === "delivery" ? "Calle, número, barrio" : "Dirección del cliente (opcional)"}
+                value={form.address}
+                onChange={(e) => setForm({ ...form, address: e.target.value })}
+              />
+            </div>
           </div>
 
           <Separator />
