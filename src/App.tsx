@@ -17,6 +17,7 @@ import TableTakeOrderPage from "@/pages/restaurant/TableTakeOrderPage";
 import SalesPage from "@/pages/restaurant/SalesPage";
 import DeliveryPage from "@/pages/restaurant/DeliveryPage";
 import OnlineStoreSettingsPage from "@/pages/admin/OnlineStoreSettingsPage";
+import TeamPage from "@/pages/admin/TeamPage";
 import AuthPage from "@/pages/AuthPage";
 import NotFound from "./pages/NotFound";
 import { CartProvider } from "@/contexts/CartContext";
@@ -60,6 +61,7 @@ const App = () => (
               <Route path="tables" element={<TablesPage />} />
               <Route path="sales" element={<SalesPage />} />
               <Route path="online-store" element={<OnlineStoreSettingsPage />} />
+              <Route path="team" element={<TeamPage />} />
             </Route>
             <Route
               path="/restaurant"

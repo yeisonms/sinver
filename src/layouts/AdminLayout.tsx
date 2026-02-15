@@ -16,7 +16,7 @@ const mainSections = [
   { title: "Ventas", url: "/admin/sales", icon: DollarSign, match: ["/admin/sales"] },
   { title: "Restaurante", url: "/restaurant/counter", icon: ShoppingCart, match: ["/restaurant"] },
   { title: "Tienda Online", url: "/admin/online-store", icon: Store, match: ["/admin/online-store"] },
-  { title: "Configuración", url: "/admin/tables", icon: Settings, match: ["/admin/tables", "/admin/settings"] },
+  { title: "Configuración", url: "/admin/tables", icon: Settings, match: ["/admin/tables", "/admin/settings", "/admin/team"] },
 ];
 
 const subTabs: Record<string, { title: string; url: string }[]> = {
@@ -47,10 +47,17 @@ const subTabs: Record<string, { title: string; url: string }[]> = {
   "/admin/settings": [
     { title: "General", url: "/admin/settings" },
     { title: "Salas y Mesas", url: "/admin/tables" },
+    { title: "Equipo", url: "/admin/team" },
   ],
   "/admin/tables": [
     { title: "General", url: "/admin/settings" },
     { title: "Salas y Mesas", url: "/admin/tables" },
+    { title: "Equipo", url: "/admin/team" },
+  ],
+  "/admin/team": [
+    { title: "General", url: "/admin/settings" },
+    { title: "Salas y Mesas", url: "/admin/tables" },
+    { title: "Equipo", url: "/admin/team" },
   ],
 };
 
