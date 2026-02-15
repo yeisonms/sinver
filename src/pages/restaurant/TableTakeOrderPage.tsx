@@ -187,6 +187,7 @@ export default function TableTakeOrderPage() {
       }
 
       qc.invalidateQueries({ queryKey: ["orders"] });
+      qc.invalidateQueries({ queryKey: ["sales-orders"] });
       qc.invalidateQueries({ queryKey: ["tables"] });
       toast.success("Mesa cerrada y cobro registrado");
       navigate("/restaurant/tables");
