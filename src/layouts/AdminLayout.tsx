@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   UtensilsCrossed,
   ShoppingCart,
+  DollarSign,
   Settings,
   LogOut,
 } from "lucide-react";
@@ -11,6 +12,7 @@ import { Button } from "@/components/ui/button";
 
 const mainSections = [
   { title: "Productos", url: "/admin/products", icon: UtensilsCrossed, match: ["/admin/products", "/admin/categories", "/admin/modifiers"] },
+  { title: "Ventas", url: "/admin/sales", icon: DollarSign, match: ["/admin/sales"] },
   { title: "Restaurante", url: "/restaurant/counter", icon: ShoppingCart, match: ["/restaurant"] },
   { title: "Configuración", url: "/admin/tables", icon: Settings, match: ["/admin/tables", "/admin/settings"] },
 ];
@@ -33,6 +35,9 @@ const subTabs: Record<string, { title: string; url: string }[]> = {
   ],
   "/admin/orders": [
     { title: "Pedidos", url: "/admin/orders" },
+  ],
+  "/admin/sales": [
+    { title: "Ventas", url: "/admin/sales" },
   ],
   "/admin/settings": [
     { title: "General", url: "/admin/settings" },
