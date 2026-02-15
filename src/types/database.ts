@@ -35,6 +35,9 @@ export interface Order {
   tip_amount: number;
   diner_count: number | null;
   created_at: string;
+  closed_at: string | null;
+  invoice_status: string | null;
+  payment_method: string | null;
 }
 
 export interface OrderItem {

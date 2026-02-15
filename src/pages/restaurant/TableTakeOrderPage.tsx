@@ -167,6 +167,8 @@ export default function TableTakeOrderPage() {
           status: "cerrado",
           total_amount: consumedTotal,
           tip_amount: tipAmount,
+          closed_at: new Date().toISOString(),
+          payment_method: paymentMethod,
         })
         .eq("id", orderId);
       if (orderErr) throw orderErr;

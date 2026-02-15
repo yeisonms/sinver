@@ -343,7 +343,7 @@ export default function SalesTab() {
                   >
                     <TableCell className="font-mono pl-4">{o.order_number}</TableCell>
                     <TableCell>{format(new Date(o.created_at), "dd/MM/yy HH:mm:ss")}</TableCell>
-                    <TableCell>{o.status === "cerrado" ? format(new Date(o.created_at), "dd/MM/yy HH:mm:ss") : ""}</TableCell>
+                    <TableCell>{o.status === "cerrado" && o.closed_at ? format(new Date(o.closed_at), "dd/MM/yy HH:mm:ss") : ""}</TableCell>
                     <TableCell>{renderStatusBadge(o.status)}</TableCell>
                     <TableCell className="text-center">{o.table_id ? tableMap[o.table_id] ?? "" : ""}</TableCell>
                     <TableCell>{o.waiter_id ? profileMap[o.waiter_id] ?? "" : ""}</TableCell>
@@ -379,7 +379,7 @@ export default function SalesTab() {
                 <div className="space-y-2">
                   {[
                     { label: "Hora Inicio", value: format(new Date(selectedOrder.created_at), "dd/MM/yy HH:mm:ss") },
-                    { label: "Hora de cierre", value: selectedOrder.status === "cerrado" ? format(new Date(selectedOrder.created_at), "dd/MM/yy HH:mm:ss") : "" },
+                    { label: "Hora de cierre", value: selectedOrder.status === "cerrado" && selectedOrder.closed_at ? format(new Date(selectedOrder.closed_at), "dd/MM/yy HH:mm:ss") : "" },
                     { label: "Tipo", value: typeLabels[selectedOrder.type] ?? selectedOrder.type },
                     { label: "Estado", value: statusLabel(selectedOrder.status) },
                     { label: "Mesa", value: selectedOrder.table_id ? tableMap[selectedOrder.table_id] ?? "" : "" },

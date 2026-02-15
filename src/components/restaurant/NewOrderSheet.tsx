@@ -72,6 +72,9 @@ export function NewOrderSheet({ open, onOpenChange }: Props) {
           total_amount: total,
           tip_amount: 0,
           diner_count: null,
+          closed_at: null,
+          invoice_status: null,
+          payment_method: null,
         },
         items: cart,
       });
