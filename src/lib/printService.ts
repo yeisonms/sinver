@@ -23,7 +23,8 @@ interface PrinterTarget {
  */
 export async function printComanda(
   items: PrintItem[],
-  orderLabel: string // e.g. "MESA #5" or "DOMICILIO #49"
+  orderLabel: string,
+  clientName?: string
 ): Promise<void> {
   if (items.length === 0) {
     console.warn("⚠️ printComanda: No hay items para imprimir");
@@ -101,54 +102,73 @@ export async function printComanda(
 
   const promises = targets.map(async (target) => {
     try {
-      const initCmd = new Uint8Array([0x1B, 0x40]); // Initialize
-      const boldOn = new Uint8Array([0x1B, 0x45, 0x01]);
-      const boldOff = new Uint8Array([0x1B, 0x45, 0x00]);
-      const bigOn = new Uint8Array([0x1D, 0x21, 0x11]); // Double height+width
-      const bigOff = new Uint8Array([0x1D, 0x21, 0x00]);
-      const cutCmd = new Uint8Array([0x1D, 0x56, 0x00]); // Full cut
+      // Build pure ESC/POS binary payload — no plain text that could show HTTP headers
+      const ESC = 0x1B;
+      const GS = 0x1D;
+      const parts: Uint8Array[] = [];
 
-      let text = "";
-      text += "\n";
-      text += "================================\n";
-      text += `  ${orderLabel}\n`;
-      text += `  >> ${target.printer_name.toUpperCase()} <<\n`;
-      text += "================================\n";
-      text += `  ${new Date().toLocaleString("es-CO")}\n`;
-      text += "--------------------------------\n";
+      // ESC @ — Initialize printer (clears any previous state/buffer)
+      parts.push(new Uint8Array([ESC, 0x40]));
 
+      // === HEADER: Order label in double size + bold ===
+      parts.push(new Uint8Array([ESC, 0x45, 0x01])); // Bold ON
+      parts.push(new Uint8Array([GS, 0x21, 0x11]));  // Double height+width
+      parts.push(encoder.encode(`${orderLabel}\n`));
+      parts.push(new Uint8Array([GS, 0x21, 0x00]));  // Normal size
+      parts.push(new Uint8Array([ESC, 0x45, 0x00])); // Bold OFF
+
+      // === Client name ===
+      const displayClient = clientName || "Cliente Ocasional";
+      parts.push(encoder.encode(`Cliente: ${displayClient}\n`));
+
+      // === Printer destination ===
+      parts.push(encoder.encode(`>> ${target.printer_name.toUpperCase()} <<\n`));
+
+      // === Date/time ===
+      parts.push(encoder.encode(`${new Date().toLocaleString("es-CO")}\n`));
+
+      // Separator
+      parts.push(encoder.encode("================================\n"));
+
+      // === Items with notes ===
       for (const item of target.items) {
-        text += `  ${item.quantity}x ${item.product_name}\n`;
+        parts.push(new Uint8Array([ESC, 0x45, 0x01])); // Bold ON
+        parts.push(encoder.encode(`${item.quantity}x ${item.product_name}\n`));
+        parts.push(new Uint8Array([ESC, 0x45, 0x00])); // Bold OFF
         if (item.notes) {
-          text += `     * ${item.notes}\n`;
+          parts.push(encoder.encode(`   (${item.notes.toUpperCase()})\n`));
         }
       }
 
-      text += "--------------------------------\n";
-      text += "\n\n\n";
+      // Footer separator
+      parts.push(encoder.encode("================================\n"));
 
-      const textBytes = encoder.encode(text);
-      const payload = new Uint8Array([
-        ...initCmd,
-        ...boldOn,
-        ...bigOn,
-        ...encoder.encode(`  ${orderLabel}\n`),
-        ...bigOff,
-        ...boldOff,
-        ...textBytes,
-        ...cutCmd,
-      ]);
+      // Extra line feeds so text doesn't get cut
+      parts.push(encoder.encode("\n\n\n\n\n"));
+
+      // GS V 0 — Full cut
+      parts.push(new Uint8Array([GS, 0x56, 0x00]));
+
+      // Merge all parts into one Uint8Array
+      const totalLen = parts.reduce((s, p) => s + p.length, 0);
+      const payload = new Uint8Array(totalLen);
+      let offset = 0;
+      for (const part of parts) {
+        payload.set(part, offset);
+        offset += part.length;
+      }
 
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 5000);
 
       await fetch(`http://${target.ip_address}:${target.port}`, {
         method: "POST",
+        headers: { "Content-Type": "application/octet-stream" },
         body: payload,
         signal: controller.signal,
         mode: "no-cors",
       }).catch(() => {
-        // no-cors requests may throw but still work
+        // no-cors opaque response — printer likely received it
       });
 
       clearTimeout(timeout);

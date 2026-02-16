@@ -123,7 +123,7 @@ export default function TableTakeOrderPage() {
         notes: item.notes || null,
         category_id: categoryMap.get(item.product_id) || null,
       }));
-      printComanda(printItems, orderLabel).catch(console.error);
+      printComanda(printItems, orderLabel, order?.client_name || undefined).catch(console.error);
 
       qc.invalidateQueries({ queryKey: ["orders"] });
       qc.invalidateQueries({ queryKey: ["order-items", orderId] });
