@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Order, OrderItem } from "@/types/database";
+import { printComanda } from "@/lib/printService";
 
 export function useOrders(statuses: string[]) {
   return useQuery<Order[]>({
@@ -48,6 +49,25 @@ export function useCreateOrder() {
           .from("order_items")
           .insert(orderItems);
         if (itemsError) throw itemsError;
+
+        // Print comandas to assigned printers
+        const productIds = [...new Set(items.map((i) => i.product_id))];
+        const { data: products } = await supabase
+          .from("products")
+          .select("id, category_id")
+          .in("id", productIds);
+        const categoryMap = new Map((products || []).map((p) => [p.id, p.category_id]));
+
+        const typeLabel = order.type === "domicilio" ? "DOMICILIO" : order.type === "recoger" ? "RECOGER" : "MESA";
+        const orderLabel = `${typeLabel} #${newOrder.order_number}`;
+        const printItems = items.map((item) => ({
+          product_id: item.product_id,
+          product_name: item.product_name,
+          quantity: item.quantity,
+          notes: item.notes || null,
+          category_id: categoryMap.get(item.product_id) || null,
+        }));
+        printComanda(printItems, orderLabel).catch(console.error);
       }
 
       return newOrder;

@@ -85,6 +85,8 @@ export interface Area {
 export interface Printer {
   id: string;
   name: string;
+  ip_address: string | null;
+  port: number | null;
 }
 
 export interface CategoryPrinter {
