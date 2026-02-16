@@ -44,6 +44,19 @@ export default function PrintersPage() {
   const handleTest = async (id: string, ip: string, port: string) => {
     if (!ip.trim()) { toast.error("Ingresa una IP"); return; }
     setTestStatus((prev) => ({ ...prev, [id]: "testing" }));
+
+    const isHttps = window.location.protocol === "https:";
+
+    if (isHttps) {
+      // HTTPS blocks mixed content requests to local HTTP IPs
+      setTestStatus((prev) => ({ ...prev, [id]: "error" }));
+      toast.error("Conexión directa bloqueada por HTTPS", {
+        description: "El navegador bloquea peticiones HTTP desde HTTPS. Usa 'window.print()' o abre la app desde la red local (http://).",
+        duration: 8000,
+      });
+      return;
+    }
+
     try {
       const encoder = new TextEncoder();
       const initCmd = new Uint8Array([0x1B, 0x40]);
@@ -64,14 +77,18 @@ export default function PrintersPage() {
       const timeout = setTimeout(() => controller.abort(), 5000);
       await fetch(`http://${ip}:${parseInt(port) || 9100}`, {
         method: "POST", body: payload, signal: controller.signal, mode: "no-cors",
-      }).catch(() => {});
+      });
       clearTimeout(timeout);
 
       setTestStatus((prev) => ({ ...prev, [id]: "success" }));
-      toast.success(`Datos enviados a ${ip}`);
+      toast.success(`Datos enviados a ${ip}`, {
+        description: "Verifica físicamente si la impresora imprimió el ticket de prueba.",
+      });
     } catch {
       setTestStatus((prev) => ({ ...prev, [id]: "error" }));
-      toast.error("Error de conexión");
+      toast.error("Error de conexión", {
+        description: "Verifica que la IP y el puerto sean correctos y que la impresora esté encendida.",
+      });
     }
   };
 
