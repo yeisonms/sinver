@@ -67,7 +67,27 @@ export function useCreateOrder() {
           notes: item.notes || null,
           category_id: categoryMap.get(item.product_id) || null,
         }));
-        printComanda(printItems, orderLabel, order.client_name || undefined).catch(console.error);
+        // Fetch waiter name for ticket
+        let waiterName: string | undefined;
+        if (order.waiter_id) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("full_name")
+            .eq("id", order.waiter_id)
+            .maybeSingle();
+          waiterName = profile?.full_name || undefined;
+        }
+
+        printComanda({
+          items: printItems,
+          orderLabel,
+          clientName: order.client_name || undefined,
+          waiterName,
+          orderType: order.type as "mesa" | "domicilio" | "recoger",
+          deliveryAddress: order.delivery_address,
+          deliveryPhone: order.delivery_phone,
+          generalNotes: order.general_notes,
+        }).catch(console.error);
       }
 
       return newOrder;
