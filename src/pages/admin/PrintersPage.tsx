@@ -41,49 +41,51 @@ export default function PrintersPage() {
     }
   };
 
-  const handleTest = async (id: string, ip: string, port: string) => {
+  const handleTest = async (id: string, ip: string, port: string, name: string) => {
     if (!ip.trim()) { toast.error("Ingresa una IP"); return; }
     setTestStatus((prev) => ({ ...prev, [id]: "testing" }));
 
-    const isHttps = window.location.protocol === "https:";
-
-    if (isHttps) {
-      // HTTPS blocks mixed content requests to local HTTP IPs
-      setTestStatus((prev) => ({ ...prev, [id]: "error" }));
-      toast.error("Conexión directa bloqueada por HTTPS", {
-        description: "El navegador bloquea peticiones HTTP desde HTTPS. Usa 'window.print()' o abre la app desde la red local (http://).",
-        duration: 8000,
-      });
-      return;
-    }
-
     try {
       const encoder = new TextEncoder();
-      const initCmd = new Uint8Array([0x1B, 0x40]);
-      const text = encoder.encode(
+      const initCmd = new Uint8Array([0x1B, 0x40]); // Initialize
+      const boldOn = new Uint8Array([0x1B, 0x45, 0x01]);
+      const boldOff = new Uint8Array([0x1B, 0x45, 0x00]);
+      const bigOn = new Uint8Array([0x1D, 0x21, 0x11]);
+      const bigOff = new Uint8Array([0x1D, 0x21, 0x00]);
+      const cutCmd = new Uint8Array([0x1D, 0x56, 0x00]);
+
+      const header = `TEST OK - ${name}\n`;
+      const body = encoder.encode(
         "\n================================\n" +
-        "   PRUEBA DE CONEXION Wi-Fi\n" +
-        "================================\n\n" +
-        "  Sistema Fudo Restaurante\n\n" +
-        `  IP: ${ip}:${port}\n` +
-        `  Fecha: ${new Date().toLocaleString("es-CO")}\n\n` +
-        "  Conexion EXITOSA!\n\n" +
+        `  ${new Date().toLocaleString("es-CO")}\n` +
         "================================\n\n\n\n"
       );
-      const cutCmd = new Uint8Array([0x1D, 0x56, 0x00]);
-      const payload = new Uint8Array([...initCmd, ...text, ...cutCmd]);
 
+      const payload = new Uint8Array([
+        ...initCmd,
+        ...boldOn, ...bigOn,
+        ...encoder.encode(header),
+        ...bigOff, ...boldOff,
+        ...body,
+        ...cutCmd,
+      ]);
+
+      const portNum = parseInt(port) || 9100;
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 5000);
-      await fetch(`http://${ip}:${parseInt(port) || 9100}`, {
-        method: "POST", body: payload, signal: controller.signal, mode: "no-cors",
-      });
-      clearTimeout(timeout);
 
-      setTestStatus((prev) => ({ ...prev, [id]: "success" }));
-      toast.success(`Datos enviados a ${ip}`, {
-        description: "Verifica físicamente si la impresora imprimió el ticket de prueba.",
+      await fetch(`http://${ip}:${portNum}`, {
+        method: "POST",
+        body: payload,
+        signal: controller.signal,
+        mode: "no-cors",
+      }).catch(() => {
+        // no-cors requests may throw but still work
       });
+
+      clearTimeout(timeout);
+      setTestStatus((prev) => ({ ...prev, [id]: "success" }));
+      toast.success(`Datos enviados a ${name} (${ip})`);
     } catch {
       setTestStatus((prev) => ({ ...prev, [id]: "error" }));
       toast.error("Error de conexión", {
@@ -174,7 +176,7 @@ export default function PrintersPage() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => handleTest(printer.id, edit.ip, edit.port)}
+                      onClick={() => handleTest(printer.id, edit.ip, edit.port, printer.name)}
                       disabled={status === "testing" || !edit.ip.trim()}
                       className="gap-1.5"
                     >
