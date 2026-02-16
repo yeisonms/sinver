@@ -25,7 +25,7 @@ const allMainSections: NavSection[] = [
   { title: "Ventas", url: "/admin/sales", icon: DollarSign, match: ["/admin/sales"], allowedRoles: ["admin"] },
   { title: "Restaurante", url: "/restaurant/counter", icon: ShoppingCart, match: ["/restaurant"] },
   { title: "Tienda Online", url: "/admin/online-store", icon: Store, match: ["/admin/online-store"], allowedRoles: ["admin"] },
-  { title: "Configuración", url: "/admin/tables", icon: Settings, match: ["/admin/tables", "/admin/settings", "/admin/team"], allowedRoles: ["admin"] },
+  { title: "Configuración", url: "/admin/tables", icon: Settings, match: ["/admin/tables", "/admin/settings", "/admin/team", "/admin/printers"], allowedRoles: ["admin"] },
 ];
 
 const subTabs: Record<string, { title: string; url: string }[]> = {
@@ -57,16 +57,25 @@ const subTabs: Record<string, { title: string; url: string }[]> = {
     { title: "General", url: "/admin/settings" },
     { title: "Salas y Mesas", url: "/admin/tables" },
     { title: "Equipo", url: "/admin/team" },
+    { title: "Impresoras", url: "/admin/printers" },
   ],
   "/admin/tables": [
     { title: "General", url: "/admin/settings" },
     { title: "Salas y Mesas", url: "/admin/tables" },
     { title: "Equipo", url: "/admin/team" },
+    { title: "Impresoras", url: "/admin/printers" },
   ],
   "/admin/team": [
     { title: "General", url: "/admin/settings" },
     { title: "Salas y Mesas", url: "/admin/tables" },
     { title: "Equipo", url: "/admin/team" },
+    { title: "Impresoras", url: "/admin/printers" },
+  ],
+  "/admin/printers": [
+    { title: "General", url: "/admin/settings" },
+    { title: "Salas y Mesas", url: "/admin/tables" },
+    { title: "Equipo", url: "/admin/team" },
+    { title: "Impresoras", url: "/admin/printers" },
   ],
 };
 
