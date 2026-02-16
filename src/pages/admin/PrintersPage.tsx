@@ -47,28 +47,30 @@ export default function PrintersPage() {
 
     try {
       const encoder = new TextEncoder();
-      const initCmd = new Uint8Array([0x1B, 0x40]); // Initialize
-      const boldOn = new Uint8Array([0x1B, 0x45, 0x01]);
-      const boldOff = new Uint8Array([0x1B, 0x45, 0x00]);
-      const bigOn = new Uint8Array([0x1D, 0x21, 0x11]);
-      const bigOff = new Uint8Array([0x1D, 0x21, 0x00]);
-      const cutCmd = new Uint8Array([0x1D, 0x56, 0x00]);
+      const ESC = 0x1B;
+      const GS = 0x1D;
+      const parts: Uint8Array[] = [];
 
-      const header = `TEST OK - ${name}\n`;
-      const body = encoder.encode(
-        "\n================================\n" +
-        `  ${new Date().toLocaleString("es-CO")}\n` +
-        "================================\n\n\n\n"
-      );
+      parts.push(new Uint8Array([ESC, 0x40])); // Initialize
+      parts.push(new Uint8Array([ESC, 0x45, 0x01])); // Bold ON
+      parts.push(new Uint8Array([GS, 0x21, 0x11]));  // Double size
+      parts.push(encoder.encode(`TEST OK\n`));
+      parts.push(new Uint8Array([GS, 0x21, 0x00]));  // Normal size
+      parts.push(new Uint8Array([ESC, 0x45, 0x00])); // Bold OFF
+      parts.push(encoder.encode(`${name}\n`));
+      parts.push(encoder.encode("================================\n"));
+      parts.push(encoder.encode(`${new Date().toLocaleString("es-CO")}\n`));
+      parts.push(encoder.encode("================================\n"));
+      parts.push(encoder.encode("\n\n\n\n\n"));
+      parts.push(new Uint8Array([GS, 0x56, 0x00])); // Full cut
 
-      const payload = new Uint8Array([
-        ...initCmd,
-        ...boldOn, ...bigOn,
-        ...encoder.encode(header),
-        ...bigOff, ...boldOff,
-        ...body,
-        ...cutCmd,
-      ]);
+      const totalLen = parts.reduce((s, p) => s + p.length, 0);
+      const payload = new Uint8Array(totalLen);
+      let offset = 0;
+      for (const part of parts) {
+        payload.set(part, offset);
+        offset += part.length;
+      }
 
       const portNum = parseInt(port) || 9100;
       const controller = new AbortController();
@@ -76,12 +78,11 @@ export default function PrintersPage() {
 
       await fetch(`http://${ip}:${portNum}`, {
         method: "POST",
+        headers: { "Content-Type": "application/octet-stream" },
         body: payload,
         signal: controller.signal,
         mode: "no-cors",
-      }).catch(() => {
-        // no-cors requests may throw but still work
-      });
+      }).catch(() => {});
 
       clearTimeout(timeout);
       setTestStatus((prev) => ({ ...prev, [id]: "success" }));
