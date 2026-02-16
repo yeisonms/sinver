@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface PrintItem {
   product_id: string;
@@ -24,18 +25,29 @@ export async function printComanda(
   items: PrintItem[],
   orderLabel: string // e.g. "MESA #5" or "DOMICILIO #49"
 ): Promise<void> {
-  if (items.length === 0) return;
+  if (items.length === 0) {
+    console.warn("⚠️ printComanda: No hay items para imprimir");
+    return;
+  }
 
   // 1. Get unique category IDs
   const categoryIds = [...new Set(items.map((i) => i.category_id).filter(Boolean))] as string[];
-  if (categoryIds.length === 0) return;
+  if (categoryIds.length === 0) {
+    console.warn("⚠️ printComanda: Ningún item tiene category_id");
+    return;
+  }
 
   // 2. Get category -> printer mappings
   const { data: mappings, error: mapErr } = await supabase
     .from("category_printers")
     .select("category_id, printer_id")
     .in("category_id", categoryIds);
-  if (mapErr || !mappings || mappings.length === 0) return;
+  if (mapErr) { console.error("❌ Error consultando category_printers:", mapErr); return; }
+  if (!mappings || mappings.length === 0) {
+    console.warn("⚠️ printComanda: No hay impresoras asignadas a las categorías:", categoryIds);
+    toast.warning("Sin impresoras asignadas", { description: "Las categorías de estos productos no tienen impresoras configuradas." });
+    return;
+  }
 
   // 3. Get printer details
   const printerIds = [...new Set(mappings.map((m) => m.printer_id))];
@@ -43,7 +55,12 @@ export async function printComanda(
     .from("printers")
     .select("id, name, ip_address, port")
     .in("id", printerIds);
-  if (pErr || !printers) return;
+  if (pErr) { console.error("❌ Error consultando printers:", pErr); return; }
+  if (!printers || printers.length === 0) {
+    console.warn("⚠️ printComanda: No se encontraron impresoras para IDs:", printerIds);
+    return;
+  }
+  console.log("🖨️ printComanda: Impresoras encontradas:", printers.map(p => `${p.name} (${p.ip_address}:${p.port})`));
 
   // Build a map: category_id -> printer_ids
   const catToPrinters = new Map<string, string[]>();
