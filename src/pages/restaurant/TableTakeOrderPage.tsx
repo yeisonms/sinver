@@ -123,7 +123,25 @@ export default function TableTakeOrderPage() {
         notes: item.notes || null,
         category_id: categoryMap.get(item.product_id) || null,
       }));
-      printComanda(printItems, orderLabel, order?.client_name || undefined).catch(console.error);
+      // Fetch waiter name for ticket
+      let waiterName: string | undefined;
+      if (order?.waiter_id) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("id", order.waiter_id)
+          .maybeSingle();
+        waiterName = profile?.full_name || undefined;
+      }
+
+      printComanda({
+        items: printItems,
+        orderLabel,
+        clientName: order?.client_name || undefined,
+        waiterName,
+        orderType: "mesa",
+        generalNotes: order?.general_notes,
+      }).catch(console.error);
 
       qc.invalidateQueries({ queryKey: ["orders"] });
       qc.invalidateQueries({ queryKey: ["order-items", orderId] });

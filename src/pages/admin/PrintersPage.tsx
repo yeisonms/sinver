@@ -73,18 +73,30 @@ export default function PrintersPage() {
       }
 
       const portNum = parseInt(port) || 9100;
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 5000);
 
-      await fetch(`http://${ip}:${portNum}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/octet-stream" },
-        body: payload,
-        signal: controller.signal,
-        mode: "no-cors",
-      }).catch(() => {});
+      // Use RawBT on Android, HTTP otherwise
+      if (/Android/i.test(navigator.userAgent)) {
+        let binary = "";
+        for (let i = 0; i < payload.length; i++) {
+          binary += String.fromCharCode(payload[i]);
+        }
+        const base64 = btoa(binary);
+        window.location.href = `rawbt:base64,${base64}`;
+      } else {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000);
 
-      clearTimeout(timeout);
+        await fetch(`http://${ip}:${portNum}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/octet-stream" },
+          body: new Blob([payload as any]),
+          signal: controller.signal,
+          mode: "no-cors",
+        }).catch(() => {});
+
+        clearTimeout(timeout);
+      }
+
       setTestStatus((prev) => ({ ...prev, [id]: "success" }));
       toast.success(`Datos enviados a ${name} (${ip})`);
     } catch {
