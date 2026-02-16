@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Printer } from "@/types/database";
 
@@ -8,11 +8,22 @@ export function usePrinters() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("printers")
-        .select("id, name")
+        .select("id, name, ip_address, port")
         .order("name", { ascending: true });
       if (error) throw error;
       return data;
     },
+  });
+}
+
+export function useUpdatePrinter() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ip_address, port }: { id: string; ip_address: string; port: number }) => {
+      const { error } = await supabase.from("printers").update({ ip_address, port }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["printers"] }),
   });
 }
 

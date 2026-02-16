@@ -10,6 +10,7 @@ import type { CartItem } from "@/components/restaurant/NewOrderSheet";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/contexts/AuthContext";
+import { printComanda } from "@/lib/printService";
 
 export default function TableTakeOrderPage() {
   const { orderId } = useParams<{ orderId: string }>();
@@ -85,6 +86,14 @@ export default function TableTakeOrderPage() {
     if (!orderId || cart.length === 0) return;
     setSubmitting(true);
     try {
+      // Fetch category_id for each product in cart
+      const productIds = [...new Set(cart.map((c) => c.product_id))];
+      const { data: products } = await supabase
+        .from("products")
+        .select("id, category_id")
+        .in("id", productIds);
+      const categoryMap = new Map((products || []).map((p) => [p.id, p.category_id]));
+
       const items = cart.map((item) => ({
         order_id: orderId,
         product_id: item.product_id,
@@ -104,6 +113,17 @@ export default function TableTakeOrderPage() {
         })
         .eq("id", orderId);
       if (orderErr) throw orderErr;
+
+      // Print comandas to assigned printers
+      const orderLabel = `MESA #${order?.order_number ?? "?"}`;
+      const printItems = cart.map((item) => ({
+        product_id: item.product_id,
+        product_name: item.product_name,
+        quantity: item.quantity,
+        notes: item.notes || null,
+        category_id: categoryMap.get(item.product_id) || null,
+      }));
+      printComanda(printItems, orderLabel).catch(console.error);
 
       qc.invalidateQueries({ queryKey: ["orders"] });
       qc.invalidateQueries({ queryKey: ["order-items", orderId] });
