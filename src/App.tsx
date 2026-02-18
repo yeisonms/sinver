@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { useIsMobile } from "@/hooks/use-mobile";
 import AdminLayout from "@/layouts/AdminLayout";
 import RestaurantLayout from "@/layouts/RestaurantLayout";
 import ProductsPage from "@/pages/admin/ProductsPage";
@@ -27,7 +28,10 @@ import CheckoutPage from "@/pages/store/CheckoutPage";
 
 function RoleRedirect() {
   const { role } = useAuth();
-  const dest = role === "admin" ? "/admin/products" : "/restaurant/tables";
+  const isMobile = useIsMobile();
+  const dest = role === "admin"
+    ? (isMobile ? "/restaurant/counter" : "/admin/products")
+    : "/restaurant/tables";
   return <Navigate to={dest} replace />;
 }
 
