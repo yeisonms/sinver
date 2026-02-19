@@ -56,24 +56,33 @@ export function CheckoutDialog({
 }: CheckoutDialogProps) {
   const [paymentMethod, setPaymentMethod] = useState("efectivo");
   const [paidWith, setPaidWith] = useState("");
-  // tipInput: cadena editable que representa el valor de propina en pesos
   const [tipInput, setTipInput] = useState("");
   const [tipEnabled, setTipEnabled] = useState(true);
+  // Tracks whether the tip has been initialized from suggestedTip already
+  const [tipInitialized, setTipInitialized] = useState(false);
   const isMobile = useIsMobile();
 
-  // Calcula propina sugerida al abrir según el porcentaje configurado
   const suggestedTip = Math.round(consumedTotal * (tipRate / 100));
 
-  // Reset state when dialog opens
+  // Reset everything when dialog opens/closes
   useEffect(() => {
     if (open) {
       setPaymentMethod("efectivo");
       setPaidWith("");
-      setTipEnabled(suggestedTip > 0);
-      setTipInput(suggestedTip > 0 ? String(suggestedTip) : "");
+      setTipInitialized(false);
+      setTipEnabled(false);
+      setTipInput("");
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  // Initialize tip as soon as suggestedTip is available (items may load after dialog opens)
+  useEffect(() => {
+    if (open && !tipInitialized && suggestedTip > 0) {
+      setTipInitialized(true);
+      setTipEnabled(true);
+      setTipInput(String(suggestedTip));
+    }
+  }, [open, suggestedTip, tipInitialized]);
 
   const tipAmount = tipEnabled ? Math.max(0, parseFloat(tipInput) || 0) : 0;
   const grandTotal = consumedTotal + tipAmount;
