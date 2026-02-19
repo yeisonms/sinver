@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Loader2, Receipt, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CheckoutDialog } from "@/components/restaurant/CheckoutDialog";
+import { useRestaurantInfo } from "@/hooks/useRestaurantInfo";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { OrderStep2 } from "@/components/restaurant/OrderStep2";
@@ -16,6 +17,8 @@ export default function TableTakeOrderPage() {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const { info: restaurantInfo } = useRestaurantInfo();
+  const tipRate = restaurantInfo?.default_tip_percentage ?? 0;
   const isMobile = useIsMobile();
   const { role } = useAuth();
   const canCheckout = role === "admin" || role === "cajero";
@@ -300,6 +303,7 @@ export default function TableTakeOrderPage() {
           subtitle={`Mesa #${order?.order_number ?? ""}`}
           consumedTotal={consumedTotal}
           closing={closing}
+          tipRate={tipRate}
           onConfirm={handleCheckout}
         />
       )}

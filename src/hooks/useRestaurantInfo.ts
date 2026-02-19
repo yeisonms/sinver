@@ -32,6 +32,8 @@ export interface RestaurantInfo {
   enable_pickup: boolean;
   enable_delivery: boolean;
   opening_hours: OpeningHours | null;
+  default_delivery_fee: number | null;
+  default_tip_percentage: number | null;
 }
 
 const DEFAULT_OPENING_HOURS: OpeningHours = {

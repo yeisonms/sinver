@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
-import { Loader2, Pencil } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -21,9 +20,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 
-// ✏️ Porcentaje de propina por defecto — cambia este valor para ajustar globalmente
-const DEFAULT_TIP_RATE = 0.02; // 2%
-
 const paymentMethods = [
   { value: "efectivo", label: "Efectivo", emoji: "💵" },
   { value: "tarjeta_credito", label: "Tarj. Crédito", emoji: "💳" },
@@ -38,6 +34,7 @@ interface CheckoutDialogProps {
   subtitle?: string;
   consumedTotal: number;
   closing: boolean;
+  /** Porcentaje de propina sugerida (ej: 2 para 2%). Si no se pasa se usa 0. */
   tipRate?: number;
   onConfirm: (data: {
     tipAmount: number;
@@ -53,25 +50,29 @@ export function CheckoutDialog({
   subtitle,
   consumedTotal,
   closing,
-  tipRate = DEFAULT_TIP_RATE,
+  tipRate = 0,
   onConfirm,
 }: CheckoutDialogProps) {
-  const [includeTip, setIncludeTip] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("efectivo");
   const [paidWith, setPaidWith] = useState("");
+  // tipInput: cadena editable que representa el valor de propina en pesos
+  const [tipInput, setTipInput] = useState("");
   const isMobile = useIsMobile();
+
+  // Calcula propina sugerida al abrir según el porcentaje configurado
+  const suggestedTip = Math.round(consumedTotal * (tipRate / 100));
 
   // Reset state when dialog opens
   useEffect(() => {
     if (open) {
-      setIncludeTip(false);
       setPaymentMethod("efectivo");
       setPaidWith("");
+      setTipInput(suggestedTip > 0 ? String(suggestedTip) : "");
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  const tipPercent = Math.round(tipRate * 100);
-  const tipAmount = includeTip ? Math.round(consumedTotal * tipRate) : 0;
+  const tipAmount = Math.max(0, parseFloat(tipInput) || 0);
   const grandTotal = consumedTotal + tipAmount;
 
   const paidAmount = parseFloat(paidWith) || 0;
@@ -127,36 +128,35 @@ export function CheckoutDialog({
         </div>
       )}
 
-      {/* Tip section */}
-      <div>
-        <p className="text-sm font-medium text-muted-foreground mb-3">Registra tu propina</p>
-        <div className="grid grid-cols-2 gap-3">
-          <button
-            onClick={() => setIncludeTip(true)}
-            className={`flex flex-col items-start justify-center p-4 rounded-xl border-2 transition-all min-h-[72px] ${
-              includeTip
-                ? "border-primary bg-primary/5"
-                : "border-border bg-card hover:border-muted-foreground/30"
-            }`}
-          >
-            <span className="text-lg font-bold">{tipPercent} %</span>
-            <span className="text-xs text-primary">Efectivo</span>
-          </button>
-          <button
-            onClick={() => setIncludeTip(false)}
-            className={`flex flex-col items-start justify-center p-4 rounded-xl border-2 transition-all min-h-[72px] ${
-              !includeTip
-                ? "border-primary bg-primary/5"
-                : "border-border bg-card hover:border-muted-foreground/30"
-            }`}
-          >
-            <span className="text-base font-medium">Sin propina</span>
-          </button>
+      {/* Tip section — editable input */}
+      <div className="space-y-2">
+        <Label className="text-sm font-medium text-muted-foreground">
+          Propina sugerida ({tipRate}%)
+        </Label>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-muted-foreground">$</span>
+          <Input
+            type="number"
+            min={0}
+            value={tipInput}
+            onChange={(e) => setTipInput(e.target.value)}
+            placeholder="0"
+            className="h-11 text-base"
+          />
+          {suggestedTip > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="shrink-0 text-xs"
+              onClick={() => setTipInput(String(suggestedTip))}
+            >
+              Restablecer
+            </Button>
+          )}
         </div>
-        <button className="flex items-center gap-1.5 text-sm text-primary mt-3 mx-auto">
-          <Pencil className="h-3.5 w-3.5" />
-          Editar propina
-        </button>
+        <p className="text-xs text-muted-foreground">
+          Deja en 0 para no registrar propina, o escribe el valor que desees.
+        </p>
       </div>
 
       {/* Totals */}
@@ -165,7 +165,7 @@ export function CheckoutDialog({
           <span>Cobro total</span>
           <span className="font-medium">${consumedTotal.toLocaleString("es-CO", { minimumFractionDigits: 2 })}</span>
         </div>
-        {includeTip && (
+        {tipAmount > 0 && (
           <div className="flex justify-between text-sm">
             <span>Propina</span>
             <span className="font-medium">${tipAmount.toLocaleString("es-CO", { minimumFractionDigits: 2 })}</span>
