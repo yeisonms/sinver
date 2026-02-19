@@ -4,10 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 import { useRestaurantInfo, RestaurantInfo } from "@/hooks/useRestaurantInfo";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { MessageCircle, Facebook, Instagram, Upload, ImageIcon, Loader2 } from "lucide-react";
+import { MessageCircle, Facebook, Instagram, Upload, ImageIcon, Loader2, DollarSign, Percent } from "lucide-react";
 
 interface Props {
   info: RestaurantInfo;
@@ -22,6 +23,8 @@ export function GeneralTab({ info }: Props) {
   const [facebookUrl, setFacebookUrl] = useState(info.facebook_url || "");
   const [instagramUrl, setInstagramUrl] = useState(info.instagram_url || "");
   const [bannerUrl, setBannerUrl] = useState(info.banner_url || "");
+  const [defaultDeliveryFee, setDefaultDeliveryFee] = useState(String(info.default_delivery_fee ?? ""));
+  const [defaultTipPercentage, setDefaultTipPercentage] = useState(String(info.default_tip_percentage ?? ""));
   const [uploading, setUploading] = useState(false);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -59,6 +62,8 @@ export function GeneralTab({ info }: Props) {
       facebook_url: facebookUrl,
       instagram_url: instagramUrl,
       banner_url: bannerUrl,
+      default_delivery_fee: defaultDeliveryFee !== "" ? Number(defaultDeliveryFee) : null,
+      default_tip_percentage: defaultTipPercentage !== "" ? Number(defaultTipPercentage) : null,
     });
   };
 
@@ -151,6 +156,51 @@ export function GeneralTab({ info }: Props) {
               placeholder="https://instagram.com/mi-restaurante"
               className="pl-10"
             />
+          </div>
+        </div>
+
+        <Separator />
+
+        {/* Ajustes de Cobro */}
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">Ajustes de Cobro</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Valores por defecto que se pre-llenan al crear pedidos. El cajero puede modificarlos en el momento.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="delivery-fee">Costo Base de Domicilio ($)</Label>
+              <div className="relative">
+                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="delivery-fee"
+                  type="number"
+                  min={0}
+                  value={defaultDeliveryFee}
+                  onChange={(e) => setDefaultDeliveryFee(e.target.value)}
+                  placeholder="1000"
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="tip-pct">Propina Sugerida (%)</Label>
+              <div className="relative">
+                <Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="tip-pct"
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={defaultTipPercentage}
+                  onChange={(e) => setDefaultTipPercentage(e.target.value)}
+                  placeholder="2"
+                  className="pl-10"
+                />
+              </div>
+            </div>
           </div>
         </div>
 

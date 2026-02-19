@@ -11,6 +11,7 @@ import { useOrderItems } from "@/hooks/useOrderItems";
 import { NewDeliverySheet } from "@/components/restaurant/NewDeliverySheet";
 import { OrderDetailPanel } from "@/components/restaurant/OrderDetailPanel";
 import { CheckoutDialog } from "@/components/restaurant/CheckoutDialog";
+import { useRestaurantInfo } from "@/hooks/useRestaurantInfo";
 import type { Order } from "@/types/database";
 import { format, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
@@ -32,6 +33,9 @@ const statusFilters = [
 ];
 
 export default function DeliveryPage() {
+  const { info: restaurantInfo } = useRestaurantInfo();
+  const tipRate = restaurantInfo?.default_tip_percentage ?? 0;
+
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -170,6 +174,7 @@ export default function DeliveryPage() {
       subtitle={`Pedido #${checkoutOrder?.order_number ?? ""}`}
       consumedTotal={consumedTotal + (checkoutOrder?.delivery_fee ?? 0)}
       closing={closing}
+      tipRate={tipRate}
       onConfirm={handleCheckout}
     />
   );

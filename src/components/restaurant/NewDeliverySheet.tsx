@@ -8,6 +8,7 @@ import { ArrowRight, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCreateOrder } from "@/hooks/useOrders";
 import { useToast } from "@/hooks/use-toast";
+import { useRestaurantInfo } from "@/hooks/useRestaurantInfo";
 import { CustomerCombobox } from "./CustomerCombobox";
 import { OrderStep2 } from "./OrderStep2";
 import type { OrderItem, Customer } from "@/types/database";
@@ -28,13 +29,16 @@ export function NewDeliverySheet({ open, onOpenChange }: Props) {
   const { user } = useAuth();
   const { toast } = useToast();
   const createOrder = useCreateOrder();
+  const { info } = useRestaurantInfo();
+
+  const defaultFee = info?.default_delivery_fee ?? 0;
 
   const [step, setStep] = useState<1 | 2>(1);
   const [customerSelection, setCustomerSelection] = useState<CustomerSelection>({ customer: null, displayName: "" });
   const [notes, setNotes] = useState("");
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [deliveryPhone, setDeliveryPhone] = useState("");
-  const [deliveryFee, setDeliveryFee] = useState(0);
+  const [deliveryFee, setDeliveryFee] = useState<string>(String(defaultFee));
   const [cart, setCart] = useState<CartItem[]>([]);
 
   const total = cart.reduce((sum, item) => sum + item.unit_price * item.quantity, 0);
@@ -45,7 +49,7 @@ export function NewDeliverySheet({ open, onOpenChange }: Props) {
     setNotes("");
     setDeliveryAddress("");
     setDeliveryPhone("");
-    setDeliveryFee(0);
+    setDeliveryFee(String(info?.default_delivery_fee ?? 0));
     setCart([]);
   };
 
@@ -96,7 +100,7 @@ export function NewDeliverySheet({ open, onOpenChange }: Props) {
           payment_method: null,
           delivery_address: deliveryAddress || null,
           delivery_phone: deliveryPhone || null,
-          delivery_fee: deliveryFee || 0,
+          delivery_fee: Number(deliveryFee) || 0,
           rejection_reason: null,
         },
         items: cart,
@@ -143,12 +147,12 @@ export function NewDeliverySheet({ open, onOpenChange }: Props) {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Costo Domicilio</Label>
+                  <Label>Costo Domicilio ($)</Label>
                   <Input
                     type="number"
                     min={0}
                     value={deliveryFee}
-                    onChange={(e) => setDeliveryFee(Number(e.target.value))}
+                    onChange={(e) => setDeliveryFee(e.target.value)}
                   />
                 </div>
               </div>
@@ -168,7 +172,7 @@ export function NewDeliverySheet({ open, onOpenChange }: Props) {
           ) : (
             <OrderStep2
               cart={cart}
-              total={total + deliveryFee}
+              total={total + Number(deliveryFee)}
               onAddToCart={handleAddToCart}
               onRemoveFromCart={handleRemoveFromCart}
               onUpdateCartItem={handleUpdateCartItem}
