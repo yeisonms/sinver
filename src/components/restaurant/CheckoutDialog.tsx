@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -57,6 +58,7 @@ export function CheckoutDialog({
   const [paidWith, setPaidWith] = useState("");
   // tipInput: cadena editable que representa el valor de propina en pesos
   const [tipInput, setTipInput] = useState("");
+  const [tipEnabled, setTipEnabled] = useState(true);
   const isMobile = useIsMobile();
 
   // Calcula propina sugerida al abrir según el porcentaje configurado
@@ -67,12 +69,13 @@ export function CheckoutDialog({
     if (open) {
       setPaymentMethod("efectivo");
       setPaidWith("");
+      setTipEnabled(suggestedTip > 0);
       setTipInput(suggestedTip > 0 ? String(suggestedTip) : "");
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  const tipAmount = Math.max(0, parseFloat(tipInput) || 0);
+  const tipAmount = tipEnabled ? Math.max(0, parseFloat(tipInput) || 0) : 0;
   const grandTotal = consumedTotal + tipAmount;
 
   const paidAmount = parseFloat(paidWith) || 0;
@@ -128,35 +131,49 @@ export function CheckoutDialog({
         </div>
       )}
 
-      {/* Tip section — editable input */}
-      <div className="space-y-2">
-        <Label className="text-sm font-medium text-muted-foreground">
-          Propina sugerida ({tipRate}%)
-        </Label>
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-muted-foreground">$</span>
-          <Input
-            type="number"
-            min={0}
-            value={tipInput}
-            onChange={(e) => setTipInput(e.target.value)}
-            placeholder="0"
-            className="h-11 text-base"
-          />
-          {suggestedTip > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="shrink-0 text-xs"
-              onClick={() => setTipInput(String(suggestedTip))}
-            >
-              Restablecer
-            </Button>
-          )}
+      {/* Tip section — toggle + editable input */}
+      <div className="space-y-2 rounded-xl border border-border p-3 bg-muted/30">
+        <div className="flex items-center justify-between">
+          <Label className="text-sm font-medium">
+            Propina ({tipRate}%)
+          </Label>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">{tipEnabled ? "Sí" : "No"}</span>
+            <Switch
+              checked={tipEnabled}
+              onCheckedChange={(v) => {
+                setTipEnabled(v);
+                if (v && tipInput === "") setTipInput(String(suggestedTip));
+              }}
+            />
+          </div>
         </div>
-        <p className="text-xs text-muted-foreground">
-          Deja en 0 para no registrar propina, o escribe el valor que desees.
-        </p>
+        {tipEnabled && (
+          <div className="flex items-center gap-2 pt-1">
+            <span className="text-sm font-medium text-muted-foreground">$</span>
+            <Input
+              type="number"
+              min={0}
+              value={tipInput}
+              onChange={(e) => setTipInput(e.target.value)}
+              placeholder="0"
+              className="h-10 text-base"
+            />
+            {suggestedTip > 0 && tipInput !== String(suggestedTip) && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="shrink-0 text-xs"
+                onClick={() => setTipInput(String(suggestedTip))}
+              >
+                Sugerida
+              </Button>
+            )}
+          </div>
+        )}
+        {!tipEnabled && (
+          <p className="text-xs text-muted-foreground">Sin propina para este cobro.</p>
+        )}
       </div>
 
       {/* Totals */}
