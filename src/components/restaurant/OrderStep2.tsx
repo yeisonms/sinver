@@ -44,7 +44,7 @@ export function OrderStep2({ cart, existingItems = [], total, onAddToCart, onRem
   const { data: modifierGroups = [] } = useProductModifierGroups(editingProduct?.id ?? null);
   const { data: categories = [] } = useCategories();
 
-  // Fetch products by category for mobile
+  // Fetch products by category
   const { data: categoryProducts = [] } = useQuery<Product[]>({
     queryKey: ["products-by-category", activeCategoryId],
     queryFn: async () => {
@@ -58,7 +58,7 @@ export function OrderStep2({ cart, existingItems = [], total, onAddToCart, onRem
       if (error) throw error;
       return data as Product[];
     },
-    enabled: !!activeCategoryId && isMobile,
+    enabled: !!activeCategoryId,
   });
 
   const displayProducts = search.length >= 2 ? searchResults : [];
