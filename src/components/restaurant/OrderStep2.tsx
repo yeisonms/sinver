@@ -53,7 +53,7 @@ export function OrderStep2({ cart, existingItems = [], total, onAddToCart, onRem
         .from("products")
         .select("*")
         .eq("category_id", activeCategoryId)
-        .eq("active", true)
+        .eq("is_available", true)
         .order("name");
       if (error) throw error;
       return data as Product[];
