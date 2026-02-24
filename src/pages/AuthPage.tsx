@@ -104,7 +104,7 @@ export default function AuthPage() {
             {isSignUp ? "Crear cuenta" : "Bienvenido de nuevo"}
           </CardTitle>
           <CardDescription className="text-base text-muted-foreground">
-            {isSignUp ? "Únete a mi Restaurante para empezar" : "Ingresa tus credenciales para continuar"}
+            {isSignUp ? "Únete a SinverApp para empezar" : "Ingresa tus credenciales para continuar"}
           </CardDescription>
         </CardHeader>
         <CardContent>
