@@ -104,7 +104,7 @@ export default function AuthPage() {
             {isSignUp ? "Crear cuenta" : "Bienvenido de nuevo"}
           </CardTitle>
           <CardDescription className="text-base text-muted-foreground">
-            {isSignUp ? "Únete a Mi Restaurante para empezar" : "Ingresa tus credenciales para continuar"}
+            {isSignUp ? "Únete a mi Restaurante para empezar" : "Ingresa tus credenciales para continuar"}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -160,7 +160,10 @@ export default function AuthPage() {
             <span>{isSignUp ? "¿Ya tienes una cuenta?" : "¿Aún no tienes cuenta?"}</span>
             <button
               type="button"
-              onClick={() => { setIsSignUp(!isSignUp); setInactiveAlert(false); }}
+              onClick={() => {
+                setIsSignUp(!isSignUp);
+                setInactiveAlert(false);
+              }}
               className="text-primary font-medium hover:text-primary/80 transition-colors"
             >
               {isSignUp ? "Iniciar sesión aquí" : "Regístrate ahora"}
