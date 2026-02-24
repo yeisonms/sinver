@@ -288,3 +288,73 @@ export async function printComanda(opts: PrintComandaOptions): Promise<void> {
     await Promise.allSettled(promises);
   }
 }
+
+/**
+ * Convenience helper to pull an existing order and its active items from the database
+ * and send them to printComanda(). Useful for printing web orders upon acceptance.
+ */
+export async function reprintOrder(orderId: string): Promise<void> {
+  try {
+    const { data: order, error: orderErr } = await supabase
+      .from("orders")
+      .select("*")
+      .eq("id", orderId)
+      .single();
+
+    if (orderErr || !order) {
+      console.error("❌ Elemento order no encontrado:", orderErr);
+      return;
+    }
+
+    const { data: itemsData, error: itemsErr } = await supabase
+      .from("order_items")
+      .select(`
+        *,
+        products (
+          name,
+          category_id
+        )
+      `)
+      .eq("order_id", orderId)
+      .eq("status", "activo");
+
+    if (itemsErr || !itemsData || itemsData.length === 0) {
+      console.warn("⚠️ Sin items para imprimir");
+      return;
+    }
+
+    let waiterName: string | undefined;
+    if (order.waiter_id) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", order.waiter_id)
+        .maybeSingle();
+      waiterName = profile?.full_name || undefined;
+    }
+
+    const typeLabel = order.type === "domicilio" ? "DOMICILIO" : order.type === "recoger" ? "RECOGER" : "MESA";
+    const orderLabel = `${typeLabel} #${order.order_number}`;
+
+    const printItems: PrintItem[] = itemsData.map((row: any) => ({
+      product_id: row.product_id,
+      product_name: row.products?.name || "Producto",
+      quantity: row.quantity,
+      notes: row.notes || null,
+      category_id: row.products?.category_id || null,
+    }));
+
+    await printComanda({
+      items: printItems,
+      orderLabel,
+      clientName: order.client_name || undefined,
+      waiterName,
+      orderType: order.type as "mesa" | "domicilio" | "recoger",
+      deliveryAddress: order.delivery_address,
+      deliveryPhone: order.delivery_phone,
+      generalNotes: order.general_notes,
+    });
+  } catch (err) {
+    console.error("Error en reprintOrder:", err);
+  }
+}

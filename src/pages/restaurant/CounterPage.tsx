@@ -12,6 +12,7 @@ import { NewOrderSheet } from "@/components/restaurant/NewOrderSheet";
 import { OrderDetailPanel } from "@/components/restaurant/OrderDetailPanel";
 import { CheckoutDialog } from "@/components/restaurant/CheckoutDialog";
 import { useRestaurantInfo } from "@/hooks/useRestaurantInfo";
+import { reprintOrder } from "@/lib/printService";
 import type { Order } from "@/types/database";
 import { format, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
@@ -82,6 +83,9 @@ export default function CounterPage() {
       if (error) throw error;
       qc.invalidateQueries({ queryKey: ["orders"] });
       toast.success("Pedido aceptado");
+
+      // Auto-print online pickup orders when accepted by the cashier
+      await reprintOrder(orderId);
     } catch (err: any) {
       toast.error(err?.message || "Error al aceptar");
     }
@@ -175,8 +179,8 @@ export default function CounterPage() {
                 key={f.value}
                 onClick={() => setStatusFilter(f.value)}
                 className={`px-4 py-2.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${statusFilter === f.value
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "bg-secondary text-muted-foreground hover:bg-secondary/80"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "bg-secondary text-muted-foreground hover:bg-secondary/80"
                   }`}
               >
                 {f.label}

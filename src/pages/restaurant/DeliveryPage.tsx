@@ -12,6 +12,7 @@ import { NewDeliverySheet } from "@/components/restaurant/NewDeliverySheet";
 import { OrderDetailPanel } from "@/components/restaurant/OrderDetailPanel";
 import { CheckoutDialog } from "@/components/restaurant/CheckoutDialog";
 import { useRestaurantInfo } from "@/hooks/useRestaurantInfo";
+import { reprintOrder } from "@/lib/printService";
 import type { Order } from "@/types/database";
 import { format, formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
@@ -83,6 +84,9 @@ export default function DeliveryPage() {
       if (error) throw error;
       qc.invalidateQueries({ queryKey: ["orders"] });
       toast.success("Pedido aceptado");
+
+      // Auto-print online orders when accepted by the cashier
+      await reprintOrder(orderId);
     } catch (err: any) {
       toast.error(err?.message || "Error al aceptar");
     }
@@ -200,11 +204,10 @@ export default function DeliveryPage() {
             <button
               key={f.value}
               onClick={() => setStatusFilter(f.value)}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                statusFilter === f.value
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${statusFilter === f.value
                   ? "bg-primary text-primary-foreground"
                   : "bg-muted text-muted-foreground"
-              }`}
+                }`}
             >
               {f.label}
             </button>
@@ -450,11 +453,10 @@ export default function DeliveryPage() {
                   {filtered.map((o) => (
                     <TableRow
                       key={o.id}
-                      className={`cursor-pointer transition-colors ${
-                        selectedOrderId === o.id
+                      className={`cursor-pointer transition-colors ${selectedOrderId === o.id
                           ? "bg-yellow-100 hover:bg-yellow-100"
                           : "hover:bg-muted/50"
-                      }`}
+                        }`}
                       onClick={() => setSelectedOrderId(o.id)}
                     >
                       <TableCell className="font-mono text-xs font-bold">{o.order_number}</TableCell>
