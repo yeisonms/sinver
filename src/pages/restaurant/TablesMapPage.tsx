@@ -75,58 +75,57 @@ function MobileOrderPanel({ table, orderId, orderNumber, onAddProducts, onChecko
   const total = items.reduce((s, i) => s + i.unit_price * i.quantity, 0);
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="flex flex-col h-full overflow-hidden bg-card border-l border-white/20 shadow-[-10px_0_30px_-15px_rgba(0,0,0,0.1)]">
       {/* Header */}
-      <div
-        className="shrink-0 px-4 py-3 text-white text-center"
-        style={{ backgroundColor: "hsl(0 72% 51%)" }}
-      >
-        <p className="font-bold text-lg leading-tight">Mesa {table.name}</p>
-        <p className="text-sm opacity-80">Ocupada</p>
+      <div className="shrink-0 px-5 py-4 text-primary-foreground text-center bg-primary relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent" />
+        <p className="font-bold text-xl leading-tight relative mt-1">Mesa {table.name}</p>
+        <p className="text-xs font-medium opacity-90 relative tracking-wide uppercase mt-0.5">Ocupada</p>
       </div>
 
       {/* Order number + add button */}
-      <div className="shrink-0 flex items-center gap-2 px-3 py-2 border-b border-border">
+      <div className="shrink-0 flex items-center gap-2 px-4 py-3 border-b border-border/50 bg-secondary/10">
         {orderNumber && (
-          <span className="bg-destructive text-destructive-foreground text-xs font-bold px-3 py-1.5 rounded-full">
+          <span className="bg-destructive/10 text-destructive text-xs font-bold px-3 py-1.5 rounded-full ring-1 ring-destructive/20">
             Venta {orderNumber}
           </span>
         )}
         <button
           onClick={onAddProducts}
-          className="flex items-center gap-1.5 text-sm font-medium text-primary border border-primary rounded-full px-3 py-1.5 hover:bg-primary/10 transition-colors"
+          className="flex items-center gap-1.5 text-sm font-semibold text-primary bg-primary/10 rounded-full px-4 py-1.5 hover:bg-primary hover:text-primary-foreground transition-all shadow-sm"
         >
-          <Plus className="h-3.5 w-3.5" />
+          <Plus className="h-4 w-4" />
           Agregar
         </button>
         <div className="flex-1" />
-        <button onClick={onClose} className="text-muted-foreground hover:text-foreground p-1">
+        <button onClick={onClose} className="h-8 w-8 flex items-center justify-center rounded-full text-muted-foreground hover:bg-secondary/50 transition-colors">
           <X className="h-4 w-4" />
         </button>
       </div>
 
       {/* Items list */}
-      <div className="flex-1 overflow-auto px-3 py-2">
+      <div className="flex-1 overflow-auto px-4 py-2">
         {isLoading ? (
-          <div className="flex justify-center py-8">
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          <div className="flex justify-center py-10">
+            <Loader2 className="h-6 w-6 animate-spin text-primary/40" />
           </div>
         ) : items.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground text-sm">
-            Sin productos pedidos aún
+          <div className="text-center py-10 flex flex-col items-center gap-2">
+            <ShoppingCart className="h-8 w-8 text-muted-foreground/30" />
+            <span className="text-sm font-medium text-muted-foreground">Sin productos pedidos</span>
           </div>
         ) : (
           <div className="space-y-1">
             {items.map((item, i) => (
-              <div key={i} className="flex items-center text-sm py-2 border-b border-border/50 last:border-0">
-                <span className="w-5 text-muted-foreground shrink-0">{item.quantity}</span>
-                <span className="flex-1 font-medium">{item.product_name}</span>
-                <span className="text-muted-foreground font-mono text-xs">
-                  {(item.unit_price * item.quantity).toLocaleString("es-CO", { minimumFractionDigits: 2 })}
+              <div key={i} className="flex items-center text-sm py-2.5 border-b border-border/30 last:border-0 group">
+                <span className="w-6 font-semibold text-primary shrink-0 bg-primary/10 rounded px-1.5 text-center mr-2">{item.quantity}</span>
+                <span className="flex-1 font-medium text-foreground">{item.product_name}</span>
+                <span className="text-muted-foreground font-semibold">
+                  ${(item.unit_price * item.quantity).toLocaleString("es-CO", { minimumFractionDigits: 0 })}
                 </span>
-                <span className="ml-2 text-muted-foreground hover:text-destructive cursor-pointer">
-                  <X className="h-3.5 w-3.5" />
-                </span>
+                <button className="ml-3 text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 p-1 rounded transition-colors opacity-100 sm:opacity-0 group-hover:opacity-100">
+                  <X className="h-4 w-4" />
+                </button>
               </div>
             ))}
           </div>
@@ -134,19 +133,21 @@ function MobileOrderPanel({ table, orderId, orderNumber, onAddProducts, onChecko
       </div>
 
       {/* Total + actions */}
-      <div className="shrink-0 border-t border-border px-3 py-3 space-y-2">
-        <div className="flex justify-between font-bold text-base">
-          <span>Total</span>
-          <span>{total.toLocaleString("es-CO", { minimumFractionDigits: 2 })}</span>
+      <div className="shrink-0 border-t border-border/50 bg-secondary/5 p-4 space-y-4">
+        <div className="flex justify-between items-center">
+          <span className="text-sm font-medium text-muted-foreground">Total a pagar</span>
+          <span className="font-bold text-2xl text-foreground tracking-tight">
+            ${total.toLocaleString("es-CO", { minimumFractionDigits: 0 })}
+          </span>
         </div>
         {canCheckout && (
           <Button
-            className="w-full h-11 font-semibold"
+            className="w-full h-12 text-base font-semibold shadow-premium-hover rounded-xl"
             onClick={() => onCheckout(total)}
             disabled={items.length === 0}
           >
-            <Receipt className="h-4 w-4 mr-2" />
-            Cobrar total
+            <Receipt className="h-5 w-5 mr-2 -ml-1" />
+            Cobrar Total
           </Button>
         )}
       </div>
@@ -377,7 +378,7 @@ export default function TablesMapPage() {
 
   // ── Table grid (shared between mobile and desktop) ──
   const mobileTableGrid = (
-    <div className="grid grid-cols-3 gap-2 p-3">
+    <div className="grid grid-cols-3 gap-3 p-4">
       {tables.map((table) => {
         const isOccupied = table.status === "ocupada";
         const isSelected = selectedTable?.id === table.id;
@@ -385,17 +386,16 @@ export default function TablesMapPage() {
           <button
             key={table.id}
             onClick={() => handleTableClick(table)}
-            className={`flex flex-col items-center justify-center gap-0.5 text-white font-bold aspect-square transition-all ${
-              table.shape === "round" ? "rounded-full" : "rounded-xl"
-            } ${isSelected ? "ring-4 ring-white ring-offset-2 ring-offset-background" : ""}`}
+            className={`flex flex-col items-center justify-center gap-1 text-white font-bold aspect-square transition-all hover:scale-[1.02] active:scale-95 shadow-md ${table.shape === "round" ? "rounded-full" : "rounded-2xl"
+              } ${isSelected ? "ring-4 ring-primary ring-offset-2 ring-offset-background shadow-premium" : ""}`}
             style={{
-              backgroundColor: isOccupied ? "hsl(0 72% 51%)" : "hsl(142 40% 55%)",
+              backgroundColor: isOccupied ? "hsl(var(--primary))" : "#10b981", // Emerald 500 for free
               minHeight: 72,
             }}
           >
-            <span className="text-base leading-none">{table.name}</span>
+            <span className="text-xl leading-none tracking-tight">{table.name}</span>
             {isOccupied && table.current_waiter_id && waiterNameMap[table.current_waiter_id] && (
-              <span className="text-[9px] leading-tight opacity-90 max-w-full truncate px-1 text-center">
+              <span className="text-[10px] uppercase font-medium leading-tight opacity-90 max-w-full truncate px-2 text-center bg-black/20 rounded-full py-0.5 mt-1">
                 {waiterNameMap[table.current_waiter_id]}
               </span>
             )}
@@ -406,19 +406,18 @@ export default function TablesMapPage() {
   );
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-background/50">
       {/* Area Tabs */}
       {areas.length > 0 && (
-        <div className="flex items-center gap-0 px-4 md:px-6 border-b border-border bg-muted/30 overflow-x-auto shrink-0">
+        <div className="flex items-center gap-2 px-6 py-3 border-b border-border/50 bg-background/80 backdrop-blur-md overflow-x-auto shrink-0 sticky top-0 z-20">
           {areas.map((area) => {
             const isActive = area.id === selectedAreaId;
             return (
               <button
                 key={area.id}
                 onClick={() => { setActiveAreaId(area.id); setSelectedTable(null); }}
-                className={`px-4 md:px-5 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
-                  isActive ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
+                className={`px-5 py-2 text-sm font-semibold rounded-full transition-all whitespace-nowrap ${isActive ? "bg-primary text-primary-foreground shadow-sm" : "bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  }`}
               >
                 {area.name}
               </button>
@@ -442,9 +441,8 @@ export default function TablesMapPage() {
           <div className="flex h-full">
             {/* Left: table list (scrollable) */}
             <div
-              className={`overflow-y-auto border-r border-border transition-all duration-200 ${
-                selectedTable ? "w-[30%]" : "w-full"
-              }`}
+              className={`overflow-y-auto border-r border-border transition-all duration-200 ${selectedTable ? "w-[30%]" : "w-full"
+                }`}
             >
               {selectedTable ? (
                 /* Compact single-column when panel is open */
@@ -456,9 +454,8 @@ export default function TablesMapPage() {
                       <button
                         key={table.id}
                         onClick={() => handleTableClick(table)}
-                        className={`flex flex-col items-center justify-center text-white font-bold py-3 transition-all ${
-                          table.shape === "round" ? "rounded-full" : "rounded-xl"
-                        } ${isSelected ? "ring-2 ring-white ring-offset-1" : ""}`}
+                        className={`flex flex-col items-center justify-center text-white font-bold py-3 transition-all ${table.shape === "round" ? "rounded-full" : "rounded-xl"
+                          } ${isSelected ? "ring-2 ring-white ring-offset-1" : ""}`}
                         style={{
                           backgroundColor: isOccupied ? "hsl(0 72% 51%)" : "hsl(142 40% 55%)",
                           minHeight: 56,
@@ -501,9 +498,9 @@ export default function TablesMapPage() {
           </div>
         ) : (
           /* ── DESKTOP: positioned grid ── */
-          <div className="p-6 overflow-auto h-full">
+          <div className="p-8 overflow-auto h-full flex items-center justify-center bg-secondary/5">
             <div
-              className="grid gap-1"
+              className="grid gap-[10px] p-8 bg-card rounded-[2rem] shadow-premium border border-white/40"
               style={{
                 gridTemplateColumns: `repeat(${GRID_COLS}, 80px)`,
                 gridTemplateRows: `repeat(${GRID_ROWS}, 80px)`,
@@ -518,19 +515,18 @@ export default function TablesMapPage() {
                       <button
                         key={`${x}-${y}`}
                         onClick={() => handleTableClick(table)}
-                        className={`flex flex-col items-center justify-center gap-0.5 text-white font-bold transition-all ${
-                          table.shape === "round" ? "rounded-full" : "rounded-lg"
-                        }`}
+                        className={`flex flex-col items-center justify-center gap-1 text-white font-bold transition-all hover:scale-[1.05] active:scale-95 shadow-md hover:shadow-premium-hover ${table.shape === "round" ? "rounded-full" : "rounded-[1.25rem]"
+                          }`}
                         style={{
-                          backgroundColor: isOccupied ? "hsl(0 72% 51%)" : "hsl(142 71% 45%)",
+                          backgroundColor: isOccupied ? "hsl(var(--primary))" : "#10b981",
                           width: table.size_label === "medium" ? 76 : 64,
                           height: table.size_label === "medium" ? 76 : 64,
                           margin: "auto",
                         }}
                       >
-                        <span className="text-sm leading-none">{table.name}</span>
+                        <span className="text-xl leading-none tracking-tight">{table.name}</span>
                         {isOccupied && table.current_waiter_id && waiterNameMap[table.current_waiter_id] && (
-                          <span className="text-[9px] leading-tight opacity-90 max-w-full truncate px-1 text-center">
+                          <span className="text-[9px] uppercase font-medium leading-tight opacity-90 max-w-full truncate px-2 text-center bg-black/20 rounded-full py-0.5 mt-0.5">
                             {waiterNameMap[table.current_waiter_id]}
                           </span>
                         )}
@@ -538,7 +534,7 @@ export default function TablesMapPage() {
                     );
                   }
                   return (
-                    <div key={`${x}-${y}`} className="border border-dashed border-border/30 rounded-md" />
+                    <div key={`${x}-${y}`} className="border-2 border-dashed border-border/30 rounded-[1.25rem] bg-secondary/10" />
                   );
                 })
               )}

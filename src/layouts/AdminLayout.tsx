@@ -143,11 +143,10 @@ export default function AdminLayout() {
                       <button
                         key={item.url}
                         onClick={() => { navigate(item.url); setDrawerOpen(false); }}
-                        className={`w-full flex items-center gap-3 px-5 py-3.5 text-left text-base transition-colors ${
-                          isActive
+                        className={`w-full flex items-center gap-3 px-5 py-3.5 text-left text-base transition-colors ${isActive
                             ? "bg-primary text-primary-foreground font-semibold rounded-lg mx-2 w-auto"
                             : "text-foreground hover:bg-muted"
-                        }`}
+                          }`}
                       >
                         <span className="text-lg">{item.emoji}</span>
                         {item.title}
@@ -179,28 +178,27 @@ export default function AdminLayout() {
 
   // Desktop layout
   return (
-    <div className="min-h-screen flex flex-col w-full bg-background">
+    <div className="min-h-screen flex flex-col w-full bg-background/50">
       {/* Top Icon Bar */}
-      <header className="bg-card border-b border-border shadow-sm">
-        <div className="flex items-center h-14 px-4 gap-1 justify-between">
-          <div className="flex items-center gap-1">
-            <span className="text-lg font-bold text-primary mr-6 tracking-tight">🍽️ Mi Restaurante</span>
-            <nav className="flex items-center gap-0.5">
+      <header className="bg-card/80 backdrop-blur-xl border-b border-white/20 shadow-premium sticky top-0 z-40">
+        <div className="flex items-center h-16 px-6 gap-4 justify-between">
+          <div className="flex items-center gap-6">
+            <span className="text-xl font-bold text-primary tracking-tight">🍽️ Mi Restaurante</span>
+            <nav className="flex items-center gap-1">
               {visibleSections.map((section) => {
                 const isActive = section.match.some((m) => currentPath.startsWith(m));
                 return (
                   <NavLink
                     key={section.url}
                     to={section.url}
-                    className={`flex flex-col items-center gap-0.5 px-5 py-1.5 rounded-md transition-colors ${
-                      isActive
-                        ? "text-primary-foreground bg-primary"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                    }`}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all font-medium text-sm ${isActive
+                        ? "text-primary bg-primary/10 shadow-inner"
+                        : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+                      }`}
                     activeClassName=""
                   >
-                    <section.icon className="h-5 w-5" />
-                    <span className="text-[10px] font-medium">{section.title}</span>
+                    <section.icon className={`h-4 w-4 ${isActive ? 'text-primary' : ''}`} />
+                    <span>{section.title}</span>
                   </NavLink>
                 );
               })}
@@ -210,32 +208,34 @@ export default function AdminLayout() {
             variant="ghost"
             size="sm"
             onClick={handleLogout}
-            className="text-muted-foreground hover:text-destructive"
+            className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl h-10 px-4"
           >
-            <LogOut className="h-4 w-4 mr-1" />
-            <span className="text-xs">Salir</span>
+            <LogOut className="h-4 w-4 mr-2" />
+            <span className="text-sm font-medium">Cerrar Sesión</span>
           </Button>
         </div>
       </header>
 
       {/* Sub-tabs Bar */}
       {currentTabs.length > 0 && (
-        <div className="bg-muted/60 border-b border-border">
-          <div className="flex items-center h-10 px-4 gap-0">
+        <div className="bg-background/80 backdrop-blur-md border-b border-border/50 sticky top-16 z-30">
+          <div className="flex items-center h-12 px-6 gap-2">
             {currentTabs.map((tab) => {
               const isActive = currentPath === tab.url;
               return (
                 <NavLink
                   key={tab.url}
                   to={tab.url}
-                  className={`px-5 h-10 flex items-center text-sm font-medium transition-colors border-b-2 ${
-                    isActive
-                      ? "border-primary text-primary"
-                      : "border-transparent text-muted-foreground hover:text-foreground"
-                  }`}
+                  className={`px-4 h-full flex items-center text-sm font-medium transition-all relative ${isActive
+                      ? "text-primary"
+                      : "text-muted-foreground hover:text-foreground"
+                    }`}
                   activeClassName=""
                 >
                   {tab.title}
+                  {isActive && (
+                    <span className="absolute bottom-0 left-0 w-full h-0.5 bg-primary rounded-t-full" />
+                  )}
                 </NavLink>
               );
             })}
@@ -244,7 +244,7 @@ export default function AdminLayout() {
       )}
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-auto p-6">
         <Outlet />
       </main>
     </div>

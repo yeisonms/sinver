@@ -57,136 +57,152 @@ export function OrderDetailPanel({ order, waiterName, onCheckout }: Props) {
   };
 
   return (
-    <div className="flex flex-col h-full border-l border-border">
-      {/* Orange header */}
-      <div className="bg-orange-500 text-white px-4 py-3 flex items-center justify-between">
-        <span className="font-bold text-sm">ID #{order.order_number}</span>
-        <div className="flex items-center gap-1">
-          <Button size="icon" variant="ghost" className="h-8 w-8 text-white hover:bg-orange-600">
+    <div className="flex flex-col h-full bg-card rounded-2xl overflow-hidden relative">
+      {/* Refined Header */}
+      <div className="bg-primary/10 text-primary px-6 py-4 flex items-center justify-between border-b border-primary/10">
+        <div className="flex flex-col">
+          <span className="text-xs uppercase tracking-widest font-semibold opacity-80">Orden Activa</span>
+          <span className="font-bold text-xl tracking-tight">#{order.order_number}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button size="icon" variant="ghost" className="h-9 w-9 text-primary hover:bg-primary/20 hover:text-primary rounded-full transition-colors">
             <Check className="h-4 w-4" />
           </Button>
-          <Button size="icon" variant="ghost" className="h-8 w-8 text-white hover:bg-orange-600">
+          <Button size="icon" variant="ghost" className="h-9 w-9 text-primary hover:bg-primary/20 hover:text-primary rounded-full transition-colors">
             <Pencil className="h-4 w-4" />
           </Button>
         </div>
       </div>
 
-      {/* Info blocks */}
-      <div className="px-4 py-3 space-y-1.5 border-b border-border text-sm">
-        <div className="flex gap-2">
-          <span className="text-muted-foreground w-24 shrink-0">Hora Inicio</span>
-          <span className="font-medium">{format(new Date(order.created_at), "dd/MM/yy HH:mm:ss")}</span>
+      {/* Info blocks with better typography */}
+      <div className="px-6 py-5 space-y-3 border-b border-border/50 text-sm bg-background/30">
+        <div className="flex items-center justify-between">
+          <span className="text-muted-foreground font-medium">Hora Inicio</span>
+          <span className="font-semibold text-foreground">{format(new Date(order.created_at), "dd/MM/yy HH:mm")}</span>
         </div>
-        <div className="flex gap-2">
-          <span className="text-muted-foreground w-24 shrink-0">Mesero</span>
-          <span className="font-medium">{waiterName || "—"}</span>
+        <div className="flex items-center justify-between">
+          <span className="text-muted-foreground font-medium">Mesero</span>
+          <span className="font-semibold text-foreground">{waiterName || "—"}</span>
         </div>
-        <div className="flex gap-2">
-          <span className="text-muted-foreground w-24 shrink-0">Cliente</span>
-          <span className="font-medium">{order.client_name || "—"}</span>
+        <div className="flex items-center justify-between">
+          <span className="text-muted-foreground font-medium">Cliente</span>
+          <span className="font-semibold text-foreground">{order.client_name || "—"}</span>
         </div>
-        <div className="flex gap-2">
-          <span className="text-muted-foreground w-24 shrink-0">Seguimiento</span>
-          <span className="text-orange-600 underline cursor-pointer text-xs">Ver pedido</span>
+        <div className="flex items-center justify-between pt-1">
+          <span className="text-muted-foreground font-medium">Seguimiento</span>
+          <button className="text-primary font-semibold text-xs uppercase tracking-wide hover:text-primary/80 transition-colors">
+            Ver Detalles
+          </button>
         </div>
       </div>
 
-      {/* ADICIONAR section */}
-      <div className="border-b border-border p-4">
+      {/* Primary Action Section */}
+      <div className="p-6 pb-2">
         <Button
-          className="w-full h-10 gap-2 font-bold bg-orange-50 text-orange-600 hover:bg-orange-100 border border-orange-200"
+          className="w-full h-12 gap-2 font-bold bg-primary/5 text-primary hover:bg-primary/10 hover:text-primary border-2 border-primary/20 shadow-sm rounded-xl transition-all"
           variant="outline"
           onClick={handleAddProductsClick}
         >
-          <Plus className="h-4 w-4" />
-          Agregar Productos
+          <Plus className="h-5 w-5" />
+          Añadir Productos
         </Button>
       </div>
 
       {/* Items list */}
-      <div className="flex-1 overflow-auto px-4 py-2">
+      <div className="flex-1 overflow-auto px-6 py-2">
         {loadingItems ? (
-          <div className="flex justify-center py-4"><Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /></div>
+          <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-primary/40" /></div>
         ) : activeItems.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-4">Sin productos</p>
+          <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+            <p className="text-sm font-medium">La orden está vacía</p>
+          </div>
         ) : (
-          <div className="space-y-1">
+          <div className="space-y-3 mt-2">
             {activeItems.map((item) => (
-              <div key={item.id} className="flex items-start gap-2 py-2 border-b border-border last:border-0">
-                <span className="text-sm font-bold w-6 shrink-0">{item.quantity}</span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium">{item.product_name}</p>
-                  {item.notes && <p className="text-xs text-muted-foreground">{item.notes}</p>}
+              <div key={item.id} className="flex items-start gap-3 py-3 border-b border-border/40 last:border-0 group">
+                <div className="bg-secondary/50 text-foreground font-bold text-sm w-8 h-8 rounded-lg flex items-center justify-center shrink-0">
+                  {item.quantity}
                 </div>
-                <span className="text-sm font-medium shrink-0">${(item.quantity * item.unit_price).toLocaleString()}</span>
-                <button
-                  onClick={() => { setCancelItem(item); setCancelReason(""); }}
-                  className="shrink-0 text-muted-foreground hover:text-destructive transition-colors"
-                >
-                  <X className="h-4 w-4" />
-                </button>
+                <div className="flex-1 min-w-0 pt-1">
+                  <p className="text-sm font-semibold text-foreground leading-tight">{item.product_name}</p>
+                  {item.notes && <p className="text-xs text-muted-foreground mt-1 italic leading-snug">{item.notes}</p>}
+                </div>
+                <div className="flex flex-col items-end gap-2 pt-1">
+                  <span className="text-sm font-bold text-foreground">${(item.quantity * item.unit_price).toLocaleString()}</span>
+                  <button
+                    onClick={() => { setCancelItem(item); setCancelReason(""); }}
+                    className="text-muted-foreground/50 hover:text-destructive opacity-0 group-hover:opacity-100 transition-all"
+                    title="Cancelar item"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
             ))}
             {cancelledItems.map((item) => (
-              <div key={item.id} className="flex items-start gap-2 py-2 opacity-40 line-through">
-                <span className="text-sm w-6 shrink-0">{item.quantity}</span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm">{item.product_name}</p>
-                  {item.cancellation_reason && <p className="text-xs text-destructive">{item.cancellation_reason}</p>}
+              <div key={item.id} className="flex items-start gap-3 py-3 opacity-50 grayscale border-b border-border/20">
+                <div className="bg-secondary/30 text-muted-foreground font-bold text-sm w-8 h-8 rounded-lg flex items-center justify-center shrink-0">
+                  {item.quantity}
                 </div>
-                <span className="text-sm shrink-0">${(item.quantity * item.unit_price).toLocaleString()}</span>
+                <div className="flex-1 min-w-0 pt-1 line-through">
+                  <p className="text-sm font-medium">{item.product_name}</p>
+                  {item.cancellation_reason && <p className="text-[11px] text-destructive no-underline font-medium mt-1">{item.cancellation_reason}</p>}
+                </div>
+                <span className="text-sm font-medium pt-1 line-through">${(item.quantity * item.unit_price).toLocaleString()}</span>
               </div>
             ))}
           </div>
         )}
       </div>
 
-      {/* Footer */}
-      <div className="border-t border-border px-4 py-3">
-        <div className="flex items-center justify-between mb-3">
-          <span className="font-semibold text-sm">Total:</span>
-          <span className="text-lg font-bold">${activeTotal.toLocaleString()}</span>
+      {/* Footer sticky bottom */}
+      <div className="border-t border-border/50 px-6 py-5 bg-background/50 backdrop-blur-md">
+        <div className="flex items-center justify-between mb-4">
+          <span className="font-semibold text-sm text-muted-foreground uppercase tracking-widest">Total a Pagar</span>
+          <span className="text-3xl font-bold tracking-tight text-foreground">${activeTotal.toLocaleString()}</span>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="text-xs">% Aplicar Descuento</Button>
+        <div className="flex items-center gap-3">
+          <Button variant="outline" className="h-12 flex-1 rounded-xl text-sm font-medium border-border/60 hover:bg-secondary/50 transition-colors">
+            % Descuento
+          </Button>
           <Button
-            size="sm"
-            className="ml-auto bg-orange-500 hover:bg-orange-600 text-white"
+            className="h-12 flex-[2] rounded-xl bg-primary hover:bg-primary/90 text-white font-bold text-base shadow-premium hover:shadow-premium-hover transition-all"
             onClick={() => onCheckout(order)}
+            disabled={activeTotal === 0}
           >
-            Cerrar Pedido
+            Cobrar Orden
           </Button>
         </div>
       </div>
 
       {/* Cancel confirmation dialog */}
       <Dialog open={!!cancelItem} onOpenChange={(v) => { if (!v) setCancelItem(null); }}>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent className="sm:max-w-sm rounded-2xl border-0 shadow-premium">
           <DialogHeader>
-            <DialogTitle className="text-center bg-muted -mx-6 -mt-6 px-6 py-3 rounded-t-lg font-bold uppercase tracking-wide">
-              Confirmación
+            <DialogTitle className="text-center text-xl font-bold tracking-tight mb-2">
+              Cancelar Producto
             </DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-center py-2">¿Seguro desea cancelar esta adición?</p>
-          <div className="space-y-2">
-            <Label className="text-xs">Comentario</Label>
+          <p className="text-sm text-center text-muted-foreground mb-4">¿Estás seguro de que deseas cancelar este producto de la orden?</p>
+          <div className="space-y-2 mb-4">
+            <Label className="text-xs font-semibold text-foreground/80 uppercase tracking-wider">Motivo de Cancelación</Label>
             <Textarea
-              placeholder="Comentario"
+              placeholder="Ej. El cliente cambió de opinión..."
               value={cancelReason}
               onChange={(e) => setCancelReason(e.target.value)}
               rows={3}
-              className="border-orange-300 focus:border-orange-500"
+              className="resize-none rounded-xl bg-secondary/30 border-border/50 focus:border-primary/50 transition-colors"
             />
           </div>
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setCancelItem(null)}>Cancelar</Button>
+          <DialogFooter className="gap-3 sm:gap-0 flex-col sm:flex-row">
+            <Button variant="ghost" className="w-full sm:w-auto rounded-xl h-11" onClick={() => setCancelItem(null)}>Atrás</Button>
             <Button
-              className="bg-orange-500 hover:bg-orange-600 text-white"
+              className="w-full sm:w-auto rounded-xl h-11 bg-destructive hover:bg-destructive/90 text-white shadow-soft"
               disabled={!cancelReason.trim() || cancelItemMut.isPending}
               onClick={handleConfirmCancel}
             >
-              {cancelItemMut.isPending && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
-              Aceptar
+              {cancelItemMut.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Confirmar
             </Button>
           </DialogFooter>
         </DialogContent>

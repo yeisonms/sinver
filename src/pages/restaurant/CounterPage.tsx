@@ -150,32 +150,39 @@ export default function CounterPage() {
   if (isMobile) {
     return (
       <div className="flex flex-col h-full">
-        {/* Search */}
-        <div className="px-4 pt-3 pb-2">
-          <Label className="text-xs text-muted-foreground">Buscar por etiqueta</Label>
-          <Input
-            placeholder=""
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="mt-1"
-          />
-        </div>
+        {/* Top Header (Search & Actions) */}
+        <div className="px-4 pt-4 pb-3 space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar pedido..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9 h-11 rounded-xl bg-background border-border/50 shadow-sm"
+              />
+            </div>
+            <Button onClick={() => setSheetOpen(true)} className="h-11 rounded-xl shadow-premium gap-1.5 px-4 shrink-0 font-semibold text-sm">
+              <Plus className="h-4 w-4" />
+              Crear pedido
+            </Button>
+          </div>
 
-        {/* Status filter tabs */}
-        <div className="flex items-center gap-2 px-4 pb-3">
-          {statusFilters.map((f) => (
-            <button
-              key={f.value}
-              onClick={() => setStatusFilter(f.value)}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                statusFilter === f.value
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground"
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
+          {/* Status filter tabs */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
+            {statusFilters.map((f) => (
+              <button
+                key={f.value}
+                onClick={() => setStatusFilter(f.value)}
+                className={`px-4 py-2.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${statusFilter === f.value
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "bg-secondary text-muted-foreground hover:bg-secondary/80"
+                  }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Pickup inbox */}
@@ -235,14 +242,6 @@ export default function CounterPage() {
           )}
         </div>
 
-        {/* Fixed bottom button */}
-        <div className="border-t border-border p-4 bg-card">
-          <Button onClick={() => setSheetOpen(true)} className="w-full h-12 text-base font-semibold gap-2">
-            <Plus className="h-5 w-5" />
-            Crear pedido
-          </Button>
-        </div>
-
         <NewOrderSheet open={sheetOpen} onOpenChange={setSheetOpen} />
 
         {/* Mobile: order detail as full-screen overlay */}
@@ -294,78 +293,80 @@ export default function CounterPage() {
     );
   }
 
-  // Desktop layout (unchanged)
+  // Desktop layout
   return (
-    <div className="flex flex-col h-full">
-      {/* Top bar */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-card">
+    <div className="flex flex-col h-full bg-background/50">
+      {/* Top bar floating */}
+      <div className="mx-6 mt-4 mb-4 Re flex items-center gap-4 px-6 py-4 bg-card/80 backdrop-blur-xl border border-white/20 shadow-premium-soft rounded-2xl">
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
           <Input
-            placeholder="Buscar por cliente/ID..."
+            placeholder="Buscar pedido por cliente o ID..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9"
+            className="pl-11 h-12 rounded-xl bg-background border-border/50 shadow-inner text-base"
           />
         </div>
-        <Button onClick={() => setSheetOpen(true)} className="gap-1.5">
-          <Plus className="h-4 w-4" />
+        <Button onClick={() => setSheetOpen(true)} className="h-12 px-6 rounded-xl shadow-premium hover:shadow-premium-hover transition-all gap-2 text-base font-medium">
+          <Plus className="h-5 w-5" />
           Nuevo Pedido
         </Button>
       </div>
 
       {/* Split view */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden px-6 pb-6 gap-6">
         {/* Left: Order list (40%) */}
-        <div className="w-2/5 overflow-auto border-r border-border flex flex-col">
+        <div className="w-[45%] bg-card shadow-premium rounded-2xl border border-white/40 flex flex-col overflow-hidden">
           {/* Pickup Inbox */}
           {(pickupInbox.length > 0 || loadInbox) && (
-            <div className="border-b border-border">
-              <div className="px-4 py-2 bg-orange-100 flex items-center gap-2">
-                <ShoppingBag className="h-4 w-4 text-orange-600" />
-                <span className="text-xs font-bold uppercase tracking-wide text-orange-700">
+            <div className="border-b border-border/50 bg-orange-50/50">
+              <div className="px-5 py-3 border-b border-orange-100 flex items-center gap-2">
+                <ShoppingBag className="h-4 w-4 text-primary" />
+                <span className="text-xs font-bold uppercase tracking-widest text-primary">
                   Pedidos Web - Recoger ({pickupInbox.length})
                 </span>
               </div>
               {loadInbox ? (
-                <div className="flex justify-center py-4">
-                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                <div className="flex justify-center py-6">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary/50" />
                 </div>
               ) : (
-                <div className="divide-y divide-border">
+                <div className="divide-y divide-orange-100/50">
                   {pickupInbox.map((o) => (
                     <div
                       key={o.id}
-                      className="px-4 py-3 bg-orange-50 space-y-2 border-l-4 border-orange-500"
+                      className="px-5 py-4 hover:bg-white transition-colors border-l-4 border-l-primary"
                     >
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-sm">#{o.order_number}</span>
-                        <span className="text-xs text-muted-foreground">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-bold text-base text-foreground">#{o.order_number}</span>
+                        <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded-full">
                           hace {formatDistanceToNow(new Date(o.created_at), { locale: es })}
                         </span>
                       </div>
-                      <div className="text-sm font-medium">{o.client_name ?? "Cliente Web"}</div>
+                      <div className="text-sm font-medium text-foreground/80">{o.client_name ?? "Cliente Web"}</div>
                       {o.delivery_phone && (
-                        <div className="text-xs text-muted-foreground">📞 {o.delivery_phone}</div>
+                        <div className="text-sm text-muted-foreground mt-0.5 hover:text-primary transition-colors cursor-pointer w-fit">
+                          📞 {o.delivery_phone}
+                        </div>
                       )}
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-sm">${o.total_amount.toLocaleString()}</span>
-                        <div className="flex gap-2">
+                      <div className="flex items-center justify-between mt-3">
+                        <span className="font-bold text-lg text-foreground">${o.total_amount.toLocaleString()}</span>
+                        <div className="flex gap-2 bg-background/50 p-1 rounded-lg">
                           <Button
                             size="sm"
                             variant="destructive"
-                            className="h-8 text-xs gap-1"
+                            className="h-9 px-3 rounded-lg text-xs gap-1.5 shadow-sm"
                             onClick={() => { setRejectOrderId(o.id); setRejectReason(""); }}
                           >
-                            <XCircle className="h-3.5 w-3.5" />
+                            <XCircle className="h-4 w-4" />
                             Rechazar
                           </Button>
                           <Button
                             size="sm"
-                            className="h-8 text-xs gap-1 bg-green-600 hover:bg-green-700 text-white"
+                            className="h-9 px-3 rounded-lg text-xs gap-1.5 shadow-sm"
                             onClick={() => handleAcceptOrder(o.id)}
                           >
-                            <CheckCircle className="h-3.5 w-3.5" />
+                            <CheckCircle className="h-4 w-4" />
                             Aceptar
                           </Button>
                         </div>
@@ -378,44 +379,55 @@ export default function CounterPage() {
           )}
 
           {/* Active orders list */}
-          <div className="flex-1 overflow-auto">
+          <div className="flex-1 overflow-auto bg-card">
             {loadActive ? (
-              <div className="flex justify-center py-8">
-                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              <div className="flex justify-center items-center h-full">
+                <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary/40" />
+                  <p className="text-sm font-medium">Cargando pedidos...</p>
+                </div>
               </div>
             ) : filtered.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">Sin pedidos en curso.</p>
+              <div className="flex flex-col items-center justify-center h-full text-muted-foreground space-y-3">
+                <ShoppingBag className="h-12 w-12 text-border" />
+                <p className="text-sm font-medium">No hay pedidos en curso</p>
+              </div>
             ) : (
               <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-16 text-xs">ID</TableHead>
-                    <TableHead className="text-xs">Hora Inicio</TableHead>
-                    <TableHead className="text-xs">Estado</TableHead>
-                    <TableHead className="text-xs">Cliente</TableHead>
-                    <TableHead className="text-right text-xs">Total</TableHead>
+                <TableHeader className="bg-secondary/30 sticky top-0 backdrop-blur-md z-10">
+                  <TableRow className="border-b border-border/50 hover:bg-transparent">
+                    <TableHead className="w-16 text-xs font-semibold tracking-wider text-muted-foreground uppercase pl-5">Nº</TableHead>
+                    <TableHead className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">Hora</TableHead>
+                    <TableHead className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">Estado</TableHead>
+                    <TableHead className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">Cliente</TableHead>
+                    <TableHead className="text-right text-xs font-semibold tracking-wider text-muted-foreground uppercase pr-5">Total</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filtered.map((o) => (
                     <TableRow
                       key={o.id}
-                      className={`cursor-pointer transition-colors ${
-                        selectedOrderId === o.id
-                          ? "bg-yellow-100 hover:bg-yellow-100"
-                          : "hover:bg-muted/50"
-                      }`}
+                      className={`cursor-pointer transition-all border-b border-border/30 last:border-0 ${selectedOrderId === o.id
+                        ? "bg-primary/5 hover:bg-primary/10"
+                        : "hover:bg-secondary/40"
+                        }`}
                       onClick={() => setSelectedOrderId(o.id)}
                     >
-                      <TableCell className="font-mono text-xs font-bold">{o.order_number}</TableCell>
-                      <TableCell className="text-xs">{format(new Date(o.created_at), "dd/MM/yy HH:mm:ss")}</TableCell>
+                      <TableCell className="pl-5">
+                        <div className={`font-mono text-sm font-bold ${selectedOrderId === o.id ? "text-primary" : ""}`}>
+                          {o.order_number}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{format(new Date(o.created_at), "HH:mm")}</TableCell>
                       <TableCell>
-                        <span className="inline-block px-2 py-0.5 rounded text-[10px] font-semibold bg-green-100 text-green-700 border border-green-300">
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold ${o.status === 'en_preparacion' ? 'bg-amber-100 text-amber-700' : 'bg-primary/10 text-primary'
+                          }`}>
+                          <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${o.status === 'en_preparacion' ? 'bg-amber-500' : 'bg-primary'}`}></span>
                           {statusLabels[o.status] ?? o.status}
                         </span>
                       </TableCell>
-                      <TableCell className="text-sm">{o.client_name ?? "—"}</TableCell>
-                      <TableCell className="text-right font-medium text-sm">${o.total_amount.toLocaleString()}</TableCell>
+                      <TableCell className="text-sm font-medium text-foreground">{o.client_name ?? "—"}</TableCell>
+                      <TableCell className="text-right font-semibold text-sm pr-5">${o.total_amount.toLocaleString()}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -424,16 +436,22 @@ export default function CounterPage() {
           </div>
         </div>
 
-        {/* Right: Detail panel (60%) */}
-        <div className="w-3/5 overflow-hidden">
+        {/* Right: Detail panel (55%) */}
+        <div className="w-[55%] bg-card shadow-premium rounded-2xl border border-white/40 overflow-hidden relative">
           {selectedOrder ? (
             <OrderDetailPanel
               order={selectedOrder}
               onCheckout={(order) => setCheckoutOrder(order)}
             />
           ) : (
-            <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-              Selecciona un pedido para ver detalles
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-transparent to-secondary/20">
+              <div className="w-24 h-24 mb-6 rounded-full bg-secondary flex items-center justify-center shadow-inner">
+                <ShoppingBag className="h-10 w-10 text-muted-foreground/40" />
+              </div>
+              <h3 className="text-xl font-semibold text-foreground mb-2">Detalles del Pedido</h3>
+              <p className="text-sm text-muted-foreground max-w-sm text-center">
+                Selecciona un pedido de la lista a la izquierda para ver los detalles, artículos y proceder al cobro.
+              </p>
             </div>
           )}
         </div>

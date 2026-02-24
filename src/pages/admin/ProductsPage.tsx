@@ -166,34 +166,35 @@ export default function ProductsPage() {
   const isLoading = loadingProducts || loadingCategories;
 
   return (
-    <div className="flex h-full min-h-0">
+    <div className="flex h-full min-h-[800px] gap-6">
       {/* Left: Category sidebar */}
-      <aside className="w-48 md:w-52 shrink-0 border-r border-border bg-card overflow-y-auto hidden sm:block">
-        <div className="py-2">
+      <aside className="w-56 shrink-0 bg-card rounded-2xl shadow-premium border border-white/40 overflow-hidden hidden md:flex flex-col">
+        <div className="p-4 border-b border-border/50 bg-secondary/20">
+          <h2 className="font-semibold text-sm uppercase tracking-widest text-muted-foreground">Categorías</h2>
+        </div>
+        <div className="flex-1 overflow-y-auto p-2 space-y-1">
           <button
             onClick={() => setSelectedCategory(null)}
-            className={`w-full text-left px-5 py-3 text-sm font-medium transition-colors ${
-              !selectedCategory
-                ? "text-primary border-l-2 border-primary bg-accent"
-                : "text-foreground hover:bg-muted"
-            }`}
+            className={`w-full text-left px-4 py-3 rounded-xl text-sm font-medium transition-all ${!selectedCategory
+                ? "bg-primary/10 text-primary"
+                : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
+              }`}
           >
-            Todos
+            Todas las categorías
           </button>
           {loadingCategories ? (
             <div className="flex items-center justify-center py-6">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              <Loader2 className="h-5 w-5 animate-spin text-primary/40" />
             </div>
           ) : (
             categories.map((cat) => (
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id)}
-                className={`w-full text-left px-5 py-3 text-sm font-medium transition-colors ${
-                  selectedCategory === cat.id
-                    ? "text-primary border-l-2 border-primary bg-accent"
-                    : "text-foreground hover:bg-muted"
-                }`}
+                className={`w-full text-left px-4 py-3 rounded-xl text-sm font-medium transition-all ${selectedCategory === cat.id
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
+                  }`}
               >
                 {cat.name}
               </button>
@@ -203,14 +204,14 @@ export default function ProductsPage() {
       </aside>
 
       {/* Right: Product list */}
-      <div className="flex-1 flex flex-col p-4 md:p-5 overflow-auto">
+      <div className="flex-1 flex flex-col overflow-hidden bg-card shadow-premium rounded-2xl border border-white/40">
         {/* Mobile category filter */}
-        <div className="sm:hidden mb-3">
+        <div className="sm:hidden p-4 border-b border-border/50 bg-secondary/10">
           <Select value={selectedCategory || "all"} onValueChange={(v) => setSelectedCategory(v === "all" ? null : v)}>
-            <SelectTrigger>
+            <SelectTrigger className="h-11 rounded-xl bg-background border-border/50 shadow-sm">
               <SelectValue placeholder="Categoría" />
             </SelectTrigger>
-            <SelectContent className="bg-popover z-50">
+            <SelectContent className="bg-popover border-border/50 shadow-premium z-50">
               <SelectItem value="all">Todas las categorías</SelectItem>
               {categories.map((c) => (
                 <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
@@ -219,67 +220,102 @@ export default function ProductsPage() {
           </Select>
         </div>
 
-        {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-xl font-bold text-foreground">Productos</h1>
-          <Button onClick={openCreate} size="sm" className="gap-2">
-            <Plus className="h-4 w-4" /> Nuevo Producto
-          </Button>
-        </div>
-
-        {/* Search */}
-        <div className="flex items-center gap-2 mb-4">
-          <span className="text-sm text-muted-foreground whitespace-nowrap hidden md:inline">Buscar en todas las categorías:</span>
-          <div className="relative flex-1 max-w-xs">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Buscar producto..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-9 pl-9" />
+        {/* Header & Search Area */}
+        <div className="p-6 border-b border-border/50 bg-background/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">Productos</h1>
+            <p className="text-sm text-muted-foreground mt-1">Gestiona el menú de tu restaurante</p>
+          </div>
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+            <div className="relative w-full sm:w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar producto..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="h-10 pl-9 rounded-xl bg-background border-border/50 shadow-sm transition-all focus:border-primary/50"
+              />
+            </div>
+            <Button onClick={openCreate} className="w-full sm:w-auto rounded-xl shadow-premium gap-2 h-10">
+              <Plus className="h-4 w-4" /> Nuevo Producto
+            </Button>
           </div>
         </div>
 
-        {/* Table */}
-        {isLoading ? (
-          <div className="flex-1 flex items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="border border-dashed border-border rounded-lg p-12 text-center flex-1 flex flex-col items-center justify-center">
-            <p className="text-muted-foreground">{products.length === 0 ? "No hay productos aún" : "Sin resultados"}</p>
-            {products.length === 0 && (
-              <Button onClick={openCreate} variant="outline" className="mt-4 gap-2">
-                <Plus className="h-4 w-4" /> Crear primer producto
-              </Button>
-            )}
-          </div>
-        ) : (
-          <div className="border border-border rounded-lg overflow-x-auto">
-            <table className="w-full min-w-[500px]">
-              <thead>
-                <tr className="bg-muted text-left text-xs text-muted-foreground uppercase tracking-wider">
-                  <th className="px-4 py-2.5">Producto</th>
-                  <th className="px-4 py-2.5 text-right">Precio</th>
-                  <th className="px-4 py-2.5 text-right hidden md:table-cell">Costo</th>
-                  <th className="px-4 py-2.5 text-center w-16">Disp.</th>
-                  <th className="px-4 py-2.5 w-20 text-right">Acciones</th>
+        {/* Table Area */}
+        <div className="flex-1 overflow-auto">
+          {isLoading ? (
+            <div className="flex-1 h-full flex items-center justify-center">
+              <div className="flex flex-col items-center gap-3">
+                <Loader2 className="h-8 w-8 animate-spin text-primary/40" />
+                <p className="text-sm font-medium text-muted-foreground">Cargando catálogo...</p>
+              </div>
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="flex-1 h-full flex items-center justify-center p-8">
+              <div className="text-center max-w-sm flex flex-col items-center gap-2">
+                <div className="w-16 h-16 bg-secondary/50 rounded-full flex items-center justify-center mb-2">
+                  <Search className="h-8 w-8 text-muted-foreground/50" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground">No se encontraron productos</h3>
+                <p className="text-sm text-muted-foreground">{products.length === 0 ? "Aún no has agregado ningún producto al catálogo." : "No hay resultados para la búsqueda actual."}</p>
+                {products.length === 0 && (
+                  <Button onClick={openCreate} className="mt-4 gap-2 rounded-xl shadow-premium">
+                    <Plus className="h-4 w-4" /> Crear primer producto
+                  </Button>
+                )}
+              </div>
+            </div>
+          ) : (
+            <table className="w-full min-w-[600px]">
+              <thead className="bg-secondary/30 sticky top-0 z-10 backdrop-blur-sm">
+                <tr className="border-b border-border/40 text-left text-xs font-semibold text-muted-foreground uppercase tracking-widest">
+                  <th className="px-6 py-4 font-medium">Producto</th>
+                  <th className="px-6 py-4 font-medium text-right">Precio</th>
+                  <th className="px-6 py-4 font-medium text-right hidden lg:table-cell">Costo</th>
+                  <th className="px-6 py-4 font-medium text-center w-24">Estado</th>
+                  <th className="px-6 py-4 font-medium w-28 text-right">Acciones</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border">
+              <tbody className="divide-y divide-border/30">
                 {filtered.map((p) => (
-                  <tr key={p.id} className="hover:bg-muted/50 transition-colors">
-                    <td className="px-4 py-2.5">
-                      <div className="font-medium text-foreground text-sm">{p.name}</div>
-                      {p.description && <div className="text-xs text-muted-foreground truncate max-w-xs">{p.description}</div>}
+                  <tr key={p.id} className="hover:bg-secondary/20 transition-colors group">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        {p.image_url ? (
+                          <div className="w-10 h-10 rounded-lg overflow-hidden shrink-0 border border-border/50">
+                            <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" />
+                          </div>
+                        ) : (
+                          <div className="w-10 h-10 rounded-lg bg-secondary/50 flex items-center justify-center shrink-0 border border-border/30 text-muted-foreground/50">
+                            <ImageIcon className="h-5 w-5" />
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <div className="font-semibold text-foreground text-sm truncate">{p.name}</div>
+                          {p.description && <div className="text-xs text-muted-foreground truncate max-w-xs mt-0.5">{p.description}</div>}
+                        </div>
+                      </div>
                     </td>
-                    <td className="px-4 py-2.5 text-right font-mono text-sm">${p.price.toLocaleString()}</td>
-                    <td className="px-4 py-2.5 text-right font-mono text-sm text-muted-foreground hidden md:table-cell">{p.cost ? `$${p.cost.toLocaleString()}` : "—"}</td>
-                    <td className="px-4 py-2.5 text-center">
-                      <span className={`inline-block w-2.5 h-2.5 rounded-full ${p.is_available ? "bg-green-500" : "bg-destructive"}`} />
+                    <td className="px-6 py-4 text-right">
+                      <div className="font-semibold text-sm text-foreground">${p.price.toLocaleString()}</div>
                     </td>
-                    <td className="px-4 py-2.5 text-right">
-                      <div className="flex justify-end gap-0.5">
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(p)}>
+                    <td className="px-6 py-4 text-right hidden lg:table-cell">
+                      <div className="font-medium text-sm text-muted-foreground">{p.cost ? `$${p.cost.toLocaleString()}` : "—"}</div>
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold ${p.is_available ? "bg-green-100/50 text-green-700" : "bg-destructive/10 text-destructive"
+                        }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${p.is_available ? "bg-green-500" : "bg-destructive"}`} />
+                        {p.is_available ? "Activo" : "Inactivo"}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex justify-end gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10" onClick={() => openEdit(p)}>
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDelete(p.id)}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10" onClick={() => handleDelete(p.id)}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
@@ -288,8 +324,8 @@ export default function ProductsPage() {
                 ))}
               </tbody>
             </table>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Create / Edit Dialog */}
