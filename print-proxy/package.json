@@ -1,0 +1,13 @@
+{
+    "name": "sinver-print-proxy",
+    "version": "1.0.0",
+    "description": "Local Print Proxy for forwarding raw thermal printer commands",
+    "main": "index.js",
+    "scripts": {
+        "start": "node index.js"
+    },
+    "dependencies": {
+        "cors": "^2.8.5",
+        "express": "^4.18.2"
+    }
+}

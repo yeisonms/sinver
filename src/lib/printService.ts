@@ -140,23 +140,44 @@ function sendViaRawBT(payload: Uint8Array): void {
 }
 
 /**
- * Send payload via HTTP fetch (desktop / fallback)
+ * Send payload via local node proxy (desktop / fallback)
+ * This avoids the browser appending raw HTTP headers to the print stream.
  */
 async function sendViaHTTP(payload: Uint8Array, ip: string, port: number): Promise<void> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 5000);
+  const timeout = setTimeout(() => controller.abort(), 6000);
 
-  await fetch(`http://${ip}:${port}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/octet-stream" },
-    body: new Blob([payload as any]),
-    signal: controller.signal,
-    mode: "no-cors",
-  }).catch(() => {
-    // no-cors opaque response — printer likely received it
-  });
+  try {
+    const res = await fetch(`http://localhost:8081/print`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/octet-stream",
+        "X-Printer-IP": ip,
+        "X-Printer-Port": port.toString(),
+      },
+      body: new Blob([payload as any]),
+      signal: controller.signal,
+    });
 
-  clearTimeout(timeout);
+    if (!res.ok) {
+      throw new Error(`Error en proxy local: ${res.statusText}`);
+    }
+  } catch (err: any) {
+    if (err.name === 'AbortError') {
+      console.error("❌ El proxy local no respondió a tiempo.");
+      toast.error("Error de impresión", {
+        description: "El proxy local (print-proxy) tardó mucho en responder. Verifica que esté abierto.",
+      });
+    } else {
+      console.error("❌ Error enviando ticket al proxy:", err);
+      toast.error("Error de conexión con la caja", {
+        description: "Asegúrate de tener la consola negra 'start.bat' de Sinver Print Proxy abierta.",
+      });
+    }
+    throw err; // Re-throw to handle it in printing loop
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 /**
