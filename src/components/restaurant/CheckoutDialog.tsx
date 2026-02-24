@@ -70,19 +70,21 @@ export function CheckoutDialog({
       setPaymentMethod("efectivo");
       setPaidWith("");
       setTipInitialized(false);
-      setTipEnabled(false);
+      // Enable tip by default if there's a configured tipRate
+      setTipEnabled(tipRate > 0);
       setTipInput("");
     }
   }, [open]);
 
   // Initialize tip as soon as suggestedTip is available (items may load after dialog opens)
   useEffect(() => {
-    if (open && !tipInitialized && suggestedTip > 0) {
+    if (open && !tipInitialized && tipRate > 0 && consumedTotal > 0) {
+      const calculated = Math.round(consumedTotal * (tipRate / 100));
       setTipInitialized(true);
       setTipEnabled(true);
-      setTipInput(String(suggestedTip));
+      setTipInput(String(calculated));
     }
-  }, [open, suggestedTip, tipInitialized]);
+  }, [open, tipRate, consumedTotal, tipInitialized]);
 
   const tipAmount = tipEnabled ? Math.max(0, parseFloat(tipInput) || 0) : 0;
   const grandTotal = consumedTotal + tipAmount;
