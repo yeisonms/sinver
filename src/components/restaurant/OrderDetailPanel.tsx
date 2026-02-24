@@ -12,9 +12,10 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useFavoriteProducts, useSearchProducts } from "@/hooks/useOrders";
-import { useOrderItems, useAddOrderItem, useCancelOrderItem, type OrderItemRow } from "@/hooks/useOrderItems";
+import { useOrderItems, useCancelOrderItem, type OrderItemRow } from "@/hooks/useOrderItems";
 import type { Order, Product } from "@/types/database";
 import { format } from "date-fns";
+import { useNavigate } from "react-router-dom";
 
 interface Props {
   order: Order;
@@ -23,33 +24,25 @@ interface Props {
 }
 
 export function OrderDetailPanel({ order, waiterName, onCheckout }: Props) {
-  const [search, setSearch] = useState("");
+  const navigate = useNavigate();
   const [cancelItem, setCancelItem] = useState<OrderItemRow | null>(null);
   const [cancelReason, setCancelReason] = useState("");
 
   const { data: items = [], isLoading: loadingItems } = useOrderItems(order.id);
-  const { data: favorites = [], isLoading: loadFav } = useFavoriteProducts();
-  const { data: searchResults = [] } = useSearchProducts(search);
-  const addItem = useAddOrderItem();
   const cancelItemMut = useCancelOrderItem();
-
-  const displayProducts = search.length >= 2 ? searchResults : [];
 
   const activeItems = items.filter((i) => i.status !== "cancelado");
   const cancelledItems = items.filter((i) => i.status === "cancelado");
   const activeTotal = activeItems.reduce((s, i) => s + i.quantity * i.unit_price, 0);
 
-  const handleAddProduct = async (p: Product) => {
-    await addItem.mutateAsync({
-      orderId: order.id,
-      productId: p.id,
-      quantity: 1,
-      unitPrice: p.price,
-    });
-    // Also update the order total
-    const { supabase } = await import("@/integrations/supabase/client");
-    const newTotal = activeTotal + p.price;
-    await supabase.from("orders").update({ total_amount: newTotal }).eq("id", order.id);
+  const handleAddProductsClick = () => {
+    if (order.type === "recoger") {
+      navigate(`/restaurant/counter/${order.id}/take-order`);
+    } else if (order.type === "domicilio") {
+      navigate(`/restaurant/delivery/${order.id}/take-order`);
+    } else {
+      navigate(`/restaurant/tables/${order.id}/take-order`);
+    }
   };
 
   const handleConfirmCancel = async () => {
@@ -99,62 +92,15 @@ export function OrderDetailPanel({ order, waiterName, onCheckout }: Props) {
       </div>
 
       {/* ADICIONAR section */}
-      <div className="border-b border-border">
-        <div className="flex items-center justify-between px-4 py-2 bg-muted/50">
-          <span className="text-xs font-bold uppercase tracking-wide">Adicionar</span>
-        </div>
-        <div className="px-4 py-2 flex items-center gap-2">
-          <Button size="icon" className="h-8 w-8 bg-orange-500 hover:bg-orange-600 shrink-0">
-            <Plus className="h-4 w-4 text-white" />
-          </Button>
-          <div className="relative flex-1">
-            <Input
-              placeholder="Buscar producto..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="h-8 text-xs"
-            />
-          </div>
-        </div>
-
-        {/* Product grid */}
-        <div className="px-4 pb-3 max-h-40 overflow-auto">
-          {search.length >= 2 ? (
-            displayProducts.length === 0 ? (
-              <p className="text-xs text-muted-foreground text-center py-2">Sin resultados</p>
-            ) : (
-              <div className="grid grid-cols-4 gap-1.5">
-                {displayProducts.map((p) => (
-                  <button
-                    key={p.id}
-                    onClick={() => handleAddProduct(p as Product)}
-                    disabled={addItem.isPending}
-                    className="text-left rounded border border-border bg-card px-2 py-1.5 text-[11px] leading-tight hover:border-orange-400 hover:shadow-sm transition-all truncate"
-                  >
-                    <span className="text-muted-foreground font-mono">{(p as Product).price.toLocaleString()} </span>
-                    {p.name}
-                  </button>
-                ))}
-              </div>
-            )
-          ) : loadFav ? (
-            <div className="flex justify-center py-3"><Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /></div>
-          ) : (
-            <div className="grid grid-cols-4 gap-1.5">
-              {favorites.map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() => handleAddProduct(p as Product)}
-                  disabled={addItem.isPending}
-                  className="text-left rounded border border-border bg-card px-2 py-1.5 text-[11px] leading-tight hover:border-orange-400 hover:shadow-sm transition-all truncate"
-                >
-                  <span className="text-muted-foreground font-mono">{(p as Product).price.toLocaleString()} </span>
-                  {p.name}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+      <div className="border-b border-border p-4">
+        <Button
+          className="w-full h-10 gap-2 font-bold bg-orange-50 text-orange-600 hover:bg-orange-100 border border-orange-200"
+          variant="outline"
+          onClick={handleAddProductsClick}
+        >
+          <Plus className="h-4 w-4" />
+          Agregar Productos
+        </Button>
       </div>
 
       {/* Items list */}

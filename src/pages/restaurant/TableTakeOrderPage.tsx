@@ -85,6 +85,12 @@ export default function TableTakeOrderPage() {
     setCart((prev) => prev.map((item, i) => (i === index ? updated : item)));
   };
 
+  const getReturnUrl = () => {
+    if (order?.type === "recoger") return "/restaurant/counter";
+    if (order?.type === "domicilio") return "/restaurant/delivery";
+    return "/restaurant/tables";
+  };
+
   const handleSendToKitchen = async () => {
     if (!orderId || cart.length === 0) return;
     setSubmitting(true);
@@ -118,7 +124,10 @@ export default function TableTakeOrderPage() {
       if (orderErr) throw orderErr;
 
       // Print comandas to assigned printers
-      const orderLabel = `MESA #${order?.order_number ?? "?"}`;
+      let orderLabel = `MESA #${order?.order_number ?? "?"}`;
+      if (order?.type === "recoger") orderLabel = `MOSTRADOR #${order?.order_number ?? "?"}`;
+      if (order?.type === "domicilio") orderLabel = `DOMICILIO #${order?.order_number ?? "?"}`;
+
       const printItems = cart.map((item) => ({
         product_id: item.product_id,
         product_name: item.product_name,
@@ -142,7 +151,7 @@ export default function TableTakeOrderPage() {
         orderLabel,
         clientName: order?.client_name || undefined,
         waiterName,
-        orderType: "mesa",
+        orderType: order?.type || "mesa",
         generalNotes: order?.general_notes,
       }).catch(console.error);
 
@@ -150,7 +159,7 @@ export default function TableTakeOrderPage() {
       qc.invalidateQueries({ queryKey: ["order-items", orderId] });
       qc.invalidateQueries({ queryKey: ["tables"] });
       toast.success("Comanda enviada a cocina");
-      navigate("/restaurant/tables");
+      navigate(getReturnUrl());
     } catch (err: any) {
       toast.error(err?.message || "Error al enviar comanda");
     } finally {
@@ -225,8 +234,8 @@ export default function TableTakeOrderPage() {
       qc.invalidateQueries({ queryKey: ["orders"] });
       qc.invalidateQueries({ queryKey: ["sales-orders"] });
       qc.invalidateQueries({ queryKey: ["tables"] });
-      toast.success("Mesa cerrada y cobro registrado");
-      navigate("/restaurant/tables");
+      toast.success("Pedido cerrado y cobro registrado");
+      navigate(getReturnUrl());
     } catch (err: any) {
       toast.error(err?.message || "Error al cerrar mesa");
     } finally {
@@ -249,11 +258,11 @@ export default function TableTakeOrderPage() {
       {/* Header - only on desktop; mobile uses OrderStep2's built-in header */}
       {!isMobile && (
         <div className="flex items-center gap-3 px-4 py-2 border-b border-border bg-card">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/restaurant/tables")}>
+          <Button variant="ghost" size="icon" onClick={() => navigate(getReturnUrl())}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <h2 className="text-sm font-bold flex-1">
-            Pedido Mesa — #{order?.order_number ?? "..."}
+          <h2 className="text-sm font-bold flex-1 uppercase">
+            Pedido {order?.type === "mesa" ? "Mesa" : order?.type === "recoger" ? "Mostrador" : "Domicilio"} — #{order?.order_number ?? "..."}
           </h2>
           {canCheckout ? (
             <Button
@@ -290,8 +299,8 @@ export default function TableTakeOrderPage() {
           onUpdateCartItem={handleUpdateCartItem}
           onCloseOrder={handleSendToKitchen}
           isSubmitting={submitting}
-          onBack={() => navigate("/restaurant/tables")}
-          mode="mesa"
+          onBack={() => navigate(getReturnUrl())}
+          mode={order?.type || "mesa"}
         />
       </div>
 
@@ -300,7 +309,7 @@ export default function TableTakeOrderPage() {
           open={checkoutOpen}
           onOpenChange={setCheckoutOpen}
           title="Cerrar Cuenta"
-          subtitle={`Mesa #${order?.order_number ?? ""}`}
+          subtitle={`Pedido #${order?.order_number ?? ""}`}
           consumedTotal={consumedTotal}
           closing={closing}
           tipRate={tipRate}

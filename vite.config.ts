@@ -22,8 +22,8 @@ export default defineConfig(({ mode }) => ({
         navigateFallbackDenylist: [/^\/~oauth/],
       },
       manifest: {
-        name: "Sistema Fudo Restaurante",
-        short_name: "Fudo POS",
+        name: "sinverApp",
+        short_name: "sinverApp",
         description: "Sistema de gestión para restaurantes y pedidos.",
         theme_color: "#E85D04",
         background_color: "#ffffff",

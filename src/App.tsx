@@ -82,9 +82,11 @@ const App = () => (
             >
               <Route index element={<Navigate to="counter" replace />} />
               <Route path="counter" element={<CounterPage />} />
+              <Route path="counter/:orderId/take-order" element={<TableTakeOrderPage />} />
               <Route path="tables" element={<TablesMapPage />} />
               <Route path="tables/:orderId/take-order" element={<TableTakeOrderPage />} />
               <Route path="delivery" element={<DeliveryPage />} />
+              <Route path="delivery/:orderId/take-order" element={<TableTakeOrderPage />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
