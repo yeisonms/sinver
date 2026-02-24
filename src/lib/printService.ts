@@ -162,6 +162,7 @@ async function sendViaHTTP(payload: Uint8Array, ip: string, port: number): Promi
     if (!res.ok) {
       throw new Error(`Error en proxy local: ${res.statusText}`);
     }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (err: any) {
     if (err.name === 'AbortError') {
       console.error("❌ El proxy local no respondió a tiempo.");
@@ -336,6 +337,7 @@ export async function reprintOrder(orderId: string): Promise<void> {
     const typeLabel = order.type === "domicilio" ? "DOMICILIO" : order.type === "recoger" ? "RECOGER" : "MESA";
     const orderLabel = `${typeLabel} #${order.order_number}`;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const printItems: PrintItem[] = itemsData.map((row: any) => ({
       product_id: row.product_id,
       product_name: row.products?.name || "Producto",

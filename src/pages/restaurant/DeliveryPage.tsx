@@ -87,6 +87,7 @@ export default function DeliveryPage() {
 
       // Auto-print online orders when accepted by the cashier
       await reprintOrder(orderId);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       toast.error(err?.message || "Error al aceptar");
     }
@@ -104,6 +105,7 @@ export default function DeliveryPage() {
       toast.success("Pedido rechazado");
       setRejectOrderId(null);
       setRejectReason("");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       toast.error(err?.message || "Error al rechazar");
     }
@@ -144,6 +146,7 @@ export default function DeliveryPage() {
       toast.success("Domicilio cerrado y cobro registrado");
       setCheckoutOrder(null);
       setSelectedOrderId(null);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       toast.error(err?.message || "Error al cerrar pedido");
     } finally {
@@ -205,8 +208,8 @@ export default function DeliveryPage() {
               key={f.value}
               onClick={() => setStatusFilter(f.value)}
               className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${statusFilter === f.value
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground"
+                ? "bg-primary text-primary-foreground"
+                : "bg-muted text-muted-foreground"
                 }`}
             >
               {f.label}
@@ -454,8 +457,8 @@ export default function DeliveryPage() {
                     <TableRow
                       key={o.id}
                       className={`cursor-pointer transition-colors ${selectedOrderId === o.id
-                          ? "bg-yellow-100 hover:bg-yellow-100"
-                          : "hover:bg-muted/50"
+                        ? "bg-yellow-100 hover:bg-yellow-100"
+                        : "hover:bg-muted/50"
                         }`}
                       onClick={() => setSelectedOrderId(o.id)}
                     >

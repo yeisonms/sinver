@@ -86,6 +86,7 @@ export default function CounterPage() {
 
       // Auto-print online pickup orders when accepted by the cashier
       await reprintOrder(orderId);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       toast.error(err?.message || "Error al aceptar");
     }
@@ -103,6 +104,7 @@ export default function CounterPage() {
       toast.success("Pedido rechazado");
       setRejectOrderId(null);
       setRejectReason("");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       toast.error(err?.message || "Error al rechazar");
     }
@@ -143,6 +145,7 @@ export default function CounterPage() {
       toast.success("Pedido cerrado y cobro registrado");
       setCheckoutOrder(null);
       setSelectedOrderId(null);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       toast.error(err?.message || "Error al cerrar pedido");
     } finally {
