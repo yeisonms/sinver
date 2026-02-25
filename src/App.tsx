@@ -20,6 +20,7 @@ import DeliveryPage from "@/pages/restaurant/DeliveryPage";
 import OnlineStoreSettingsPage from "@/pages/admin/OnlineStoreSettingsPage";
 import TeamPage from "@/pages/admin/TeamPage";
 import PrintersPage from "@/pages/admin/PrintersPage";
+import GeneralSettingsPage from "@/pages/admin/GeneralSettingsPage";
 import AuthPage from "@/pages/AuthPage";
 import NotFound from "./pages/NotFound";
 import { CartProvider } from "@/contexts/CartContext";
@@ -71,6 +72,7 @@ const App = () => (
               <Route path="online-store" element={<OnlineStoreSettingsPage />} />
               <Route path="team" element={<TeamPage />} />
               <Route path="printers" element={<PrintersPage />} />
+              <Route path="settings" element={<GeneralSettingsPage />} />
             </Route>
             <Route
               path="/restaurant"
