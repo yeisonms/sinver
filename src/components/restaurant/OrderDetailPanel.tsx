@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, Plus, Check, Pencil, X, Loader2 } from "lucide-react";
+import { Search, Plus, Check, Pencil, X, Loader2, ArrowRightLeft } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,9 +21,10 @@ interface Props {
   order: Order;
   waiterName?: string;
   onCheckout: (order: Order) => void;
+  onMoveTable?: () => void;
 }
 
-export function OrderDetailPanel({ order, waiterName, onCheckout }: Props) {
+export function OrderDetailPanel({ order, waiterName, onCheckout, onMoveTable }: Props) {
   const navigate = useNavigate();
   const [cancelItem, setCancelItem] = useState<OrderItemRow | null>(null);
   const [cancelReason, setCancelReason] = useState("");
@@ -97,7 +98,17 @@ export function OrderDetailPanel({ order, waiterName, onCheckout }: Props) {
       </div>
 
       {/* Primary Action Section */}
-      <div className="p-6 pb-2">
+      <div className="p-6 pb-2 space-y-3">
+        {onMoveTable && (
+          <Button
+            className="w-full h-11 gap-2 font-semibold bg-secondary/80 text-foreground hover:bg-secondary transition-colors"
+            variant="ghost"
+            onClick={onMoveTable}
+          >
+            <ArrowRightLeft className="h-4 w-4" />
+            Trasladar Mesa
+          </Button>
+        )}
         <Button
           className="w-full h-12 gap-2 font-bold bg-primary/5 text-primary hover:bg-primary/10 hover:text-primary border-2 border-primary/20 shadow-sm rounded-xl transition-all"
           variant="outline"

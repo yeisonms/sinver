@@ -34,136 +34,11 @@ import type { CartItem } from "@/components/restaurant/NewOrderSheet";
 import { useFavoriteProducts } from "@/hooks/useOrders";
 import { useCategories } from "@/hooks/useCategories";
 import { printComanda } from "@/lib/printService";
+import { OrderDetailPanel } from "@/components/restaurant/OrderDetailPanel";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 
 const GRID_ROWS = 8;
 const GRID_COLS = 10;
-
-// ──────────────────────────────────────────────────────────────
-// Mobile Order Panel (shown on right side for occupied tables)
-// ──────────────────────────────────────────────────────────────
-interface OrderPanelProps {
-  table: Table;
-  orderId: string;
-  orderNumber: number | null;
-  onAddProducts: () => void;
-  onCheckout: (total: number) => void;
-  canCheckout: boolean;
-  onMoveTable: () => void;
-  onClose: () => void;
-}
-
-function MobileOrderPanel({ table, orderId, orderNumber, onAddProducts, onCheckout, canCheckout, onMoveTable, onClose }: OrderPanelProps) {
-  const { data: items = [], isLoading } = useQuery<CartItem[]>({
-    queryKey: ["order-items", orderId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("order_items")
-        .select("*, products:product_id(name)")
-        .eq("order_id", orderId)
-        .eq("status", "activo");
-      if (error) throw error;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return (data ?? []).map((item: any) => ({
-        product_id: item.product_id,
-        product_name: item.products?.name ?? "Producto",
-        quantity: item.quantity,
-        unit_price: item.unit_price,
-        notes: item.notes,
-      }));
-    },
-    enabled: !!orderId,
-    refetchInterval: 8000,
-  });
-
-  const total = items.reduce((s, i) => s + i.unit_price * i.quantity, 0);
-
-  return (
-    <div className="flex flex-col h-full overflow-hidden bg-card border-l border-white/20 shadow-[-10px_0_30px_-15px_rgba(0,0,0,0.1)]">
-      {/* Header */}
-      <div className="shrink-0 px-5 py-4 text-primary-foreground text-center bg-primary relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent" />
-        <p className="font-bold text-xl leading-tight relative mt-1">Mesa {table.name}</p>
-        <p className="text-xs font-medium opacity-90 relative tracking-wide uppercase mt-0.5">Ocupada</p>
-      </div>
-
-      {/* Order number + add button */}
-      <div className="shrink-0 flex items-center gap-2 px-4 py-3 border-b border-border/50 bg-secondary/10">
-        {orderNumber && (
-          <span className="bg-destructive/10 text-destructive text-xs font-bold px-3 py-1.5 rounded-full ring-1 ring-destructive/20">
-            Venta {orderNumber}
-          </span>
-        )}
-        <button
-          onClick={onAddProducts}
-          className="flex items-center gap-1.5 text-sm font-semibold text-primary bg-primary/10 rounded-full px-4 py-1.5 hover:bg-primary hover:text-primary-foreground transition-all shadow-sm"
-        >
-          <Plus className="h-4 w-4" />
-          Agregar
-        </button>
-        <button
-          onClick={onMoveTable}
-          className="flex items-center gap-1.5 text-sm font-semibold text-blue-600 bg-blue-500/10 rounded-full px-4 py-1.5 hover:bg-blue-600 hover:text-white transition-all shadow-sm"
-        >
-          <ArrowRightLeft className="h-4 w-4" />
-          Trasladar
-        </button>
-        <div className="flex-1" />
-        <button onClick={onClose} className="h-8 w-8 flex items-center justify-center rounded-full text-muted-foreground hover:bg-secondary/50 transition-colors">
-          <X className="h-4 w-4" />
-        </button>
-      </div>
-
-      {/* Items list */}
-      <div className="flex-1 overflow-auto px-4 py-2">
-        {isLoading ? (
-          <div className="flex justify-center py-10">
-            <Loader2 className="h-6 w-6 animate-spin text-primary/40" />
-          </div>
-        ) : items.length === 0 ? (
-          <div className="text-center py-10 flex flex-col items-center gap-2">
-            <ShoppingCart className="h-8 w-8 text-muted-foreground/30" />
-            <span className="text-sm font-medium text-muted-foreground">Sin productos pedidos</span>
-          </div>
-        ) : (
-          <div className="space-y-1">
-            {items.map((item, i) => (
-              <div key={i} className="flex items-center text-sm py-2.5 border-b border-border/30 last:border-0 group">
-                <span className="w-6 font-semibold text-primary shrink-0 bg-primary/10 rounded px-1.5 text-center mr-2">{item.quantity}</span>
-                <span className="flex-1 font-medium text-foreground">{item.product_name}</span>
-                <span className="text-muted-foreground font-semibold">
-                  ${(item.unit_price * item.quantity).toLocaleString("es-CO", { minimumFractionDigits: 0 })}
-                </span>
-                <button className="ml-3 text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 p-1 rounded transition-colors opacity-100 sm:opacity-0 group-hover:opacity-100">
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Total + actions */}
-      <div className="shrink-0 border-t border-border/50 bg-secondary/5 p-4 space-y-4">
-        <div className="flex justify-between items-center">
-          <span className="text-sm font-medium text-muted-foreground">Total a pagar</span>
-          <span className="font-bold text-2xl text-foreground tracking-tight">
-            ${total.toLocaleString("es-CO", { minimumFractionDigits: 0 })}
-          </span>
-        </div>
-        {canCheckout && (
-          <Button
-            className="w-full h-12 text-base font-semibold shadow-premium-hover rounded-xl"
-            onClick={() => onCheckout(total)}
-            disabled={items.length === 0}
-          >
-            <Receipt className="h-5 w-5 mr-2 -ml-1" />
-            Cobrar Total
-          </Button>
-        )}
-      </div>
-    </div>
-  );
-}
 
 // ──────────────────────────────────────────────────────────────
 // Main Page
@@ -242,7 +117,7 @@ export default function TablesMapPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("orders")
-        .select("id, order_number, total_amount, waiter_id, client_name, general_notes")
+        .select("*")
         .eq("id", selectedTable!.current_order_id!)
         .single();
       if (error) throw error;
@@ -261,15 +136,7 @@ export default function TablesMapPage() {
       setDinerCount(1);
       setComment("");
     } else if (table.status === "ocupada") {
-      if (isMobile) {
-        // Mobile: show split panel
-        setSelectedTable(table);
-      } else {
-        // Desktop: navigate to take-order page
-        if (table.current_order_id) {
-          navigate(`/restaurant/tables/${table.current_order_id}/take-order`);
-        }
-      }
+      setSelectedTable(table);
     }
   };
 
@@ -285,12 +152,8 @@ export default function TablesMapPage() {
       });
       toast.success("Mesa abierta");
       setDialogTable(null);
-      if (isMobile) {
-        // On mobile, navigate to take order directly
-        navigate(`/restaurant/tables/${order.id}/take-order`);
-      } else {
-        navigate(`/restaurant/tables/${order.id}/take-order`);
-      }
+      setDialogTable(null);
+      navigate(`/restaurant/tables/${order.id}/take-order`);
     } catch {
       toast.error("Error al abrir mesa");
     }
@@ -483,29 +346,27 @@ export default function TablesMapPage() {
               )}
             </div>
 
-            {/* Right: order detail panel */}
+            {/* Right: order detail panel (Mobile Split View Logic) */}
             {selectedTable && (
               <div className="flex-1 overflow-hidden flex flex-col bg-background">
-                <MobileOrderPanel
-                  table={selectedTable}
-                  orderId={selectedTable.current_order_id!}
-                  orderNumber={selectedOrder?.order_number ?? null}
-                  canCheckout={canCheckout}
-                  onAddProducts={() => {
-                    if (selectedTable.current_order_id) {
-                      navigate(`/restaurant/tables/${selectedTable.current_order_id}/take-order`);
-                    }
-                  }}
-                  onMoveTable={() => setMoveTableOpen(true)}
-                  onCheckout={(total) => {
-                    setCheckoutOrderId(selectedTable.current_order_id!);
-                    setCheckoutOrderNumber(selectedOrder?.order_number ?? null);
-                    setCheckoutTable(selectedTable);
-                    setCheckoutConsumedTotal(total);
-                    setCheckoutOpen(true);
-                  }}
-                  onClose={() => setSelectedTable(null)}
-                />
+                {selectedOrder ? (
+                  <OrderDetailPanel
+                    order={selectedOrder}
+                    waiterName={selectedTable.current_waiter_id && waiterNameMap[selectedTable.current_waiter_id] ? waiterNameMap[selectedTable.current_waiter_id] : undefined}
+                    onCheckout={(order) => {
+                      setCheckoutOrderId(order.id);
+                      setCheckoutOrderNumber(order.order_number);
+                      setCheckoutTable(selectedTable);
+                      setCheckoutConsumedTotal(order.total_amount);
+                      setCheckoutOpen(true);
+                    }}
+                    onMoveTable={() => setMoveTableOpen(true)}
+                  />
+                ) : (
+                  <div className="flex items-center justify-center flex-1">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -555,6 +416,67 @@ export default function TablesMapPage() {
           </div>
         )}
       </div>
+
+      {/* Desktop Sheet Override */}
+      {!isMobile && (
+        <Sheet open={!!selectedTable} onOpenChange={(v) => !v && setSelectedTable(null)}>
+          <SheetContent className="w-full sm:max-w-md p-0 flex flex-col gap-0 border-l border-border/50 shadow-2xl">
+            {selectedOrder ? (
+              <OrderDetailPanel
+                order={selectedOrder}
+                waiterName={selectedTable?.current_waiter_id ? waiterNameMap[selectedTable.current_waiter_id] : undefined}
+                onCheckout={(order) => {
+                  setCheckoutOrderId(order.id);
+                  setCheckoutOrderNumber(order.order_number);
+                  if (selectedTable) setCheckoutTable(selectedTable);
+                  setCheckoutConsumedTotal(order.total_amount);
+                  setCheckoutOpen(true);
+                }}
+                onMoveTable={() => setMoveTableOpen(true)}
+              />
+            ) : (
+              <div className="flex items-center justify-center flex-1">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            )}
+          </SheetContent>
+        </Sheet>
+      )}
+
+      {/* Full-screen Overlay for Mobile */}
+      {isMobile && selectedTable && (
+        <div className="fixed inset-0 z-50 bg-background flex flex-col">
+          <div className="bg-primary text-primary-foreground h-14 flex items-center px-4 gap-3 shrink-0">
+            <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-white/10" onClick={() => setSelectedTable(null)}>
+              <X className="h-5 w-5" />
+            </Button>
+            <div className="flex-1">
+              <h2 className="font-bold">Mesa {selectedTable.name}</h2>
+              {selectedOrder && <p className="text-xs opacity-90">Venta #{selectedOrder.order_number}</p>}
+            </div>
+          </div>
+          <div className="flex-1 overflow-auto">
+            {selectedOrder ? (
+              <OrderDetailPanel
+                order={selectedOrder}
+                waiterName={selectedTable?.current_waiter_id ? waiterNameMap[selectedTable.current_waiter_id] : undefined}
+                onCheckout={(order) => {
+                  setCheckoutOrderId(order.id);
+                  setCheckoutOrderNumber(order.order_number);
+                  if (selectedTable) setCheckoutTable(selectedTable);
+                  setCheckoutConsumedTotal(order.total_amount);
+                  setCheckoutOpen(true);
+                }}
+                onMoveTable={() => setMoveTableOpen(true)}
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <Loader2 className="h-6 w-6 animate-spin" />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Open Table - Drawer on mobile, Dialog on desktop */}
       {isMobile ? (

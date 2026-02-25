@@ -61,7 +61,6 @@ export default function TableTakeOrderPage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
-  const [moveTableOpen, setMoveTableOpen] = useState(false);
   const [closing, setClosing] = useState(false);
 
   const total = cart.reduce((sum, item) => sum + item.unit_price * item.quantity, 0);
@@ -269,17 +268,6 @@ export default function TableTakeOrderPage() {
           <h2 className="text-sm font-bold flex-1 uppercase">
             Pedido {order?.type === "mesa" ? "Mesa" : order?.type === "recoger" ? "Mostrador" : "Domicilio"} — #{order?.order_number ?? "..."}
           </h2>
-          {order?.type === "mesa" && order?.tables && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1.5 text-blue-600 bg-blue-500/10 hover:bg-blue-600 hover:text-white border-blue-500/20"
-              onClick={() => setMoveTableOpen(true)}
-            >
-              <ArrowRightLeft className="h-4 w-4" />
-              Trasladar
-            </Button>
-          )}
           {canCheckout ? (
             <Button
               variant="outline"
@@ -330,15 +318,6 @@ export default function TableTakeOrderPage() {
           closing={closing}
           tipRate={tipRate}
           onConfirm={handleCheckout}
-        />
-      )}
-
-      {/* Move Table Dialog */}
-      {order?.tables && (
-        <MoveTableDialog
-          open={moveTableOpen}
-          onOpenChange={setMoveTableOpen}
-          sourceTable={order.tables}
         />
       )}
     </div>
