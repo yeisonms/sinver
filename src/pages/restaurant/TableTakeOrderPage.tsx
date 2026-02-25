@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Loader2, Receipt, Printer } from "lucide-react";
+import { ArrowLeft, Loader2, Receipt, Printer, ArrowRightLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CheckoutDialog } from "@/components/restaurant/CheckoutDialog";
+import { MoveTableDialog } from "@/components/restaurant/MoveTableDialog";
 import { useRestaurantInfo } from "@/hooks/useRestaurantInfo";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,7 +29,7 @@ export default function TableTakeOrderPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("orders")
-        .select("*")
+        .select("*, tables:table_id(*)")
         .eq("id", orderId!)
         .single();
       if (error) throw error;
@@ -45,6 +46,7 @@ export default function TableTakeOrderPage() {
         .select("*, products:product_id(name)")
         .eq("order_id", orderId!);
       if (error) throw error;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (data ?? []).map((item: any) => ({
         product_id: item.product_id,
         product_name: item.products?.name ?? "Producto",
@@ -59,6 +61,7 @@ export default function TableTakeOrderPage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [moveTableOpen, setMoveTableOpen] = useState(false);
   const [closing, setClosing] = useState(false);
 
   const total = cart.reduce((sum, item) => sum + item.unit_price * item.quantity, 0);
@@ -160,6 +163,7 @@ export default function TableTakeOrderPage() {
       qc.invalidateQueries({ queryKey: ["tables"] });
       toast.success("Comanda enviada a cocina");
       navigate(getReturnUrl());
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       toast.error(err?.message || "Error al enviar comanda");
     } finally {
@@ -236,6 +240,7 @@ export default function TableTakeOrderPage() {
       qc.invalidateQueries({ queryKey: ["tables"] });
       toast.success("Pedido cerrado y cobro registrado");
       navigate(getReturnUrl());
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       toast.error(err?.message || "Error al cerrar mesa");
     } finally {
@@ -264,6 +269,17 @@ export default function TableTakeOrderPage() {
           <h2 className="text-sm font-bold flex-1 uppercase">
             Pedido {order?.type === "mesa" ? "Mesa" : order?.type === "recoger" ? "Mostrador" : "Domicilio"} — #{order?.order_number ?? "..."}
           </h2>
+          {order?.type === "mesa" && order?.tables && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 text-blue-600 bg-blue-500/10 hover:bg-blue-600 hover:text-white border-blue-500/20"
+              onClick={() => setMoveTableOpen(true)}
+            >
+              <ArrowRightLeft className="h-4 w-4" />
+              Trasladar
+            </Button>
+          )}
           {canCheckout ? (
             <Button
               variant="outline"
@@ -314,6 +330,15 @@ export default function TableTakeOrderPage() {
           closing={closing}
           tipRate={tipRate}
           onConfirm={handleCheckout}
+        />
+      )}
+
+      {/* Move Table Dialog */}
+      {order?.tables && (
+        <MoveTableDialog
+          open={moveTableOpen}
+          onOpenChange={setMoveTableOpen}
+          sourceTable={order.tables}
         />
       )}
     </div>

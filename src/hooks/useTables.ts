@@ -75,3 +75,62 @@ export function useDeleteTable() {
     onSuccess: (areaId) => qc.invalidateQueries({ queryKey: ["tables", areaId] }),
   });
 }
+
+export function useMoveTable() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      sourceTableId,
+      targetTableId,
+      orderId,
+      waiterId,
+      targetAreaId, // To invalidate the target area UI
+      sourceAreaId, // To invalidate the source area UI
+    }: {
+      sourceTableId: string;
+      targetTableId: string;
+      orderId: string;
+      waiterId: string | null;
+      targetAreaId: string;
+      sourceAreaId: string;
+    }) => {
+      // 1. Point the order to the new table
+      const { error: orderErr } = await supabase
+        .from("orders")
+        .update({ table_id: targetTableId })
+        .eq("id", orderId);
+      if (orderErr) throw orderErr;
+
+      // 2. Mark target table as occupied
+      const { error: targetErr } = await supabase
+        .from("tables")
+        .update({
+          status: "ocupada",
+          current_order_id: orderId,
+          current_waiter_id: waiterId,
+        })
+        .eq("id", targetTableId);
+      if (targetErr) throw targetErr;
+
+      // 3. Mark source table as free
+      const { error: sourceErr } = await supabase
+        .from("tables")
+        .update({
+          status: "libre",
+          current_order_id: null,
+          current_waiter_id: null,
+        })
+        .eq("id", sourceTableId);
+      if (sourceErr) throw sourceErr;
+
+      return { sourceAreaId, targetAreaId };
+    },
+    onSuccess: ({ sourceAreaId, targetAreaId }) => {
+      qc.invalidateQueries({ queryKey: ["tables", sourceAreaId] });
+      if (sourceAreaId !== targetAreaId) {
+        qc.invalidateQueries({ queryKey: ["tables", targetAreaId] });
+      }
+      qc.invalidateQueries({ queryKey: ["orders"] });
+    },
+  });
+}

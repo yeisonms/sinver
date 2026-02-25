@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Minus, Plus, X, Receipt, ShoppingCart, ArrowLeft, RotateCcw } from "lucide-react";
+import { Loader2, Minus, Plus, X, Receipt, ShoppingCart, ArrowLeft, RotateCcw, ArrowRightLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,6 +28,7 @@ import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useRestaurantInfo } from "@/hooks/useRestaurantInfo";
 import { CheckoutDialog } from "@/components/restaurant/CheckoutDialog";
+import { MoveTableDialog } from "@/components/restaurant/MoveTableDialog";
 import type { Table } from "@/types/database";
 import type { CartItem } from "@/components/restaurant/NewOrderSheet";
 import { useFavoriteProducts } from "@/hooks/useOrders";
@@ -47,10 +48,11 @@ interface OrderPanelProps {
   onAddProducts: () => void;
   onCheckout: (total: number) => void;
   canCheckout: boolean;
+  onMoveTable: () => void;
   onClose: () => void;
 }
 
-function MobileOrderPanel({ table, orderId, orderNumber, onAddProducts, onCheckout, canCheckout, onClose }: OrderPanelProps) {
+function MobileOrderPanel({ table, orderId, orderNumber, onAddProducts, onCheckout, canCheckout, onMoveTable, onClose }: OrderPanelProps) {
   const { data: items = [], isLoading } = useQuery<CartItem[]>({
     queryKey: ["order-items", orderId],
     queryFn: async () => {
@@ -60,6 +62,7 @@ function MobileOrderPanel({ table, orderId, orderNumber, onAddProducts, onChecko
         .eq("order_id", orderId)
         .eq("status", "activo");
       if (error) throw error;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (data ?? []).map((item: any) => ({
         product_id: item.product_id,
         product_name: item.products?.name ?? "Producto",
@@ -96,6 +99,13 @@ function MobileOrderPanel({ table, orderId, orderNumber, onAddProducts, onChecko
         >
           <Plus className="h-4 w-4" />
           Agregar
+        </button>
+        <button
+          onClick={onMoveTable}
+          className="flex items-center gap-1.5 text-sm font-semibold text-blue-600 bg-blue-500/10 rounded-full px-4 py-1.5 hover:bg-blue-600 hover:text-white transition-all shadow-sm"
+        >
+          <ArrowRightLeft className="h-4 w-4" />
+          Trasladar
         </button>
         <div className="flex-1" />
         <button onClick={onClose} className="h-8 w-8 flex items-center justify-center rounded-full text-muted-foreground hover:bg-secondary/50 transition-colors">
@@ -216,6 +226,7 @@ export default function TablesMapPage() {
 
   // Mobile: selected occupied table for split-panel
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
+  const [moveTableOpen, setMoveTableOpen] = useState(false);
 
   // Checkout state
   const [checkoutOpen, setCheckoutOpen] = useState(false);
@@ -336,6 +347,7 @@ export default function TablesMapPage() {
       toast.success("Mesa cerrada y cobro registrado");
       setCheckoutOpen(false);
       setSelectedTable(null);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       toast.error(err?.message || "Error al cerrar mesa");
     } finally {
@@ -484,6 +496,7 @@ export default function TablesMapPage() {
                       navigate(`/restaurant/tables/${selectedTable.current_order_id}/take-order`);
                     }
                   }}
+                  onMoveTable={() => setMoveTableOpen(true)}
                   onCheckout={(total) => {
                     setCheckoutOrderId(selectedTable.current_order_id!);
                     setCheckoutOrderNumber(selectedOrder?.order_number ?? null);
@@ -582,6 +595,13 @@ export default function TablesMapPage() {
           onConfirm={handleCheckout}
         />
       )}
+
+      {/* Move Table Dialog */}
+      <MoveTableDialog
+        open={moveTableOpen}
+        onOpenChange={setMoveTableOpen}
+        sourceTable={selectedTable}
+      />
     </div>
   );
 }
