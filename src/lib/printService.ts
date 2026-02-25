@@ -360,3 +360,172 @@ export async function reprintOrder(orderId: string): Promise<void> {
     console.error("Error en reprintOrder:", err);
   }
 }
+
+export interface PrintReceiptOptions {
+  restaurantName: string;
+  nit: string;
+  address: string;
+  phone: string;
+  taxRegime: string;
+  posResolution: string;
+  slogan: string;
+  footerMessage: string;
+  tableName: string;
+  orderNumber: number;
+  waiterName: string;
+  items: { name: string; quantity: number; unit_price: number }[];
+  tipPercentage: number;
+}
+
+function buildReceiptPayload(opts: PrintReceiptOptions): Uint8Array {
+  const encoder = new TextEncoder();
+  const ESC = 0x1B;
+  const GS = 0x1D;
+  const parts: Uint8Array[] = [];
+
+  parts.push(new Uint8Array([ESC, 0x40])); // Init
+
+  // Center alignment
+  parts.push(new Uint8Array([ESC, 0x61, 0x01]));
+
+  // Header
+  parts.push(new Uint8Array([ESC, 0x45, 0x01])); // Bold
+  parts.push(new Uint8Array([GS, 0x21, 0x11]));  // Double size
+  parts.push(encoder.encode(`${opts.restaurantName}\n`));
+  parts.push(new Uint8Array([GS, 0x21, 0x00]));  // Normal size
+  parts.push(new Uint8Array([ESC, 0x45, 0x00])); // Bold off
+
+  if (opts.nit) parts.push(encoder.encode(`NIT: ${opts.nit}\n`));
+  if (opts.taxRegime) parts.push(encoder.encode(`${opts.taxRegime}\n`));
+  if (opts.address) parts.push(encoder.encode(`${opts.address}\n`));
+  if (opts.phone) parts.push(encoder.encode(`Tel: ${opts.phone}\n`));
+  if (opts.posResolution) parts.push(encoder.encode(`Res: ${opts.posResolution}\n`));
+
+  parts.push(encoder.encode("\n"));
+  parts.push(new Uint8Array([ESC, 0x45, 0x01])); // Bold
+  parts.push(encoder.encode(`*** PRE-CUENTA ***\n`));
+  parts.push(new Uint8Array([ESC, 0x45, 0x00])); // Bold off
+  parts.push(encoder.encode("\n"));
+
+  // Left alignment for details
+  parts.push(new Uint8Array([ESC, 0x61, 0x00]));
+
+  parts.push(encoder.encode(`MESA: ${opts.tableName}     ORDEN: #${opts.orderNumber}\n`));
+  parts.push(encoder.encode(`FECHA: ${new Date().toLocaleString("es-CO")}\n`));
+  parts.push(encoder.encode(`ATENDIÓ: ${opts.waiterName}\n`));
+  parts.push(encoder.encode("--------------------------------\n"));
+
+  parts.push(encoder.encode("CANT | DESCRIPCION    | SUBTOTAL\n"));
+  parts.push(encoder.encode("--------------------------------\n"));
+
+  let subtotal = 0;
+  for (const item of opts.items) {
+    const itemSub = item.quantity * item.unit_price;
+    subtotal += itemSub;
+    const qtyStr = item.quantity.toString().padEnd(4);
+    let nameStr = item.name.substring(0, 14).padEnd(14);
+    const subStr = itemSub.toLocaleString("es-CO").padStart(10);
+
+    parts.push(encoder.encode(`${qtyStr} | ${nameStr} | ${subStr}\n`));
+
+    // If name is longer than 14, print the rest on next line
+    if (item.name.length > 14) {
+      const rest = item.name.substring(14, 28);
+      parts.push(encoder.encode(`     | ${rest}\n`));
+    }
+  }
+
+  parts.push(encoder.encode("--------------------------------\n"));
+
+  // Right alignment for totals
+  parts.push(new Uint8Array([ESC, 0x61, 0x02]));
+  parts.push(encoder.encode(`SUBTOTAL: $ ${subtotal.toLocaleString("es-CO")}\n`));
+
+  let tip = 0;
+  if (opts.tipPercentage > 0) {
+    tip = Math.round(subtotal * (opts.tipPercentage / 100));
+    parts.push(encoder.encode(`PROPINA (${opts.tipPercentage}%): $ ${tip.toLocaleString("es-CO")}\n`));
+  }
+
+  const total = subtotal + tip;
+  parts.push(new Uint8Array([ESC, 0x45, 0x01])); // Bold
+  parts.push(new Uint8Array([GS, 0x21, 0x01]));  // Double height
+  parts.push(encoder.encode(`TOTAL: $ ${total.toLocaleString("es-CO")}\n`));
+  parts.push(new Uint8Array([GS, 0x21, 0x00]));
+  parts.push(new Uint8Array([ESC, 0x45, 0x00]));
+
+  parts.push(encoder.encode("\n"));
+
+  // Center alignment for footer
+  parts.push(new Uint8Array([ESC, 0x61, 0x01]));
+  if (opts.slogan) parts.push(encoder.encode(`${opts.slogan}\n`));
+  if (opts.footerMessage) {
+    parts.push(encoder.encode("\n"));
+    const msgLines = opts.footerMessage.split('\n');
+    for (const line of msgLines) {
+      parts.push(encoder.encode(`${line}\n`));
+    }
+  }
+
+  parts.push(encoder.encode("\nDOCUMENTO NO VALIDO COMO FACTURA\n"));
+
+  parts.push(encoder.encode("\n\n\n\n\n")); // Feed
+  parts.push(new Uint8Array([GS, 0x56, 0x00])); // Cut
+
+  const totalLen = parts.reduce((s, p) => s + p.length, 0);
+  const payload = new Uint8Array(totalLen);
+  let offset = 0;
+  for (const p of parts) {
+    payload.set(p, offset);
+    offset += p.length;
+  }
+  return payload;
+}
+
+export async function printControlReceipt(opts: PrintReceiptOptions): Promise<void> {
+  const { data: printers, error } = await supabase
+    .from("printers")
+    .select("id, name, ip_address, port");
+
+  if (error || !printers || printers.length === 0) {
+    console.warn("⚠️ No printers found to print the receipt.");
+    toast.error("No hay impresoras configuradas.");
+    return;
+  }
+
+  // Try to find a printer named "caja" or use the first available IP printer
+  let targetPrinter = printers.find(p => p.name.toLowerCase().includes("caja") && p.ip_address);
+  if (!targetPrinter) {
+    targetPrinter = printers.find(p => p.ip_address);
+  }
+
+  if (!targetPrinter) {
+    if (isMobileAndroid()) {
+      // In RawBT any printer can be used without explicitly knowing the IP
+      targetPrinter = printers[0];
+    } else {
+      toast.error("Ninguna impresora tiene dirección IP configurada.");
+      return;
+    }
+  }
+
+  const payload = buildReceiptPayload(opts);
+
+  if (isMobileAndroid()) {
+    try {
+      sendViaRawBT(payload);
+      console.log(`✅ Pre-cuenta enviada via RawBT`);
+    } catch (err) {
+      console.error(`❌ Error enviando via RawBT:`, err);
+    }
+  } else {
+    try {
+      await sendViaHTTP(payload, targetPrinter.ip_address!, targetPrinter.port || 9100);
+      console.log(`✅ Pre-cuenta enviada a ${targetPrinter.name}`);
+      toast.success("Imprimiendo cuenta...");
+    } catch (err) {
+      console.error(`❌ Error enviando a ${targetPrinter.name}:`, err);
+    }
+  }
+}
+

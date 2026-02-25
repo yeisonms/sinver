@@ -13,7 +13,7 @@ import type { CartItem } from "@/components/restaurant/NewOrderSheet";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/contexts/AuthContext";
-import { printComanda } from "@/lib/printService";
+import { printComanda, printControlReceipt } from "@/lib/printService";
 import { createRoot } from "react-dom/client";
 
 export default function TableTakeOrderPage() {
@@ -80,7 +80,7 @@ export default function TableTakeOrderPage() {
     enabled: !!user?.id,
   });
 
-  const handlePrintControl = () => {
+  const handlePrintControl = async () => {
     const allItems = [
       ...existingItems.map((i) => ({ name: i.product_name, quantity: i.quantity, unit_price: i.unit_price })),
       ...cart.map((i) => ({ name: i.product_name, quantity: i.quantity, unit_price: i.unit_price })),
@@ -90,36 +90,25 @@ export default function TableTakeOrderPage() {
       return;
     }
 
-    const container = document.createElement("div");
-    container.id = "print-receipt-container";
-    document.body.appendChild(container);
-
-    const root = createRoot(container);
-    root.render(
-      <TableControlReceipt
-        restaurantName={(restaurantInfo as any)?.restaurant_name ?? "MI RESTAURANTE"}
-        nit={(restaurantInfo as any)?.nit ?? ""}
-        address={(restaurantInfo as any)?.address ?? ""}
-        phone={(restaurantInfo as any)?.phone ?? ""}
-        taxRegime={(restaurantInfo as any)?.tax_regime ?? ""}
-        posResolution={(restaurantInfo as any)?.pos_resolution ?? ""}
-        slogan={(restaurantInfo as any)?.slogan ?? ""}
-        footerMessage={(restaurantInfo as any)?.footer_message ?? ""}
-        tableName={order?.tables?.name ?? "?"}
-        orderNumber={order?.order_number ?? 0}
-        waiterName={currentProfile?.full_name ?? user?.email ?? "—"}
-        items={allItems}
-        tipPercentage={tipRate}
-      />
-    );
-
-    setTimeout(() => {
-      window.print();
-      setTimeout(() => {
-        root.unmount();
-        container.remove();
-      }, 500);
-    }, 100);
+    try {
+      await printControlReceipt({
+        restaurantName: (restaurantInfo as any)?.restaurant_name ?? "MI RESTAURANTE",
+        nit: (restaurantInfo as any)?.nit ?? "",
+        address: (restaurantInfo as any)?.address ?? "",
+        phone: (restaurantInfo as any)?.phone ?? "",
+        taxRegime: (restaurantInfo as any)?.tax_regime ?? "",
+        posResolution: (restaurantInfo as any)?.pos_resolution ?? "",
+        slogan: (restaurantInfo as any)?.slogan ?? "",
+        footerMessage: (restaurantInfo as any)?.footer_message ?? "",
+        tableName: order?.tables?.name ?? "?",
+        orderNumber: order?.order_number ?? 0,
+        waiterName: currentProfile?.full_name ?? user?.email ?? "—",
+        items: allItems,
+        tipPercentage: tipRate,
+      });
+    } catch (error) {
+      console.error("Error printing control ticket:", error);
+    }
   };
 
   const total = cart.reduce((sum, item) => sum + item.unit_price * item.quantity, 0);
