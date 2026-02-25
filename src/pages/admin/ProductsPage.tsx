@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Plus, Pencil, Trash2, Search, Loader2, Upload, X, ImageIcon, ChevronDown } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Loader2, Upload, X, ImageIcon, ChevronDown, Star } from "lucide-react";
 import { useProducts, useCreateProduct, useUpdateProduct, useDeleteProduct } from "@/hooks/useProducts";
 import { useCategories } from "@/hooks/useCategories";
 import { useModifierGroups } from "@/hooks/useModifiers";
@@ -143,6 +143,15 @@ export default function ProductsPage() {
         toast({ title: "Producto creado" });
       }
       setDialogOpen(false);
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    }
+  };
+
+  const toggleFavorite = async (p: Product) => {
+    try {
+      await updateProduct.mutateAsync({ id: p.id, is_favorite: !p.is_favorite });
+      toast({ title: p.is_favorite ? "Removido de favoritos" : "Agregado a favoritos" });
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     }
@@ -311,7 +320,10 @@ export default function ProductsPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <div className="flex justify-end gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex justify-end gap-1">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10" onClick={() => toggleFavorite(p)}>
+                          <Star className={`h-4 w-4 ${p.is_favorite ? "fill-amber-500 text-amber-500" : ""}`} />
+                        </Button>
                         <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10" onClick={() => openEdit(p)}>
                           <Pencil className="h-4 w-4" />
                         </Button>

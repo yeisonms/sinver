@@ -33,7 +33,7 @@ const CartContext = createContext<CartContextType | null>(null);
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
-  const [deliveryMethod, setDeliveryMethod] = useState<"pickup" | "delivery">("pickup");
+  const [deliveryMethod, setDeliveryMethod] = useState<"pickup" | "delivery">("delivery");
   const [schedule, setSchedule] = useState<ScheduleOption>({ type: "asap" });
 
   const addItem = useCallback((item: Omit<CartItem, "id">) => {
