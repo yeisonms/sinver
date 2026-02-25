@@ -111,108 +111,85 @@ export default function StorePage() {
   const loading = infoLoading || catLoading || prodLoading;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-slate-50">
       {/* Header */}
-      <header className="sticky top-0 z-30 bg-background border-b border-border">
+      <header className="sticky top-0 z-40 bg-white/85 backdrop-blur-xl border-b border-gray-200 shadow-sm flex flex-col">
         {info?.banner_url && (
-          <div className="h-32 md:h-44 w-full overflow-hidden">
+          <div className="h-32 md:h-44 w-full overflow-hidden shrink-0">
             <img src={info.banner_url} alt="Banner" className="w-full h-full object-cover" />
           </div>
         )}
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+        <div className="max-w-7xl mx-auto w-full px-4 py-3 flex items-center justify-between gap-4 shrink-0">
           <div className="flex items-center gap-3">
-            <h1 className="text-xl font-bold">{info?.description || "Mi Restaurante"}</h1>
-            <Badge variant={isOpen ? "default" : "destructive"} className="text-xs">
+            <h1 className="text-xl font-bold text-gray-900">{info?.description || "Mi Restaurante"}</h1>
+            <Badge variant={isOpen ? "default" : "destructive"} className="text-[10px] sm:text-xs">
               {isOpen ? "Abierto" : "Cerrado"}
             </Badge>
           </div>
           <div className="flex items-center gap-2">
             <Select value={deliveryMethod} onValueChange={(v: "pickup" | "delivery") => setDeliveryMethod(v)}>
-              <SelectTrigger className="w-[140px] h-9 text-sm">
+              <SelectTrigger className="w-auto md:w-[140px] h-9 text-sm bg-gray-50 border-gray-200">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {info?.enable_pickup !== false && <SelectItem value="pickup"><MapPin className="inline w-3.5 h-3.5 mr-1" />Para retirar</SelectItem>}
+                {info?.enable_pickup !== false && <SelectItem value="pickup"><MapPin className="inline w-3.5 h-3.5 mr-1" />Retirar</SelectItem>}
                 {info?.enable_delivery !== false && <SelectItem value="delivery"><MapPin className="inline w-3.5 h-3.5 mr-1" />Domicilio</SelectItem>}
               </SelectContent>
             </Select>
-            <ScheduleButton schedule={schedule} onScheduleChange={setSchedule} />
+            <div className="hidden sm:block">
+              <ScheduleButton schedule={schedule} onScheduleChange={setSchedule} />
+            </div>
             <Button
               variant="default"
               size="sm"
-              className="relative gap-1"
+              className="relative h-9 w-9 p-0 rounded-full shadow-md hover:shadow-lg transition-all"
               onClick={() => setCartOpen(true)}
             >
               <ShoppingCart className="w-4 h-4" />
               {itemCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground text-[10px] rounded-full w-5 h-5 flex items-center justify-center font-bold">
+                <span className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground text-[10px] rounded-full w-5 h-5 flex items-center justify-center font-bold ring-2 ring-white">
                   {itemCount}
                 </span>
               )}
             </Button>
           </div>
         </div>
-      </header>
 
-      <div className="max-w-7xl mx-auto flex">
-        {/* Sidebar */}
-        <aside className="hidden md:block w-56 shrink-0 sticky top-[140px] self-start p-4 space-y-1">
-          <div className="relative mb-3">
-            <Search className="absolute left-2.5 top-2.5 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar productos"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-8 h-9 text-sm"
-            />
-          </div>
-          {storeCategories.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => scrollTo(cat.id)}
-              className={`w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                activeCategory === cat.id
-                  ? "bg-primary/10 text-primary border-l-2 border-primary"
-                  : "hover:bg-muted text-foreground"
-              }`}
-            >
-              {cat.name}
-            </button>
-          ))}
-        </aside>
-
-        {/* Mobile search */}
-        <div className="md:hidden px-4 py-2 w-full">
+        {/* Global Search & Categories Navigation */}
+        <div className="max-w-7xl mx-auto w-full px-4 pb-3 flex flex-col gap-3 shrink-0">
           <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 w-4 h-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <Input
-              placeholder="Buscar productos"
+              placeholder="Buscar productos..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-8 h-9 text-sm"
+              className="pl-9 h-10 w-full bg-gray-100/50 border-gray-200/60 rounded-xl text-sm focus-visible:ring-primary/20 transition-all placeholder:text-gray-400"
             />
           </div>
-          <div className="flex gap-2 overflow-x-auto py-2">
+
+          <div className="flex gap-2 overflow-x-auto no-scrollbar items-center pb-1 -mx-4 px-4 sm:mx-0 sm:px-0">
             {storeCategories.map((cat) => (
               <button
                 key={cat.id}
                 onClick={() => scrollTo(cat.id)}
-                className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border ${
-                  activeCategory === cat.id ? "bg-primary text-primary-foreground border-primary" : "border-border"
-                }`}
+                className={`shrink-0 px-4 py-1.5 rounded-full text-sm font-semibold transition-all duration-300 outline-none ${activeCategory === cat.id
+                  ? "bg-primary text-white shadow-md shadow-primary/20 scale-100"
+                  : "bg-transparent text-gray-500 hover:bg-gray-100 scale-[0.98] active:scale-95"
+                  }`}
               >
                 {cat.name}
               </button>
             ))}
           </div>
         </div>
+      </header>
 
-        {/* Product grid */}
-        <main className="flex-1 p-4 space-y-8">
+      <div className="max-w-7xl mx-auto flex flex-col items-center w-full">
+        <main className="flex-1 p-4 w-full space-y-8">
           {loading ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <Skeleton key={i} className="h-64 rounded-lg" />
+            <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: 9 }).map((_, i) => (
+                <Skeleton key={i} className="h-32 rounded-3xl" />
               ))}
             </div>
           ) : (
@@ -223,8 +200,8 @@ export default function StorePage() {
                   ref={(el: HTMLDivElement | null) => { sectionRefs.current[category.id] = el; }}
                   data-cat-id={category.id}
                 >
-                  <h2 className="text-lg font-bold mb-3">{category.name}</h2>
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  <h2 className="text-xl font-bold mb-4 text-gray-900 px-1">{category.name}</h2>
+                  <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                     {prods.map((product) => (
                       <ProductCard key={product.id} product={product} onClick={() => setSelectedProduct(product)} />
                     ))}
@@ -233,8 +210,8 @@ export default function StorePage() {
               ))}
               {uncategorized.length > 0 && (
                 <section>
-                  <h2 className="text-lg font-bold mb-3">Otros</h2>
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  <h2 className="text-xl font-bold mb-4 text-gray-900 px-1">Otros</h2>
+                  <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                     {uncategorized.map((product) => (
                       <ProductCard key={product.id} product={product} onClick={() => setSelectedProduct(product)} />
                     ))}
@@ -280,19 +257,31 @@ function ProductCard({ product, onClick }: { product: Product; onClick: () => vo
   return (
     <button
       onClick={onClick}
-      className="text-left bg-card rounded-lg border border-border overflow-hidden hover:shadow-md transition-shadow group"
+      className="relative text-left bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-row w-full active:scale-[0.98] cursor-pointer group"
     >
-      <div className="aspect-square bg-muted overflow-hidden">
+      <div className="w-[120px] h-[120px] shrink-0 bg-gray-50 overflow-hidden">
         {product.image_url ? (
-          <img src={product.image_url} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+          <img src={product.image_url} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">Sin imagen</div>
+          <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs text-center p-2">Sin imagen</div>
         )}
       </div>
-      <div className="p-3 space-y-1">
-        <h3 className="font-semibold text-sm line-clamp-2">{product.name}</h3>
-        {product.description && <p className="text-xs text-muted-foreground line-clamp-2">{product.description}</p>}
-        <p className="text-sm font-bold text-primary">{formatPrice(product.price)}</p>
+      <div className="p-3.5 flex-1 flex flex-col justify-between overflow-hidden">
+        <div>
+          <h3 className="font-semibold text-[15px] text-gray-900 line-clamp-2 leading-tight">{product.name}</h3>
+          {product.description && <p className="text-[13px] text-gray-500 line-clamp-2 leading-snug mt-1">{product.description}</p>}
+        </div>
+        <div className="mt-2 flex items-end justify-between">
+          <p className="text-base font-extrabold text-gray-900">{formatPrice(product.price)}</p>
+        </div>
+      </div>
+
+      {/* Floating Add Button */}
+      <div className="absolute bottom-3 right-3 w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center shadow-sm">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M5 12h14"></path>
+          <path d="M12 5v14"></path>
+        </svg>
       </div>
     </button>
   );
