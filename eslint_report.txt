@@ -1,0 +1,96 @@
+[0m[0m
+[0m[4mD:\proyectos2026\sinver\src\components\online-store\GeneralTab.tsx[24m[0m
+[0m  [2m51:19[22m  [31merror[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mD:\proyectos2026\sinver\src\components\online-store\ScheduleTab.tsx[24m[0m
+[0m  [2m72:38[22m  [31merror[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mD:\proyectos2026\sinver\src\components\restaurant\CheckoutDialog.tsx[24m[0m
+[0m  [2m77:6[22m  [33mwarning[39m  React Hook useEffect has a missing dependency: 'tipRate'. Either include it or remove the dependency array. If 'setTipEnabled' needs the current value of 'tipRate', you can also switch to useReducer instead of useState and read 'tipRate' in the reducer  [2mreact-hooks/exhaustive-deps[22m[0m
+[0m[0m
+[0m[4mD:\proyectos2026\sinver\src\components\restaurant\NewDeliverySheet.tsx[24m[0m
+[0m   [2m16:18[22m  [31merror[39m  An interface declaring no members is equivalent to its supertype  [2m@typescript-eslint/no-empty-object-type[22m[0m
+[0m  [2m111:19[22m  [31merror[39m  Unexpected any. Specify a different type                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mD:\proyectos2026\sinver\src\components\restaurant\NewOrderSheet.tsx[24m[0m
+[0m  [2m10:18[22m  [31merror[39m  An interface declaring no members is equivalent to its supertype  [2m@typescript-eslint/no-empty-object-type[22m[0m
+[0m  [2m88:19[22m  [31merror[39m  Unexpected any. Specify a different type                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mD:\proyectos2026\sinver\src\components\restaurant\OrderStep2.tsx[24m[0m
+[0m  [2m71:6[22m  [33mwarning[39m  React Hook useEffect has missing dependencies: 'editingCartIndex' and 'editingProduct'. Either include them or remove the dependency array  [2mreact-hooks/exhaustive-deps[22m[0m
+[0m[0m
+[0m[4mD:\proyectos2026\sinver\src\components\ui\badge.tsx[24m[0m
+[0m  [2m29:17[22m  [33mwarning[39m  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  [2mreact-refresh/only-export-components[22m[0m
+[0m[0m
+[0m[4mD:\proyectos2026\sinver\src\components\ui\button.tsx[24m[0m
+[0m  [2m47:18[22m  [33mwarning[39m  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  [2mreact-refresh/only-export-components[22m[0m
+[0m[0m
+[0m[4mD:\proyectos2026\sinver\src\components\ui\command.tsx[24m[0m
+[0m  [2m24:11[22m  [31merror[39m  An interface declaring no members is equivalent to its supertype  [2m@typescript-eslint/no-empty-object-type[22m[0m
+[0m[0m
+[0m[4mD:\proyectos2026\sinver\src\components\ui\form.tsx[24m[0m
+[0m  [2m129:10[22m  [33mwarning[39m  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  [2mreact-refresh/only-export-components[22m[0m
+[0m[0m
+[0m[4mD:\proyectos2026\sinver\src\components\ui\navigation-menu.tsx[24m[0m
+[0m  [2m111:3[22m  [33mwarning[39m  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  [2mreact-refresh/only-export-components[22m[0m
+[0m[0m
+[0m[4mD:\proyectos2026\sinver\src\components\ui\sidebar.tsx[24m[0m
+[0m  [2m636:3[22m  [33mwarning[39m  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  [2mreact-refresh/only-export-components[22m[0m
+[0m[0m
+[0m[4mD:\proyectos2026\sinver\src\components\ui\sonner.tsx[24m[0m
+[0m  [2m27:19[22m  [33mwarning[39m  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  [2mreact-refresh/only-export-components[22m[0m
+[0m[0m
+[0m[4mD:\proyectos2026\sinver\src\components\ui\textarea.tsx[24m[0m
+[0m  [2m5:18[22m  [31merror[39m  An interface declaring no members is equivalent to its supertype  [2m@typescript-eslint/no-empty-object-type[22m[0m
+[0m[0m
+[0m[4mD:\proyectos2026\sinver\src\components\ui\toggle.tsx[24m[0m
+[0m  [2m37:18[22m  [33mwarning[39m  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  [2mreact-refresh/only-export-components[22m[0m
+[0m[0m
+[0m[4mD:\proyectos2026\sinver\src\contexts\AuthContext.tsx[24m[0m
+[0m  [2m25:14[22m  [33mwarning[39m  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  [2mreact-refresh/only-export-components[22m[0m
+[0m[0m
+[0m[4mD:\proyectos2026\sinver\src\contexts\CartContext.tsx[24m[0m
+[0m  [2m66:17[22m  [33mwarning[39m  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  [2mreact-refresh/only-export-components[22m[0m
+[0m[0m
+[0m[4mD:\proyectos2026\sinver\src\hooks\useModifiers.ts[24m[0m
+[0m  [2m110:35[22m  [31merror[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mD:\proyectos2026\sinver\src\hooks\useOrderItems.ts[24m[0m
+[0m  [2m26:38[22m  [31merror[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mD:\proyectos2026\sinver\src\hooks\useRestaurantInfo.ts[24m[0m
+[0m   [2m68:80[22m  [31merror[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m96:28[22m  [31merror[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m105:20[22m  [31merror[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mD:\proyectos2026\sinver\src\lib\printService.ts[24m[0m
+[0m  [2m158:34[22m  [31merror[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mD:\proyectos2026\sinver\src\pages\AuthPage.tsx[24m[0m
+[0m  [2m81:21[22m  [31merror[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mD:\proyectos2026\sinver\src\pages\admin\CategoriesPage.tsx[24m[0m
+[0m  [2m103:17[22m  [31merror[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m114:17[22m  [31merror[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mD:\proyectos2026\sinver\src\pages\admin\PrintersPage.tsx[24m[0m
+[0m  [2m39:17[22m  [31merror[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m92:38[22m  [31merror[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mD:\proyectos2026\sinver\src\pages\admin\ProductsPage.tsx[24m[0m
+[0m   [2m81:52[22m  [31merror[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m146:17[22m  [31merror[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m155:17[22m  [31merror[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mD:\proyectos2026\sinver\src\pages\restaurant\ArqueosTab.tsx[24m[0m
+[0m  [2m69:20[22m  [31merror[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mD:\proyectos2026\sinver\src\pages\restaurant\SalesTab.tsx[24m[0m
+[0m  [2m149:38[22m  [31merror[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mD:\proyectos2026\sinver\src\pages\store\CheckoutPage.tsx[24m[0m
+[0m  [2m59:14[22m  [31merror[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m83:19[22m  [31merror[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[31m[1m✖ 37 problems (26 errors, 11 warnings)[22m[39m[0m
+[0m[31m[1m[22m[39m[0m
