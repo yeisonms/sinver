@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Loader2, Receipt, Printer, ArrowRightLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CheckoutDialog } from "@/components/restaurant/CheckoutDialog";
 import { MoveTableDialog } from "@/components/restaurant/MoveTableDialog";
+import TableControlReceipt from "@/components/restaurant/TableControlReceipt";
 import { useRestaurantInfo } from "@/hooks/useRestaurantInfo";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,6 +14,7 @@ import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/contexts/AuthContext";
 import { printComanda } from "@/lib/printService";
+import { createRoot } from "react-dom/client";
 
 export default function TableTakeOrderPage() {
   const { orderId } = useParams<{ orderId: string }>();
@@ -21,7 +23,7 @@ export default function TableTakeOrderPage() {
   const { info: restaurantInfo } = useRestaurantInfo();
   const tipRate = restaurantInfo?.default_tip_percentage ?? 0;
   const isMobile = useIsMobile();
-  const { role } = useAuth();
+  const { role, user } = useAuth();
   const canCheckout = role === "admin" || role === "cajero";
 
   const { data: order, isLoading: loadingOrder } = useQuery({
@@ -61,7 +63,64 @@ export default function TableTakeOrderPage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [moveTableOpen, setMoveTableOpen] = useState(false);
   const [closing, setClosing] = useState(false);
+
+  // Fetch current user's profile name for the receipt
+  const { data: currentProfile } = useQuery({
+    queryKey: ["profile", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", user!.id)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
+  const handlePrintControl = () => {
+    const allItems = [
+      ...existingItems.map((i) => ({ name: i.product_name, quantity: i.quantity, unit_price: i.unit_price })),
+      ...cart.map((i) => ({ name: i.product_name, quantity: i.quantity, unit_price: i.unit_price })),
+    ];
+    if (allItems.length === 0) {
+      toast.warning("No hay productos para imprimir");
+      return;
+    }
+
+    const container = document.createElement("div");
+    container.id = "print-receipt-container";
+    document.body.appendChild(container);
+
+    const root = createRoot(container);
+    root.render(
+      <TableControlReceipt
+        restaurantName={(restaurantInfo as any)?.restaurant_name ?? "MI RESTAURANTE"}
+        nit={(restaurantInfo as any)?.nit ?? ""}
+        address={(restaurantInfo as any)?.address ?? ""}
+        phone={(restaurantInfo as any)?.phone ?? ""}
+        taxRegime={(restaurantInfo as any)?.tax_regime ?? ""}
+        posResolution={(restaurantInfo as any)?.pos_resolution ?? ""}
+        slogan={(restaurantInfo as any)?.slogan ?? ""}
+        footerMessage={(restaurantInfo as any)?.footer_message ?? ""}
+        tableName={order?.tables?.name ?? "?"}
+        orderNumber={order?.order_number ?? 0}
+        waiterName={currentProfile?.full_name ?? user?.email ?? "—"}
+        items={allItems}
+        tipPercentage={tipRate}
+      />
+    );
+
+    setTimeout(() => {
+      window.print();
+      setTimeout(() => {
+        root.unmount();
+        container.remove();
+      }, 500);
+    }, 100);
+  };
 
   const total = cart.reduce((sum, item) => sum + item.unit_price * item.quantity, 0);
   const existingTotal = existingItems.reduce((s, i) => s + i.unit_price * i.quantity, 0);
@@ -268,7 +327,28 @@ export default function TableTakeOrderPage() {
           <h2 className="text-sm font-bold flex-1 uppercase">
             Pedido {order?.type === "mesa" ? "Mesa" : order?.type === "recoger" ? "Mostrador" : "Domicilio"} — #{order?.order_number ?? "..."}
           </h2>
-          {canCheckout ? (
+          {order?.type === "mesa" && order?.tables && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 text-blue-600 bg-blue-500/10 hover:bg-blue-600 hover:text-white border-blue-500/20"
+              onClick={() => setMoveTableOpen(true)}
+            >
+              <ArrowRightLeft className="h-4 w-4" />
+              Trasladar
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5"
+            disabled={!hasExistingItems && cart.length === 0}
+            onClick={handlePrintControl}
+          >
+            <Printer className="h-4 w-4" />
+            Imprimir Control
+          </Button>
+          {canCheckout && (
             <Button
               variant="outline"
               size="sm"
@@ -278,17 +358,6 @@ export default function TableTakeOrderPage() {
             >
               <Receipt className="h-4 w-4" />
               Cobrar
-            </Button>
-          ) : (
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1.5"
-              disabled={!hasExistingItems}
-              onClick={() => toast.info("Imprimiendo pre-cuenta...")}
-            >
-              <Printer className="h-4 w-4" />
-              Pre-cuenta
             </Button>
           )}
         </div>
@@ -318,6 +387,14 @@ export default function TableTakeOrderPage() {
           closing={closing}
           tipRate={tipRate}
           onConfirm={handleCheckout}
+        />
+      )}
+
+      {order?.tables && (
+        <MoveTableDialog
+          open={moveTableOpen}
+          onOpenChange={setMoveTableOpen}
+          sourceTable={order.tables}
         />
       )}
     </div>

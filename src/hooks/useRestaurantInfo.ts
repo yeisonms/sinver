@@ -34,6 +34,14 @@ export interface RestaurantInfo {
   opening_hours: OpeningHours | null;
   default_delivery_fee: number | null;
   default_tip_percentage: number | null;
+  restaurant_name: string | null;
+  nit: string | null;
+  address: string | null;
+  phone: string | null;
+  tax_regime: string | null;
+  pos_resolution: string | null;
+  slogan: string | null;
+  footer_message: string | null;
 }
 
 const DEFAULT_OPENING_HOURS: OpeningHours = {
