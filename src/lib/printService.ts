@@ -88,7 +88,9 @@ function buildTicketPayload(
   // === Items with notes ===
   for (const item of target.items) {
     parts.push(new Uint8Array([ESC, 0x45, 0x01])); // Bold ON
+    parts.push(new Uint8Array([GS, 0x21, 0x11]));  // Double height+width
     parts.push(encoder.encode(`${item.quantity}x ${item.product_name}\n`));
+    parts.push(new Uint8Array([GS, 0x21, 0x00]));  // Normal size
     parts.push(new Uint8Array([ESC, 0x45, 0x00])); // Bold OFF
     if (item.notes) {
       parts.push(encoder.encode(`   (${item.notes.toUpperCase()})\n`));

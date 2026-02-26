@@ -200,7 +200,7 @@ export default function TablesMapPage() {
       if (checkoutTable.id) {
         await supabase
           .from("tables")
-          .update({ status: "libre", current_order_id: null, current_waiter_id: null })
+          .update({ status: "libre", current_order_id: null, current_waiter_id: null, printed_control: false })
           .eq("id", checkoutTable.id);
       }
 
@@ -257,6 +257,7 @@ export default function TablesMapPage() {
       {tables.map((table) => {
         const isOccupied = table.status === "ocupada";
         const isSelected = selectedTable?.id === table.id;
+        const isPrinted = isOccupied && table.printed_control;
         return (
           <button
             key={table.id}
@@ -264,7 +265,7 @@ export default function TablesMapPage() {
             className={`flex flex-col items-center justify-center gap-1 text-white font-bold aspect-square transition-all hover:scale-[1.02] active:scale-95 shadow-md ${table.shape === "round" ? "rounded-full" : "rounded-2xl"
               } ${isSelected ? "ring-4 ring-primary ring-offset-2 ring-offset-background shadow-premium" : ""}`}
             style={{
-              backgroundColor: isOccupied ? "hsl(var(--primary))" : "#10b981", // Emerald 500 for free
+              backgroundColor: isPrinted ? "#3b82f6" : isOccupied ? "hsl(var(--primary))" : "#10b981", // Blue if printed, Emerald if free
               minHeight: 72,
             }}
           >
@@ -385,6 +386,7 @@ export default function TablesMapPage() {
                   const table = tableAt(x, y);
                   if (table) {
                     const isOccupied = table.status === "ocupada";
+                    const isPrinted = isOccupied && table.printed_control;
                     return (
                       <button
                         key={`${x}-${y}`}
@@ -392,7 +394,7 @@ export default function TablesMapPage() {
                         className={`flex flex-col items-center justify-center gap-1 text-white font-bold transition-all hover:scale-[1.05] active:scale-95 shadow-md hover:shadow-premium-hover ${table.shape === "round" ? "rounded-full" : "rounded-[1.25rem]"
                           }`}
                         style={{
-                          backgroundColor: isOccupied ? "hsl(var(--primary))" : "#10b981",
+                          backgroundColor: isPrinted ? "#3b82f6" : isOccupied ? "hsl(var(--primary))" : "#10b981",
                           width: table.size_label === "medium" ? 76 : 64,
                           height: table.size_label === "medium" ? 76 : 64,
                           margin: "auto",

@@ -106,8 +106,14 @@ export default function TableTakeOrderPage() {
         items: allItems,
         tipPercentage: tipRate,
       });
+
+      if (order?.table_id) {
+        await supabase.from("tables").update({ printed_control: true }).eq("id", order.table_id);
+      }
+      toast.success("Control impreso correctamente");
     } catch (error) {
       console.error("Error printing control ticket:", error);
+      toast.error("Hubo un error al imprimir el control");
     }
   };
 
@@ -174,7 +180,8 @@ export default function TableTakeOrderPage() {
       if (orderErr) throw orderErr;
 
       // Print comandas to assigned printers
-      let orderLabel = `MESA #${order?.order_number ?? "?"}`;
+      const tableName = (order?.tables as any)?.name;
+      let orderLabel = tableName ? `MESA ${tableName} - Pedido #${order?.order_number ?? "?"}` : `MESA #${order?.order_number ?? "?"}`;
       if (order?.type === "recoger") orderLabel = `MOSTRADOR #${order?.order_number ?? "?"}`;
       if (order?.type === "domicilio") orderLabel = `DOMICILIO #${order?.order_number ?? "?"}`;
 

@@ -75,6 +75,7 @@ export interface Table {
   size_label: 'small' | 'medium';
   current_order_id: string | null;
   current_waiter_id: string | null;
+  printed_control?: boolean;
 }
 
 export interface Area {

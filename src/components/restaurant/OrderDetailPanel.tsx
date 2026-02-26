@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, Plus, Check, Pencil, X, Loader2, ArrowRightLeft } from "lucide-react";
+import { Search, Plus, Check, Pencil, X, Loader2, ArrowRightLeft, Printer } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,6 +16,11 @@ import { useOrderItems, useCancelOrderItem, type OrderItemRow } from "@/hooks/us
 import type { Order, Product } from "@/types/database";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { printComanda, printControlReceipt } from "@/lib/printService";
+import { useRestaurantInfo } from "@/hooks/useRestaurantInfo";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 interface Props {
   order: Order;
@@ -26,6 +31,8 @@ interface Props {
 
 export function OrderDetailPanel({ order, waiterName, onCheckout, onMoveTable }: Props) {
   const navigate = useNavigate();
+  const qc = useQueryClient();
+  const { info: restaurantInfo } = useRestaurantInfo();
   const [cancelItem, setCancelItem] = useState<OrderItemRow | null>(null);
   const [cancelReason, setCancelReason] = useState("");
 
@@ -55,6 +62,72 @@ export function OrderDetailPanel({ order, waiterName, onCheckout, onMoveTable }:
     });
     setCancelItem(null);
     setCancelReason("");
+  };
+
+  const handlePrintControl = async () => {
+    if (!order || activeItems.length === 0) {
+      toast.error("No hay productos válidos para imprimir.");
+      return;
+    }
+
+    try {
+      const { data: products } = await supabase
+        .from("products")
+        .select("id, category_id, name")
+        .in(
+          "id",
+          activeItems.map((i) => i.product_id)
+        );
+
+      const pMap = new Map((products || []).map((p) => [p.id, p]));
+
+      const printItems = activeItems.map((item) => ({
+        product_id: item.product_id,
+        product_name: pMap.get(item.product_id)?.name || "Producto",
+        quantity: item.quantity,
+        notes: item.notes || null,
+        category_id: pMap.get(item.product_id)?.category_id || null,
+      }));
+
+      let tableName = "";
+      if (order.table_id) {
+        const { data: tableData } = await supabase.from("tables").select("name").eq("id", order.table_id).single();
+        if (tableData) tableName = tableData.name;
+      }
+
+      await printControlReceipt({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        restaurantName: (restaurantInfo as any)?.restaurant_name ?? "MI RESTAURANTE",
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        nit: (restaurantInfo as any)?.nit ?? "",
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        address: (restaurantInfo as any)?.address ?? "",
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        phone: (restaurantInfo as any)?.phone ?? "",
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        taxRegime: (restaurantInfo as any)?.tax_regime ?? "",
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        posResolution: (restaurantInfo as any)?.pos_resolution ?? "",
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        slogan: (restaurantInfo as any)?.slogan ?? "",
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        footerMessage: (restaurantInfo as any)?.footer_message ?? "",
+        tableName: tableName || "?",
+        orderNumber: order.order_number ?? 0,
+        waiterName: waiterName || "—",
+        items: activeItems.map(i => ({ name: pMap.get(i.product_id)?.name || "Producto", quantity: i.quantity, unit_price: i.unit_price })),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        tipPercentage: (restaurantInfo as any)?.default_tip_percentage ?? 0,
+      });
+
+      if (order.table_id) {
+        await supabase.from("tables").update({ printed_control: true }).eq("id", order.table_id);
+      }
+      qc.invalidateQueries({ queryKey: ["tables"] });
+      toast.success("Control de mesa enviado a impresión");
+    } catch (err: any) {
+      toast.error("Error al imprimir control: " + err.message);
+    }
   };
 
   return (
@@ -109,6 +182,15 @@ export function OrderDetailPanel({ order, waiterName, onCheckout, onMoveTable }:
             Trasladar Mesa
           </Button>
         )}
+        <Button
+          className="w-full h-11 gap-2 font-semibold bg-secondary/80 text-foreground hover:bg-secondary transition-colors"
+          variant="ghost"
+          onClick={handlePrintControl}
+          disabled={activeItems.length === 0}
+        >
+          <Printer className="h-4 w-4" />
+          Imprimir Control
+        </Button>
         <Button
           className="w-full h-12 gap-2 font-bold bg-primary/5 text-primary hover:bg-primary/10 hover:text-primary border-2 border-primary/20 shadow-sm rounded-xl transition-all"
           variant="outline"

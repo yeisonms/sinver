@@ -39,6 +39,7 @@ export function useOpenTable() {
           status: "ocupada",
           current_order_id: order.id,
           current_waiter_id: waiterId,
+          printed_control: false,
         })
         .eq("id", tableId);
       if (tableErr) throw tableErr;
