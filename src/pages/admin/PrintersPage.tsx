@@ -20,11 +20,10 @@ export default function PrintersPage() {
   };
 
   const setEdit = (id: string, field: "ip" | "port", value: string) => {
-    setEdits((prev) => {
-      const printer = printers.find((p) => p.id === id);
-      const base = prev[id] ?? { ip: printer?.ip_address || "", port: String(printer?.port || 9100) };
-      return { ...prev, [id]: { ...base, [field]: value } };
-    });
+    setEdits((prev) => ({
+      ...prev,
+      [id]: { ...getEdit(id, null, null), ...prev[id], [field]: value },
+    }));
     setTestStatus((prev) => ({ ...prev, [id]: "idle" }));
   };
 
