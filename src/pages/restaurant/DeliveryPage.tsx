@@ -489,7 +489,7 @@ export default function DeliveryPage() {
         </div>
 
         {/* Section B: Detail panel */}
-        <div className="w-3/5 overflow-hidden">
+        <div className="w-3/5 h-full overflow-hidden">
           {selectedOrder ? (
             <div className="flex flex-col h-full">
               {/* Delivery info banner */}
