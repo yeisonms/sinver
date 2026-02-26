@@ -28,7 +28,7 @@ const allMainSections: NavSection[] = [
   { title: "Ventas", url: "/admin/sales", icon: DollarSign, match: ["/admin/sales"], allowedRoles: ["admin"] },
   { title: "Restaurante", url: "/restaurant/counter", icon: ShoppingCart, match: ["/restaurant"] },
   { title: "Tienda Online", url: "/admin/online-store", icon: Store, match: ["/admin/online-store"], allowedRoles: ["admin"] },
-  { title: "Configuración", url: "/admin/tables", icon: Settings, match: ["/admin/tables", "/admin/settings", "/admin/team", "/admin/printers"], allowedRoles: ["admin"] },
+  { title: "Configuración", url: "/admin/tables", icon: Settings, match: ["/admin/tables", "/admin/settings", "/admin/team", "/admin/printers", "/admin/payment-methods"], allowedRoles: ["admin"] },
 ];
 
 const subTabs: Record<string, { title: string; url: string }[]> = {
@@ -59,24 +59,35 @@ const subTabs: Record<string, { title: string; url: string }[]> = {
   "/admin/settings": [
     { title: "General", url: "/admin/settings" },
     { title: "Salas y Mesas", url: "/admin/tables" },
+    { title: "M. Pago", url: "/admin/payment-methods" },
     { title: "Equipo", url: "/admin/team" },
     { title: "Impresoras", url: "/admin/printers" },
   ],
   "/admin/tables": [
     { title: "General", url: "/admin/settings" },
     { title: "Salas y Mesas", url: "/admin/tables" },
+    { title: "M. Pago", url: "/admin/payment-methods" },
     { title: "Equipo", url: "/admin/team" },
     { title: "Impresoras", url: "/admin/printers" },
   ],
   "/admin/team": [
     { title: "General", url: "/admin/settings" },
     { title: "Salas y Mesas", url: "/admin/tables" },
+    { title: "M. Pago", url: "/admin/payment-methods" },
     { title: "Equipo", url: "/admin/team" },
     { title: "Impresoras", url: "/admin/printers" },
   ],
   "/admin/printers": [
     { title: "General", url: "/admin/settings" },
     { title: "Salas y Mesas", url: "/admin/tables" },
+    { title: "M. Pago", url: "/admin/payment-methods" },
+    { title: "Equipo", url: "/admin/team" },
+    { title: "Impresoras", url: "/admin/printers" },
+  ],
+  "/admin/payment-methods": [
+    { title: "General", url: "/admin/settings" },
+    { title: "Salas y Mesas", url: "/admin/tables" },
+    { title: "M. Pago", url: "/admin/payment-methods" },
     { title: "Equipo", url: "/admin/team" },
     { title: "Impresoras", url: "/admin/printers" },
   ],
@@ -144,8 +155,8 @@ export default function AdminLayout() {
                         key={item.url}
                         onClick={() => { navigate(item.url); setDrawerOpen(false); }}
                         className={`w-full flex items-center gap-3 px-5 py-3.5 text-left text-base transition-colors ${isActive
-                            ? "bg-primary text-primary-foreground font-semibold rounded-lg mx-2 w-auto"
-                            : "text-foreground hover:bg-muted"
+                          ? "bg-primary text-primary-foreground font-semibold rounded-lg mx-2 w-auto"
+                          : "text-foreground hover:bg-muted"
                           }`}
                       >
                         <span className="text-lg">{item.emoji}</span>
@@ -192,8 +203,8 @@ export default function AdminLayout() {
                     key={section.url}
                     to={section.url}
                     className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all font-medium text-sm ${isActive
-                        ? "text-primary bg-primary/10 shadow-inner"
-                        : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+                      ? "text-primary bg-primary/10 shadow-inner"
+                      : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
                       }`}
                     activeClassName=""
                   >
@@ -227,8 +238,8 @@ export default function AdminLayout() {
                   key={tab.url}
                   to={tab.url}
                   className={`px-4 h-full flex items-center text-sm font-medium transition-all relative ${isActive
-                      ? "text-primary"
-                      : "text-muted-foreground hover:text-foreground"
+                    ? "text-primary"
+                    : "text-muted-foreground hover:text-foreground"
                     }`}
                   activeClassName=""
                 >

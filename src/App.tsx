@@ -21,6 +21,7 @@ import OnlineStoreSettingsPage from "@/pages/admin/OnlineStoreSettingsPage";
 import TeamPage from "@/pages/admin/TeamPage";
 import PrintersPage from "@/pages/admin/PrintersPage";
 import GeneralSettingsPage from "@/pages/admin/GeneralSettingsPage";
+import PaymentMethodsPage from "@/pages/admin/PaymentMethodsPage";
 import AuthPage from "@/pages/AuthPage";
 import NotFound from "./pages/NotFound";
 import { CartProvider } from "@/contexts/CartContext";
@@ -42,57 +43,58 @@ const App = () => (
       <Sonner />
       <AuthProvider>
         <CartProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/menu" element={<StorePage />} />
-            <Route path="/menu/checkout" element={<CheckoutPage />} />
-            <Route path="/auth" element={<AuthPage />} />
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <RoleRedirect />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/admin"
-              element={
-                <ProtectedRoute>
-                  <AdminLayout />
-                </ProtectedRoute>
-              }
-            >
-              <Route index element={<Navigate to="products" replace />} />
-              <Route path="products" element={<ProductsPage />} />
-              <Route path="categories" element={<CategoriesPage />} />
-              <Route path="modifiers" element={<ModifiersPage />} />
-              <Route path="tables" element={<TablesPage />} />
-              <Route path="sales" element={<SalesPage />} />
-              <Route path="online-store" element={<OnlineStoreSettingsPage />} />
-              <Route path="team" element={<TeamPage />} />
-              <Route path="printers" element={<PrintersPage />} />
-              <Route path="settings" element={<GeneralSettingsPage />} />
-            </Route>
-            <Route
-              path="/restaurant"
-              element={
-                <ProtectedRoute>
-                  <RestaurantLayout />
-                </ProtectedRoute>
-              }
-            >
-              <Route index element={<Navigate to="counter" replace />} />
-              <Route path="counter" element={<CounterPage />} />
-              <Route path="counter/:orderId/take-order" element={<TableTakeOrderPage />} />
-              <Route path="tables" element={<TablesMapPage />} />
-              <Route path="tables/:orderId/take-order" element={<TableTakeOrderPage />} />
-              <Route path="delivery" element={<DeliveryPage />} />
-              <Route path="delivery/:orderId/take-order" element={<TableTakeOrderPage />} />
-            </Route>
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/menu" element={<StorePage />} />
+              <Route path="/menu/checkout" element={<CheckoutPage />} />
+              <Route path="/auth" element={<AuthPage />} />
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute>
+                    <RoleRedirect />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute>
+                    <AdminLayout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route index element={<Navigate to="products" replace />} />
+                <Route path="products" element={<ProductsPage />} />
+                <Route path="categories" element={<CategoriesPage />} />
+                <Route path="modifiers" element={<ModifiersPage />} />
+                <Route path="tables" element={<TablesPage />} />
+                <Route path="sales" element={<SalesPage />} />
+                <Route path="online-store" element={<OnlineStoreSettingsPage />} />
+                <Route path="team" element={<TeamPage />} />
+                <Route path="printers" element={<PrintersPage />} />
+                <Route path="payment-methods" element={<PaymentMethodsPage />} />
+                <Route path="settings" element={<GeneralSettingsPage />} />
+              </Route>
+              <Route
+                path="/restaurant"
+                element={
+                  <ProtectedRoute>
+                    <RestaurantLayout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route index element={<Navigate to="counter" replace />} />
+                <Route path="counter" element={<CounterPage />} />
+                <Route path="counter/:orderId/take-order" element={<TableTakeOrderPage />} />
+                <Route path="tables" element={<TablesMapPage />} />
+                <Route path="tables/:orderId/take-order" element={<TableTakeOrderPage />} />
+                <Route path="delivery" element={<DeliveryPage />} />
+                <Route path="delivery/:orderId/take-order" element={<TableTakeOrderPage />} />
+              </Route>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
         </CartProvider>
       </AuthProvider>
     </TooltipProvider>

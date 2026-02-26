@@ -122,3 +122,10 @@ export interface Customer {
   phone: string | null;
   notes: string | null;
 }
+
+export interface PaymentMethod {
+  id: string;
+  name: string;
+  is_active: boolean;
+  created_at: string;
+}

@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,12 +23,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 
-const paymentMethods = [
-  { value: "efectivo", label: "Efectivo", emoji: "💵" },
-  { value: "tarjeta_credito", label: "Tarj. Crédito", emoji: "💳" },
-  { value: "tarjeta_debito", label: "Tarj. Débito", emoji: "💳" },
-  { value: "transferencia", label: "Transferencia", emoji: "🏦" },
-];
+
 
 interface CheckoutDialogProps {
   open: boolean;
@@ -54,11 +51,24 @@ export function CheckoutDialog({
   tipRate = 0,
   onConfirm,
 }: CheckoutDialogProps) {
-  const [paymentMethod, setPaymentMethod] = useState("efectivo");
+  const { data: methods = [], isLoading: isLoadingMethods } = useQuery({
+    queryKey: ["active-payment-methods"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("payment_methods")
+        .select("*")
+        .eq("is_active", true)
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return data as { id: string; name: string }[];
+    },
+    enabled: open,
+  });
+
+  const [paymentMethod, setPaymentMethod] = useState("");
   const [paidWith, setPaidWith] = useState("");
   const [tipInput, setTipInput] = useState("");
   const [tipEnabled, setTipEnabled] = useState(true);
-  // Tracks whether the tip has been initialized from suggestedTip already
   const [tipInitialized, setTipInitialized] = useState(false);
   const isMobile = useIsMobile();
 
@@ -67,14 +77,20 @@ export function CheckoutDialog({
   // Reset everything when dialog opens/closes
   useEffect(() => {
     if (open) {
-      setPaymentMethod("efectivo");
+      // We will set default method when methods load
       setPaidWith("");
       setTipInitialized(false);
-      // Enable tip by default if there's a configured tipRate
       setTipEnabled(tipRate > 0);
       setTipInput("");
     }
   }, [open]);
+
+  // Set default payment method once loaded
+  useEffect(() => {
+    if (open && methods.length > 0 && !paymentMethod) {
+      setPaymentMethod(methods[0].name);
+    }
+  }, [open, methods, paymentMethod]);
 
   // Initialize tip as soon as suggestedTip is available (items may load after dialog opens)
   useEffect(() => {
@@ -92,8 +108,9 @@ export function CheckoutDialog({
   const paidAmount = parseFloat(paidWith) || 0;
   const change = paidAmount - grandTotal;
 
-  const isCash = paymentMethod === "efectivo";
-  const canSubmit = isCash ? paidAmount >= grandTotal : true;
+  // Consider "efectivo" matching dynamic for change calculator
+  const isCash = paymentMethod.toLowerCase() === "efectivo";
+  const canSubmit = isCash ? paidAmount >= grandTotal : !!paymentMethod;
 
   const checkoutContent = (
     <div className="space-y-5">
@@ -101,19 +118,28 @@ export function CheckoutDialog({
       <div>
         <p className="text-sm font-medium text-muted-foreground mb-3">Selecciona el medio de pago</p>
         <div className="grid grid-cols-2 gap-3">
-          {paymentMethods.map((m) => (
-            <button
-              key={m.value}
-              onClick={() => { setPaymentMethod(m.value); setPaidWith(""); }}
-              className={`flex flex-col items-start justify-center p-4 rounded-xl border-2 transition-all min-h-[72px] ${
-                paymentMethod === m.value
-                  ? "border-primary bg-primary/5 shadow-sm"
-                  : "border-border bg-card hover:border-muted-foreground/30"
-              }`}
-            >
-              <span className="text-base font-medium">{m.label}</span>
-            </button>
-          ))}
+          {isLoadingMethods ? (
+            <div className="col-span-2 flex justify-center py-4">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : methods.length === 0 ? (
+            <div className="col-span-2 text-sm text-muted-foreground text-center py-2">
+              No hay métodos de pago configurados.
+            </div>
+          ) : (
+            methods.map((m) => (
+              <button
+                key={m.id}
+                onClick={() => { setPaymentMethod(m.name); setPaidWith(""); }}
+                className={`flex flex-col items-start justify-center p-4 rounded-xl border-2 transition-all min-h-[72px] ${paymentMethod === m.name
+                    ? "border-primary bg-primary/5 shadow-sm"
+                    : "border-border bg-card hover:border-muted-foreground/30"
+                  }`}
+              >
+                <span className="text-base font-medium capitalize">{m.name}</span>
+              </button>
+            ))
+          )}
         </div>
       </div>
 
@@ -133,9 +159,8 @@ export function CheckoutDialog({
           </div>
           <div>
             <Label className="text-sm font-medium">Vuelto</Label>
-            <p className={`text-2xl font-bold mt-2 ${
-              paidAmount === 0 ? "text-muted-foreground" : change >= 0 ? "text-green-600" : "text-destructive"
-            }`}>
+            <p className={`text-2xl font-bold mt-2 ${paidAmount === 0 ? "text-muted-foreground" : change >= 0 ? "text-green-600" : "text-destructive"
+              }`}>
               $ {change >= 0 ? change.toLocaleString("es-CO", { minimumFractionDigits: 1 }) : `(${Math.abs(change).toLocaleString()})`}
             </p>
           </div>

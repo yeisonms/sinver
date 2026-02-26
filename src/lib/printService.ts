@@ -379,6 +379,18 @@ export interface PrintReceiptOptions {
 
 function buildReceiptPayload(opts: PrintReceiptOptions): Uint8Array {
   const encoder = new TextEncoder();
+
+  // Helper to remove accents/special chars to prevent 
+  // garbage output on standard ESC/POS printers, 
+  // and handle literal "\\n" strings from DB
+  const encodeText = (text: string) => {
+    const cleanStr = text
+      .replace(/á/g, 'a').replace(/é/g, 'e').replace(/í/g, 'i').replace(/ó/g, 'o').replace(/ú/g, 'u')
+      .replace(/Á/g, 'A').replace(/É/g, 'E').replace(/Í/g, 'I').replace(/Ó/g, 'O').replace(/Ú/g, 'U')
+      .replace(/ñ/g, 'n').replace(/Ñ/g, 'N');
+    return encoder.encode(cleanStr);
+  };
+
   const ESC = 0x1B;
   const GS = 0x1D;
   const parts: Uint8Array[] = [];
@@ -388,35 +400,29 @@ function buildReceiptPayload(opts: PrintReceiptOptions): Uint8Array {
   // Center alignment
   parts.push(new Uint8Array([ESC, 0x61, 0x01]));
 
-  // Header
+  // Header (Normal size, just bold)
   parts.push(new Uint8Array([ESC, 0x45, 0x01])); // Bold
-  parts.push(new Uint8Array([GS, 0x21, 0x11]));  // Double size
-  parts.push(encoder.encode(`${opts.restaurantName}\n`));
-  parts.push(new Uint8Array([GS, 0x21, 0x00]));  // Normal size
+  parts.push(encodeText(`${opts.restaurantName}\n`));
   parts.push(new Uint8Array([ESC, 0x45, 0x00])); // Bold off
 
-  if (opts.nit) parts.push(encoder.encode(`NIT: ${opts.nit}\n`));
-  if (opts.taxRegime) parts.push(encoder.encode(`${opts.taxRegime}\n`));
-  if (opts.address) parts.push(encoder.encode(`${opts.address}\n`));
-  if (opts.phone) parts.push(encoder.encode(`Tel: ${opts.phone}\n`));
-  if (opts.posResolution) parts.push(encoder.encode(`Res: ${opts.posResolution}\n`));
+  if (opts.nit) parts.push(encodeText(`NIT: ${opts.nit}\n`));
+  if (opts.taxRegime) parts.push(encodeText(`${opts.taxRegime}\n`));
+  if (opts.address) parts.push(encodeText(`Dir: ${opts.address}\n`));
+  if (opts.phone) parts.push(encodeText(`Tel: ${opts.phone}\n`));
+  if (opts.posResolution) parts.push(encodeText(`Res: ${opts.posResolution}\n`));
 
-  parts.push(encoder.encode("\n"));
-  parts.push(new Uint8Array([ESC, 0x45, 0x01])); // Bold
-  parts.push(encoder.encode(`*** PRE-CUENTA ***\n`));
-  parts.push(new Uint8Array([ESC, 0x45, 0x00])); // Bold off
-  parts.push(encoder.encode("\n"));
+  parts.push(encodeText("\n"));
 
   // Left alignment for details
   parts.push(new Uint8Array([ESC, 0x61, 0x00]));
 
-  parts.push(encoder.encode(`MESA: ${opts.tableName}     ORDEN: #${opts.orderNumber}\n`));
-  parts.push(encoder.encode(`FECHA: ${new Date().toLocaleString("es-CO")}\n`));
-  parts.push(encoder.encode(`ATENDIÓ: ${opts.waiterName}\n`));
-  parts.push(encoder.encode("--------------------------------\n"));
+  parts.push(encodeText(`MESA: ${opts.tableName}     ORDEN: #${opts.orderNumber}\n`));
+  parts.push(encodeText(`FECHA: ${new Date().toLocaleString("es-CO")}\n`));
+  parts.push(encodeText(`ATENDIO: ${opts.waiterName}\n`));
+  parts.push(encodeText("--------------------------------\n"));
 
-  parts.push(encoder.encode("CANT | DESCRIPCION    | SUBTOTAL\n"));
-  parts.push(encoder.encode("--------------------------------\n"));
+  parts.push(encodeText("CANT | DESCRIPCION    | SUBTOTAL\n"));
+  parts.push(encodeText("--------------------------------\n"));
 
   let subtotal = 0;
   for (const item of opts.items) {
@@ -426,44 +432,45 @@ function buildReceiptPayload(opts: PrintReceiptOptions): Uint8Array {
     let nameStr = item.name.substring(0, 14).padEnd(14);
     const subStr = itemSub.toLocaleString("es-CO").padStart(10);
 
-    parts.push(encoder.encode(`${qtyStr} | ${nameStr} | ${subStr}\n`));
+    parts.push(encodeText(`${qtyStr} | ${nameStr} | ${subStr}\n`));
 
     // If name is longer than 14, print the rest on next line
     if (item.name.length > 14) {
       const rest = item.name.substring(14, 28);
-      parts.push(encoder.encode(`     | ${rest}\n`));
+      parts.push(encodeText(`     | ${rest}\n`));
     }
   }
 
-  parts.push(encoder.encode("--------------------------------\n"));
+  parts.push(encodeText("--------------------------------\n"));
 
   // Right alignment for totals
   parts.push(new Uint8Array([ESC, 0x61, 0x02]));
-  parts.push(encoder.encode(`SUBTOTAL: $ ${subtotal.toLocaleString("es-CO")}\n`));
+  parts.push(encodeText(`SUBTOTAL: $ ${subtotal.toLocaleString("es-CO")}\n`));
 
   let tip = 0;
   if (opts.tipPercentage > 0) {
     tip = Math.round(subtotal * (opts.tipPercentage / 100));
-    parts.push(encoder.encode(`PROPINA (${opts.tipPercentage}%): $ ${tip.toLocaleString("es-CO")}\n`));
+    parts.push(encodeText(`PROPINA (${opts.tipPercentage}%): $ ${tip.toLocaleString("es-CO")}\n`));
   }
 
   const total = subtotal + tip;
   parts.push(new Uint8Array([ESC, 0x45, 0x01])); // Bold
   parts.push(new Uint8Array([GS, 0x21, 0x01]));  // Double height
-  parts.push(encoder.encode(`TOTAL: $ ${total.toLocaleString("es-CO")}\n`));
+  parts.push(encodeText(`TOTAL: $ ${total.toLocaleString("es-CO")}\n`));
   parts.push(new Uint8Array([GS, 0x21, 0x00]));
   parts.push(new Uint8Array([ESC, 0x45, 0x00]));
 
-  parts.push(encoder.encode("\n"));
+  parts.push(encodeText("\n"));
 
   // Center alignment for footer
   parts.push(new Uint8Array([ESC, 0x61, 0x01]));
-  if (opts.slogan) parts.push(encoder.encode(`${opts.slogan}\n`));
+  if (opts.slogan) parts.push(encodeText(`${opts.slogan}\n`));
   if (opts.footerMessage) {
-    parts.push(encoder.encode("\n"));
-    const msgLines = opts.footerMessage.split('\n');
+    parts.push(encodeText("\n"));
+    // Handle literal "\n" strings that might come from the database text field
+    const msgLines = opts.footerMessage.replace(/\\n/g, '\n').split('\n');
     for (const line of msgLines) {
-      parts.push(encoder.encode(`${line}\n`));
+      parts.push(encodeText(`${line}\n`));
     }
   }
 
