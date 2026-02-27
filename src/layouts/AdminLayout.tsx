@@ -28,7 +28,7 @@ const allMainSections: NavSection[] = [
   { title: "Ventas", url: "/admin/sales", icon: DollarSign, match: ["/admin/sales"], allowedRoles: ["admin"] },
   { title: "Restaurante", url: "/restaurant/counter", icon: ShoppingCart, match: ["/restaurant"] },
   { title: "Tienda Online", url: "/admin/online-store", icon: Store, match: ["/admin/online-store"], allowedRoles: ["admin"] },
-  { title: "Configuración", url: "/admin/tables", icon: Settings, match: ["/admin/tables", "/admin/settings", "/admin/team", "/admin/printers", "/admin/payment-methods"], allowedRoles: ["admin"] },
+  { title: "Configuración", url: "/admin/tables", icon: Settings, match: ["/admin/tables", "/admin/settings", "/admin/team", "/admin/printers", "/admin/payment-methods", "/admin/permissions"], allowedRoles: ["admin"] },
 ];
 
 const subTabs: Record<string, { title: string; url: string }[]> = {
@@ -61,6 +61,7 @@ const subTabs: Record<string, { title: string; url: string }[]> = {
     { title: "Salas y Mesas", url: "/admin/tables" },
     { title: "M. Pago", url: "/admin/payment-methods" },
     { title: "Equipo", url: "/admin/team" },
+    { title: "Permisos", url: "/admin/permissions" },
     { title: "Impresoras", url: "/admin/printers" },
   ],
   "/admin/tables": [
@@ -68,6 +69,7 @@ const subTabs: Record<string, { title: string; url: string }[]> = {
     { title: "Salas y Mesas", url: "/admin/tables" },
     { title: "M. Pago", url: "/admin/payment-methods" },
     { title: "Equipo", url: "/admin/team" },
+    { title: "Permisos", url: "/admin/permissions" },
     { title: "Impresoras", url: "/admin/printers" },
   ],
   "/admin/team": [
@@ -75,6 +77,7 @@ const subTabs: Record<string, { title: string; url: string }[]> = {
     { title: "Salas y Mesas", url: "/admin/tables" },
     { title: "M. Pago", url: "/admin/payment-methods" },
     { title: "Equipo", url: "/admin/team" },
+    { title: "Permisos", url: "/admin/permissions" },
     { title: "Impresoras", url: "/admin/printers" },
   ],
   "/admin/printers": [
@@ -82,6 +85,7 @@ const subTabs: Record<string, { title: string; url: string }[]> = {
     { title: "Salas y Mesas", url: "/admin/tables" },
     { title: "M. Pago", url: "/admin/payment-methods" },
     { title: "Equipo", url: "/admin/team" },
+    { title: "Permisos", url: "/admin/permissions" },
     { title: "Impresoras", url: "/admin/printers" },
   ],
   "/admin/payment-methods": [
@@ -89,6 +93,15 @@ const subTabs: Record<string, { title: string; url: string }[]> = {
     { title: "Salas y Mesas", url: "/admin/tables" },
     { title: "M. Pago", url: "/admin/payment-methods" },
     { title: "Equipo", url: "/admin/team" },
+    { title: "Permisos", url: "/admin/permissions" },
+    { title: "Impresoras", url: "/admin/printers" },
+  ],
+  "/admin/permissions": [
+    { title: "General", url: "/admin/settings" },
+    { title: "Salas y Mesas", url: "/admin/tables" },
+    { title: "M. Pago", url: "/admin/payment-methods" },
+    { title: "Equipo", url: "/admin/team" },
+    { title: "Permisos", url: "/admin/permissions" },
     { title: "Impresoras", url: "/admin/printers" },
   ],
 };

@@ -444,7 +444,7 @@ export default function CounterPage() {
         </div>
 
         {/* Right: Detail panel (55%) */}
-        <div className="w-[55%] bg-card shadow-premium rounded-2xl border border-white/40 overflow-hidden relative">
+        <div className="w-[55%] h-full bg-card shadow-premium rounded-2xl border border-white/40 overflow-hidden relative">
           {selectedOrder ? (
             <OrderDetailPanel
               order={selectedOrder}
