@@ -39,32 +39,12 @@ export default function CheckoutPage() {
     if (!isFormValid || items.length === 0) return;
     setSubmitting(true);
     try {
-      // Create order
-      const { data: order, error: orderErr } = await supabase
-        .from("orders")
-        .insert({
-          client_name: form.name.trim(),
-          delivery_phone: form.phone.trim(),
-          delivery_address: deliveryMethod === "delivery" ? form.address.trim() : null,
-          delivery_fee: deliveryMethod === "delivery" ? deliveryFee : 0,
-          status: "pendiente_online",
-          type: deliveryMethod === "delivery" ? "domicilio" : "recoger",
-          total_amount: total,
-          tip_amount: 0,
-          payment_method: form.paymentMethod,
-          general_notes: [
-            form.email ? `Email: ${form.email}` : null,
-            schedule.type === "scheduled" ? `Programado: ${schedule.date} ${schedule.time}` : null,
-          ].filter(Boolean).join(" | ") || null,
-        } as any)
-        .select("id, order_number")
-        .single();
+      const general_notes = [
+        form.email ? `Email: ${form.email}` : null,
+        schedule.type === "scheduled" ? `Programado: ${schedule.date} ${schedule.time}` : null,
+      ].filter(Boolean).join(" | ") || null;
 
-      if (orderErr) throw orderErr;
-
-      // Create order items (exclude product_name and modifiers)
       const orderItems = items.map((item) => ({
-        order_id: order.id,
         product_id: item.product_id,
         quantity: item.quantity,
         unit_price: item.unit_price + item.extras_total,
@@ -75,10 +55,22 @@ export default function CheckoutPage() {
         status: "activo",
       }));
 
-      const { error: itemsErr } = await supabase.from("order_items").insert(orderItems);
-      if (itemsErr) throw itemsErr;
+      // Create order atomically using RPC to bypass Row-Level Security for anonymous web users
+      const { data: response, error: rpcError } = await supabase.rpc("create_web_order", {
+        p_client_name: form.name.trim(),
+        p_delivery_phone: form.phone.trim(),
+        p_delivery_address: deliveryMethod === "delivery" ? form.address.trim() : null,
+        p_delivery_fee: deliveryMethod === "delivery" ? deliveryFee : 0,
+        p_type: deliveryMethod === "delivery" ? "domicilio" : "recoger",
+        p_total_amount: total,
+        p_payment_method: form.paymentMethod,
+        p_general_notes: general_notes,
+        p_items: orderItems,
+      });
 
-      setOrderNumber(order.order_number);
+      if (rpcError) throw rpcError;
+
+      setOrderNumber(response.order_number);
       clearCart();
     } catch (err: any) {
       toast({ title: "Error", description: err.message, variant: "destructive" });

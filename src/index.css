@@ -1,8 +1,8 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 @layer base {
   :root {
@@ -64,6 +64,7 @@
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
     font-family: 'Inter', sans-serif;
@@ -71,7 +72,11 @@
 
   /* Mobile touch-friendly targets */
   @media (max-width: 767px) {
-    input, select, textarea, button {
+
+    input,
+    select,
+    textarea,
+    button {
       min-height: 44px;
       font-size: 16px;
     }
@@ -80,9 +85,10 @@
 
 /* Print styles for receipt */
 @media print {
-  body > *:not(#print-receipt-container) {
+  body>*:not(#print-receipt-container) {
     display: none !important;
   }
+
   #print-receipt-container {
     display: block !important;
     position: fixed;
@@ -92,10 +98,12 @@
     margin: 0;
     padding: 0;
   }
+
   @page {
     size: 80mm auto;
     margin: 0;
   }
+
   * {
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
