@@ -35,9 +35,16 @@ export default function PrintersPage() {
       return;
     }
     try {
+      console.log("[PrintersPage] Saving:", { id, ip: edit.ip.trim(), port: parseInt(edit.port) || 9100 });
       await updatePrinter.mutateAsync({ id, ip_address: edit.ip.trim(), port: parseInt(edit.port) || 9100 });
+      setEdits((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
       toast.success("Impresora actualizada");
     } catch (e: any) {
+      console.error("[PrintersPage] Save error:", e);
       toast.error(e.message);
     }
   };
