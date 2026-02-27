@@ -20,8 +20,10 @@ export function useUpdatePrinter() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, ip_address, port }: { id: string; ip_address: string; port: number }) => {
-      const { error } = await supabase.from("printers").update({ ip_address, port }).eq("id", id);
+      const { data, error } = await supabase.from("printers").update({ ip_address, port }).eq("id", id).select();
       if (error) throw error;
+      if (!data || data.length === 0) throw new Error("No se actualizó ningún registro. Verifica las políticas RLS de la tabla 'printers' en Supabase.");
+      console.log("[usePrinters] Updated:", data);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["printers"] }),
   });
