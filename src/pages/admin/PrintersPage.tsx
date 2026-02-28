@@ -1,18 +1,28 @@
 import { useState } from "react";
-import { usePrinters, useUpdatePrinter } from "@/hooks/usePrinters";
+import { usePrinters, useUpdatePrinter, useCreatePrinter, useDeletePrinter } from "@/hooks/usePrinters";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Printer, Wifi, Loader2, CheckCircle2, XCircle, Save } from "lucide-react";
+import { Printer, Wifi, Loader2, CheckCircle2, XCircle, Save, Plus, Trash2 } from "lucide-react";
 
 type TestStatus = "idle" | "testing" | "success" | "error";
 
 export default function PrintersPage() {
   const { data: printers = [], isLoading } = usePrinters();
   const updatePrinter = useUpdatePrinter();
+  const createPrinter = useCreatePrinter();
+  const deletePrinter = useDeletePrinter();
+
   const [edits, setEdits] = useState<Record<string, { ip: string; port: string }>>({});
   const [testStatus, setTestStatus] = useState<Record<string, TestStatus>>({});
+
+  // Create Modal State
+  const [createOpen, setCreateOpen] = useState(false);
+  const [newPrinter, setNewPrinter] = useState({ name: "", ip_address: "", port: "9100" });
+  const [isCreating, setIsCreating] = useState(false);
 
   const getEdit = (id: string, ip: string | null, port: number | null) => {
     if (edits[id]) return edits[id];
@@ -46,6 +56,38 @@ export default function PrintersPage() {
     } catch (e: any) {
       console.error("[PrintersPage] Save error:", e);
       toast.error(e.message);
+    }
+  };
+
+  const handleCreate = async () => {
+    if (!newPrinter.name.trim() || !newPrinter.ip_address.trim()) {
+      toast.error("El nombre y la IP son requeridos");
+      return;
+    }
+    setIsCreating(true);
+    try {
+      await createPrinter.mutateAsync({
+        name: newPrinter.name.trim(),
+        ip_address: newPrinter.ip_address.trim(),
+        port: parseInt(newPrinter.port) || 9100
+      });
+      toast.success("Impresora creada exitosamente");
+      setCreateOpen(false);
+      setNewPrinter({ name: "", ip_address: "", port: "9100" });
+    } catch (e: any) {
+      toast.error("Error al crear impresora: " + e.message);
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const handleDelete = async (id: string, name: string) => {
+    if (!confirm(`¿Estás seguro de que deseas eliminar la impresora "${name}"?`)) return;
+    try {
+      await deletePrinter.mutateAsync(id);
+      toast.success("Impresora eliminada");
+    } catch (e: any) {
+      toast.error("Error al eliminar: " + e.message);
     }
   };
 
@@ -100,7 +142,7 @@ export default function PrintersPage() {
           body: new Blob([payload as any]),
           signal: controller.signal,
           mode: "no-cors",
-        }).catch(() => {});
+        }).catch(() => { });
 
         clearTimeout(timeout);
       }
@@ -124,11 +166,16 @@ export default function PrintersPage() {
 
   return (
     <div className="p-4 md:p-6 max-w-3xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Impresoras</h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Configura la IP de cada impresora térmica. Las categorías asignadas determinan qué items se imprimen en cada una.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Impresoras</h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            Configura la IP de cada impresora térmica. Las categorías asignadas determinan qué items se imprimen en cada una.
+          </p>
+        </div>
+        <Button onClick={() => setCreateOpen(true)} className="gap-2 whitespace-nowrap">
+          <Plus className="h-4 w-4" /> Nueva Impresora
+        </Button>
       </div>
 
       {isLoading ? (
@@ -152,14 +199,24 @@ export default function PrintersPage() {
 
             return (
               <Card key={printer.id}>
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <Printer className="h-4 w-4" />
-                    {printer.name}
-                  </CardTitle>
-                  <CardDescription className="text-xs">
-                    Las categorías asignadas a esta impresora se envían automáticamente al confirmar pedidos.
-                  </CardDescription>
+                <CardHeader className="pb-3 flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <Printer className="h-4 w-4" />
+                      {printer.name}
+                    </CardTitle>
+                    <CardDescription className="text-xs mt-1">
+                      Las categorías asignadas a esta impresora se envían automáticamente al confirmar pedidos.
+                    </CardDescription>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => handleDelete(printer.id, printer.name)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex items-end gap-3">
@@ -211,6 +268,50 @@ export default function PrintersPage() {
           })}
         </div>
       )}
+
+      {/* Dialogo Creacion */}
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Nueva Impresora</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Nombre de la Estación</Label>
+              <Input
+                placeholder="Ej: Barra de Bebidas"
+                value={newPrinter.name}
+                onChange={(e) => setNewPrinter(prev => ({ ...prev, name: e.target.value }))}
+              />
+            </div>
+            <div className="flex gap-3">
+              <div className="space-y-2 flex-1">
+                <Label>Dirección IP local</Label>
+                <Input
+                  placeholder="192.168.1.xxx"
+                  value={newPrinter.ip_address}
+                  onChange={(e) => setNewPrinter(prev => ({ ...prev, ip_address: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2 w-24">
+                <Label>Puerto</Label>
+                <Input
+                  placeholder="9100"
+                  value={newPrinter.port}
+                  onChange={(e) => setNewPrinter(prev => ({ ...prev, port: e.target.value }))}
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancelar</Button>
+            <Button onClick={handleCreate} disabled={isCreating}>
+              {isCreating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Crear Impresora
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

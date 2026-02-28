@@ -127,9 +127,14 @@ export default function DeliveryPage() {
   if (isMobile) {
     return (
       <div className="flex flex-col h-full">
-        <div className="px-4 pt-3 pb-2">
-          <Label className="text-xs text-muted-foreground">Buscar domicilio</Label>
-          <Input placeholder="" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="mt-1" />
+        <div className="flex items-center gap-2 px-4 pt-3 pb-2">
+          <div className="flex-1">
+            <Label className="text-xs text-muted-foreground">Buscar domicilio</Label>
+            <Input placeholder="" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="mt-1" />
+          </div>
+          <Button onClick={() => setSheetOpen(true)} className="mt-5 h-9 px-3 gap-1.5 whitespace-nowrap bg-primary text-primary-foreground hover:bg-primary/90">
+            <Plus className="h-4 w-4" /> Crear pedido
+          </Button>
         </div>
 
         <div className="flex items-center gap-2 px-4 pb-3">
@@ -194,12 +199,6 @@ export default function DeliveryPage() {
           )}
         </div>
 
-        <div className="border-t border-border p-4 bg-card">
-          <Button onClick={() => setSheetOpen(true)} className="w-full h-12 text-base font-semibold gap-2">
-            <Plus className="h-5 w-5" /> Nuevo Domicilio
-          </Button>
-        </div>
-
         <NewDeliverySheet open={sheetOpen} onOpenChange={setSheetOpen} />
 
         {selectedOrder && (
@@ -247,12 +246,11 @@ export default function DeliveryPage() {
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-card">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Buscar domicilio por cliente/ID..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9" />
+        <div className="flex-1 max-w-md">
+          <Input placeholder="Buscar por cliente o ID..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
         </div>
-        <Button onClick={() => setSheetOpen(true)} className="gap-1.5">
-          <Plus className="h-4 w-4" /> Nuevo Domicilio
+        <Button onClick={() => setSheetOpen(true)} className="gap-2 whitespace-nowrap px-4 bg-primary text-primary-foreground hover:bg-primary/90">
+          <Plus className="h-4 w-4" /> Crear pedido
         </Button>
       </div>
 

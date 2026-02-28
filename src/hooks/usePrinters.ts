@@ -29,6 +29,29 @@ export function useUpdatePrinter() {
   });
 }
 
+export function useCreatePrinter() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (printer: Omit<Printer, "id">) => {
+      const { data, error } = await supabase.from("printers").insert(printer).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["printers"] }),
+  });
+}
+
+export function useDeletePrinter() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("printers").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["printers"] }),
+  });
+}
+
 export function useCategoryPrinters(categoryId: string | null) {
   return useQuery<string[]>({
     queryKey: ["category_printers", categoryId],
