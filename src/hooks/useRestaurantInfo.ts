@@ -29,6 +29,7 @@ export interface RestaurantInfo {
   facebook_url: string | null;
   instagram_url: string | null;
   banner_url: string | null;
+  logo_url: string | null;
   enable_pickup: boolean;
   enable_delivery: boolean;
   opening_hours: OpeningHours | null;
@@ -42,6 +43,7 @@ export interface RestaurantInfo {
   pos_resolution: string | null;
   slogan: string | null;
   footer_message: string | null;
+  email: string | null;
 }
 
 const DEFAULT_OPENING_HOURS: OpeningHours = {

@@ -22,19 +22,24 @@ export function GeneralTab({ info }: Props) {
   const [whatsapp, setWhatsapp] = useState(info.whatsapp || "");
   const [facebookUrl, setFacebookUrl] = useState(info.facebook_url || "");
   const [instagramUrl, setInstagramUrl] = useState(info.instagram_url || "");
-  const [bannerUrl, setBannerUrl] = useState(info.banner_url || "");
+  const [logoUrl, setLogoUrl] = useState(info.logo_url || "");
+  const [email, setEmail] = useState(info.email || "");
+  const [phone, setPhone] = useState(info.phone || "");
+  const [address, setAddress] = useState(info.address || "");
+  const [slogan, setSlogan] = useState(info.slogan || "");
   const [defaultDeliveryFee, setDefaultDeliveryFee] = useState(String(info.default_delivery_fee ?? ""));
   const [defaultTipPercentage, setDefaultTipPercentage] = useState(String(info.default_tip_percentage ?? ""));
-  const [uploading, setUploading] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const logoRef = useRef<HTMLInputElement>(null);
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUploadLogo = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setUploading(true);
+    setUploadingLogo(true);
     try {
       const ext = file.name.split(".").pop();
-      const path = `banner-${Date.now()}.${ext}`;
+      const path = `logo-${Date.now()}.${ext}`;
 
       const { error: uploadError } = await supabase.storage
         .from("store-assets")
@@ -46,12 +51,12 @@ export function GeneralTab({ info }: Props) {
         .from("store-assets")
         .getPublicUrl(path);
 
-      setBannerUrl(urlData.publicUrl);
-      toast({ title: "Imagen subida correctamente" });
+      setLogoUrl(urlData.publicUrl);
+      toast({ title: "Logo subido correctamente" });
     } catch (err: any) {
-      toast({ title: "Error al subir imagen", description: err.message, variant: "destructive" });
+      toast({ title: "Error al subir logo", description: err.message, variant: "destructive" });
     } finally {
-      setUploading(false);
+      setUploadingLogo(false);
     }
   };
 
@@ -61,7 +66,11 @@ export function GeneralTab({ info }: Props) {
       whatsapp,
       facebook_url: facebookUrl,
       instagram_url: instagramUrl,
-      banner_url: bannerUrl,
+      logo_url: logoUrl,
+      email,
+      phone,
+      address,
+      slogan,
       default_delivery_fee: defaultDeliveryFee !== "" ? Number(defaultDeliveryFee) : null,
       default_tip_percentage: defaultTipPercentage !== "" ? Number(defaultTipPercentage) : null,
     });
@@ -73,89 +82,151 @@ export function GeneralTab({ info }: Props) {
         <CardTitle>Información General</CardTitle>
       </CardHeader>
       <CardContent className="space-y-5">
-        {/* Banner */}
+        {/* Logo */}
         <div className="space-y-2">
-          <Label>Imagen de Banner</Label>
+          <Label>Logo del Restaurante</Label>
           <div
-            className="relative w-full h-48 rounded-lg border-2 border-dashed border-border bg-muted/40 flex items-center justify-center overflow-hidden cursor-pointer hover:border-primary/50 transition-colors"
-            onClick={() => fileRef.current?.click()}
+            className="relative w-32 h-32 rounded-full border-2 border-dashed border-border bg-muted/40 flex items-center justify-center overflow-hidden cursor-pointer hover:border-primary/50 transition-colors mx-auto"
+            onClick={() => logoRef.current?.click()}
           >
-            {bannerUrl ? (
-              <img src={bannerUrl} alt="Banner" className="w-full h-full object-cover" />
+            {logoUrl ? (
+              <img src={logoUrl} alt="Logo" className="w-full h-full object-contain bg-white" />
             ) : (
-              <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                <ImageIcon className="h-10 w-10" />
-                <span className="text-sm">Haz clic para subir un banner</span>
+              <div className="flex flex-col items-center gap-1 text-muted-foreground text-center px-2">
+                <ImageIcon className="h-6 w-6" />
+                <span className="text-[10px]">Subir Logo</span>
               </div>
             )}
-            {uploading && (
+            {uploadingLogo && (
               <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
               </div>
             )}
           </div>
-          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleUpload} />
-          {bannerUrl && (
-            <Button variant="outline" size="sm" onClick={() => fileRef.current?.click()}>
-              <Upload className="h-3 w-3 mr-1" /> Cambiar imagen
-            </Button>
+          <input ref={logoRef} type="file" accept="image/*" className="hidden" onChange={handleUploadLogo} />
+          {logoUrl && (
+            <div className="flex justify-center mt-2">
+              <Button variant="outline" size="sm" onClick={() => logoRef.current?.click()}>
+                <Upload className="h-3 w-3 mr-1" /> Cambiar logo
+              </Button>
+            </div>
           )}
         </div>
 
-        {/* Description */}
-        <div className="space-y-2">
-          <Label htmlFor="desc">Descripción de la tienda</Label>
-          <Textarea
-            id="desc"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Describe tu restaurante para los clientes..."
-            rows={3}
-          />
-        </div>
+        <Separator />
 
-        {/* WhatsApp */}
-        <div className="space-y-2">
-          <Label htmlFor="wa">Número de WhatsApp</Label>
-          <div className="relative">
-            <MessageCircle className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        {/* Description & Slogan */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="desc">Nombre / Título de la tienda</Label>
             <Input
-              id="wa"
-              value={whatsapp}
-              onChange={(e) => setWhatsapp(e.target.value)}
-              placeholder="+57 300 1234567"
-              className="pl-10"
+              id="desc"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Ej: La Sinverguenceria Burguer"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="slog">Slogan (Pie de página)</Label>
+            <Input
+              id="slog"
+              value={slogan}
+              onChange={(e) => setSlogan(e.target.value)}
+              placeholder="Ej: Disfruta de la mejor comida al carbón..."
             />
           </div>
         </div>
 
-        {/* Facebook */}
-        <div className="space-y-2">
-          <Label htmlFor="fb">URL de Facebook</Label>
-          <div className="relative">
-            <Facebook className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              id="fb"
-              value={facebookUrl}
-              onChange={(e) => setFacebookUrl(e.target.value)}
-              placeholder="https://facebook.com/mi-restaurante"
-              className="pl-10"
-            />
+        <Separator />
+
+        {/* Contact info grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="wa">WhatsApp (Pedidos)</Label>
+            <div className="relative">
+              <MessageCircle className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="wa"
+                value={whatsapp}
+                onChange={(e) => setWhatsapp(e.target.value)}
+                placeholder="+57 300 1234567"
+                className="pl-10"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="ph">Teléfono Fijo / General</Label>
+            <div className="relative">
+              <Input
+                id="ph"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="(601) 765 4321"
+                className="pl-3"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="em">Correo Electrónico</Label>
+            <div className="relative">
+              <Input
+                id="em"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="contacto@restaurante.com"
+                className="pl-3"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="addr">Dirección Física</Label>
+            <div className="relative">
+              <Input
+                id="addr"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="Calle Falsa 123"
+                className="pl-3"
+              />
+            </div>
           </div>
         </div>
 
-        {/* Instagram */}
-        <div className="space-y-2">
-          <Label htmlFor="ig">URL de Instagram</Label>
-          <div className="relative">
-            <Instagram className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              id="ig"
-              value={instagramUrl}
-              onChange={(e) => setInstagramUrl(e.target.value)}
-              placeholder="https://instagram.com/mi-restaurante"
-              className="pl-10"
-            />
+        <Separator />
+
+        {/* Social */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="fb">URL de Facebook</Label>
+            <div className="relative">
+              <Facebook className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="fb"
+                value={facebookUrl}
+                onChange={(e) => setFacebookUrl(e.target.value)}
+                placeholder="https://facebook.com/mi-restaurante"
+                className="pl-10"
+              />
+            </div>
+          </div>
+
+          {/* Instagram */}
+          <div className="space-y-2">
+            <Label htmlFor="ig">URL de Instagram</Label>
+            <div className="relative">
+              <Instagram className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="ig"
+                value={instagramUrl}
+                onChange={(e) => setInstagramUrl(e.target.value)}
+                placeholder="https://instagram.com/mi-restaurante"
+                className="pl-10"
+              />
+            </div>
           </div>
         </div>
 

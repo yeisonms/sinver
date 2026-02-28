@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useRestaurantInfo, type OpeningHours } from "@/hooks/useRestaurantInfo";
 import { useCart, type ScheduleOption } from "@/contexts/CartContext";
 import type { Category, Product } from "@/types/database";
-import { ShoppingCart, Clock, MapPin, Search, CalendarClock } from "lucide-react";
+import { ShoppingCart, Clock, MapPin, Search, CalendarClock, Facebook, Instagram, MessageCircle, Twitter, Phone, Mail } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -113,14 +113,12 @@ export default function StorePage() {
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-white/85 backdrop-blur-xl border-b border-gray-200 shadow-sm flex flex-col">
-        {info?.banner_url && (
-          <div className="h-32 md:h-44 w-full overflow-hidden shrink-0">
-            <img src={info.banner_url} alt="Banner" className="w-full h-full object-cover" />
-          </div>
-        )}
+      <header className="sticky top-0 z-40 bg-white/85 backdrop-blur-xl border-b border-gray-200 shadow-sm flex flex-col pt-2">
         <div className="max-w-7xl mx-auto w-full px-4 py-3 flex items-center justify-between gap-4 shrink-0">
           <div className="flex items-center gap-3">
+            {info?.logo_url && (
+              <img src={info.logo_url} alt="Logo" className="w-12 h-12 object-contain rounded-full border border-gray-100 shadow-sm bg-white" />
+            )}
             <h1 className="text-xl font-bold text-gray-900">{info?.description || "Mi Restaurante"}</h1>
             <Badge variant={isOpen ? "default" : "destructive"} className="text-[10px] sm:text-xs">
               {isOpen ? "Abierto" : "Cerrado"}
@@ -235,12 +233,90 @@ export default function StorePage() {
         </div>
       )}
 
-      {/* Footer */}
-      <footer className="border-t border-border mt-12 py-6 px-4 text-center text-sm text-muted-foreground">
-        <div className="flex items-center justify-center gap-4">
-          {info?.whatsapp && <a href={`https://wa.me/${info.whatsapp}`} target="_blank" rel="noreferrer" className="hover:text-foreground">WhatsApp</a>}
-          {info?.facebook_url && <a href={info.facebook_url} target="_blank" rel="noreferrer" className="hover:text-foreground">Facebook</a>}
-          {info?.instagram_url && <a href={info.instagram_url} target="_blank" rel="noreferrer" className="hover:text-foreground">Instagram</a>}
+      {/* Nuevo Footer */}
+      <footer className="bg-[#C81E1E] text-white mt-12 pt-12 pb-6">
+        <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
+          {/* Col 1 */}
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center gap-3">
+              {info?.logo_url && (
+                <img src={info.logo_url} alt="Logo" className="w-16 h-16 object-contain rounded-full bg-white/10 p-1" />
+              )}
+              <h2 className="text-xl font-bold leading-tight">{info?.description || "La Sinverguenceria"}</h2>
+            </div>
+            {info?.slogan && (
+              <p className="text-white/80 text-sm leading-relaxed max-w-sm">
+                {info.slogan}
+              </p>
+            )}
+          </div>
+
+          {/* Col 2 */}
+          <div className="flex flex-col gap-4">
+            <h3 className="text-white font-bold text-lg">Dirección y horarios</h3>
+            <ul className="space-y-3 text-sm text-white/90">
+              <li className="flex items-start gap-3">
+                <MapPin className="w-4 h-4 text-white shrink-0 mt-0.5" />
+                <span className="leading-snug max-w-xs">{info?.address || "calle 4 # 4-20"}</span>
+              </li>
+              <li className="flex items-center gap-3">
+                <Clock className="w-4 h-4 text-white shrink-0" />
+                <span>5:30 pm a 11:00 pm</span>
+              </li>
+            </ul>
+          </div>
+
+          {/* Col 3 */}
+          <div className="flex flex-col gap-4">
+            <h3 className="text-white font-bold text-lg">Contacto</h3>
+            <ul className="space-y-3 text-sm text-white/90">
+              <li className="flex items-center gap-3">
+                <Phone className="w-4 h-4 text-white shrink-0" />
+                <span>{info?.phone || "3184723859"}</span>
+              </li>
+              <li className="flex items-center gap-3">
+                <Mail className="w-4 h-4 text-white shrink-0" />
+                <span>{info?.email || "edwinbeto11@gmail.com"}</span>
+              </li>
+            </ul>
+          </div>
+
+          {/* Col 4 */}
+          <div className="flex flex-col gap-4">
+            <h3 className="text-white font-bold text-lg">Redes sociales</h3>
+            <ul className="space-y-3 text-sm text-white/90">
+              {info?.whatsapp && (
+                <li className="flex items-center gap-3">
+                  <a href={`https://wa.me/${info.whatsapp}`} target="_blank" rel="noreferrer" className="flex items-center gap-3 hover:text-white/80 transition-colors">
+                    <MessageCircle className="w-4 h-4 text-white shrink-0" />
+                    <span>{info.whatsapp}</span>
+                  </a>
+                </li>
+              )}
+              {info?.facebook_url && (
+                <li className="flex items-center gap-3">
+                  <a href={info.facebook_url} target="_blank" rel="noreferrer" className="flex items-center gap-3 hover:text-white/80 transition-colors">
+                    <Facebook className="w-4 h-4 text-white shrink-0" />
+                    <span>LASINVERGUENCERIA</span>
+                  </a>
+                </li>
+              )}
+              {info?.instagram_url && (
+                <li className="flex items-center gap-3">
+                  <a href={info.instagram_url} target="_blank" rel="noreferrer" className="flex items-center gap-3 hover:text-white/80 transition-colors">
+                    <Instagram className="w-4 h-4 text-white shrink-0" />
+                    <span>La Sinverguenceria</span>
+                  </a>
+                </li>
+              )}
+            </ul>
+          </div>
+        </div>
+
+        {/* Bottom Bar */}
+        <div className="border-t border-white/20 pt-6 px-6 max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between text-xs text-white/60 gap-4">
+          <p>© 2026 {info?.description || "La Sinverguenceria"}. Todos los derechos reservados.</p>
+          <p>Desarrollado por <span className="text-white/80 font-medium">Mursat Solutions</span></p>
         </div>
       </footer>
 

@@ -4,6 +4,7 @@ import { useRestaurantInfo } from "@/hooks/useRestaurantInfo";
 import { GeneralTab } from "@/components/online-store/GeneralTab";
 import { DeliveryMethodsTab } from "@/components/online-store/DeliveryMethodsTab";
 import { ScheduleTab } from "@/components/online-store/ScheduleTab";
+import { MenuQrTab } from "@/components/online-store/MenuQrTab";
 
 export default function OnlineStoreSettingsPage() {
   const { info, isLoading, error } = useRestaurantInfo();
@@ -32,10 +33,11 @@ export default function OnlineStoreSettingsPage() {
       <h1 className="text-2xl font-bold text-foreground">Configuración de Tienda Online</h1>
 
       <Tabs defaultValue="general" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="general">Básica</TabsTrigger>
           <TabsTrigger value="delivery">Métodos de Entrega</TabsTrigger>
           <TabsTrigger value="schedule">Horarios</TabsTrigger>
+          <TabsTrigger value="qr">Código QR</TabsTrigger>
         </TabsList>
 
         <TabsContent value="general" className="mt-6">
@@ -48,6 +50,10 @@ export default function OnlineStoreSettingsPage() {
 
         <TabsContent value="schedule" className="mt-6">
           <ScheduleTab info={info} />
+        </TabsContent>
+
+        <TabsContent value="qr" className="mt-6">
+          <MenuQrTab info={info} />
         </TabsContent>
       </Tabs>
     </div>
