@@ -5,7 +5,7 @@ export interface TeamMember {
   id: string;
   email: string;
   full_name: string | null;
-  role: "admin" | "subadmin" | "mesero" | "cajero" | "cocina";
+  role: "admin" | "subadmin" | "mesero" | "domiciliario" | "cajero" | "cocina";
   is_active: boolean;
   last_sign_in_at: string | null;
   created_at: string;

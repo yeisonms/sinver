@@ -118,8 +118,9 @@ export function UserFormDialog({ open, onOpenChange, mode, initialData, onSave, 
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="admin">Administrador</SelectItem>
-                                        <SelectItem value="subadmin">Sub-Administradora</SelectItem>
+                                        <SelectItem value="subadmin">Sub-Administrador</SelectItem>
                                         <SelectItem value="mesero">Mesero</SelectItem>
+                                        <SelectItem value="domiciliario">Domiciliario</SelectItem>
                                         <SelectItem value="cajero">Cajero</SelectItem>
                                         <SelectItem value="cocina">Cocina</SelectItem>
                                     </SelectContent>

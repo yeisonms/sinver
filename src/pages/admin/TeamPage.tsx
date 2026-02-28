@@ -14,6 +14,7 @@ const roleMeta: Record<string, { label: string; className: string }> = {
   admin: { label: "Admin", className: "bg-destructive text-destructive-foreground" },
   subadmin: { label: "Sub-Admin", className: "bg-orange-500 text-white" },
   mesero: { label: "Mesero", className: "bg-blue-600 text-white" },
+  domiciliario: { label: "Domiciliario", className: "bg-teal-600 text-white" },
   cajero: { label: "Cajero", className: "bg-green-600 text-white" },
   cocina: { label: "Cocina", className: "bg-amber-600 text-white" },
 };
