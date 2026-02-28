@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useHasPermission } from "@/hooks/useRolePermissions";
 import { Search, Plus, Check, Pencil, X, Loader2, ArrowRightLeft, Printer } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -35,6 +36,7 @@ export function OrderDetailPanel({ order, waiterName, onCheckout, onMoveTable }:
   const { info: restaurantInfo } = useRestaurantInfo();
   const [cancelItem, setCancelItem] = useState<OrderItemRow | null>(null);
   const [cancelReason, setCancelReason] = useState("");
+  const { data: canCharge = false } = useHasPermission("charge_table");
 
   const { data: items = [], isLoading: loadingItems } = useOrderItems(order.id);
   const cancelItemMut = useCancelOrderItem();
@@ -258,13 +260,15 @@ export function OrderDetailPanel({ order, waiterName, onCheckout, onMoveTable }:
           <Button variant="outline" className="h-12 flex-1 rounded-xl text-sm font-medium border-border/60 hover:bg-secondary/50 transition-colors">
             % Descuento
           </Button>
-          <Button
-            className="h-12 flex-[2] rounded-xl bg-primary hover:bg-primary/90 text-white font-bold text-base shadow-premium hover:shadow-premium-hover transition-all"
-            onClick={() => onCheckout(order)}
-            disabled={activeTotal === 0}
-          >
-            Cobrar Orden
-          </Button>
+          {canCharge && (
+            <Button
+              className="h-12 flex-[2] rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-base shadow-premium hover:shadow-premium-hover transition-all"
+              onClick={() => onCheckout(order)}
+              disabled={activeTotal === 0}
+            >
+              Cobrar Orden
+            </Button>
+          )}
         </div>
       </div>
 
