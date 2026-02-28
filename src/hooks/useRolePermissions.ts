@@ -30,7 +30,7 @@ export const PERMISSION_CATEGORIES = {
   ],
 };
 
-export const ALL_ROLES = ["admin", "subadmin", "mesero", "cajero", "cocina"] as const;
+export const ALL_ROLES = ["admin", "subadmin", "mesero", "domiciliario", "cajero", "cocina"] as const;
 
 // Default permissions per role
 const DEFAULT_PERMISSIONS: Record<string, Record<string, boolean>> = {
@@ -48,6 +48,12 @@ const DEFAULT_PERMISSIONS: Record<string, Record<string, boolean>> = {
   },
   mesero: {
     close_sales: false, charge_table: false, print_control: true, assign_waiter: false,
+    create_additions: true, cancel_additions: true, list_discounts: false, create_discounts: false,
+    cancel_discounts: false, modify_price: true, list_sales: false, update_sales: false,
+    delete_sales: false, export_sales: false, view_summary: false,
+  },
+  domiciliario: {
+    close_sales: false, charge_table: true, print_control: true, assign_waiter: false,
     create_additions: true, cancel_additions: true, list_discounts: false, create_discounts: false,
     cancel_discounts: false, modify_price: true, list_sales: false, update_sales: false,
     delete_sales: false, export_sales: false, view_summary: false,

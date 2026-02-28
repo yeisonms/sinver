@@ -15,6 +15,7 @@ const ROLE_LABELS: Record<string, string> = {
   admin: "Administrador",
   subadmin: "Sub-Administrador",
   mesero: "Mesero",
+  domiciliario: "Domiciliario",
   cajero: "Cajero",
   cocina: "Cocina",
 };
@@ -23,6 +24,7 @@ const ROLE_COLORS: Record<string, string> = {
   admin: "bg-primary text-primary-foreground",
   subadmin: "bg-amber-500 text-white",
   mesero: "bg-amber-400 text-amber-950",
+  domiciliario: "bg-teal-500 text-white",
   cajero: "bg-emerald-500 text-white",
   cocina: "bg-orange-500 text-white",
 };
