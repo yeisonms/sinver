@@ -103,7 +103,7 @@ BEGIN
       INSERT INTO public.order_items (
         order_id, product_id, quantity, unit_price, notes, status
       ) VALUES (
-        v_new_order_id, v_product_id, v_split_qty, v_unit_price, v_notes, 'entregado'
+        v_new_order_id, v_product_id, v_split_qty, v_unit_price, v_notes, 'activo'
       );
     END IF;
   END LOOP;

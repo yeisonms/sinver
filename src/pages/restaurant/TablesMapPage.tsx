@@ -112,6 +112,8 @@ export default function TablesMapPage() {
   const [checkoutOrderOverride, setCheckoutOrderOverride] = useState<any>(null);
   const [closing, setClosing] = useState(false);
 
+  const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
+
   const handleSplitSuccess = async (newOrderId: string) => {
     try {
       const { data: newOrderData, error } = await supabase
@@ -134,33 +136,38 @@ export default function TablesMapPage() {
     }
   };
 
-  // Fetch order info for selected table (to get order_number)
-  const { data: selectedOrder } = useQuery({
-    queryKey: ["order", selectedTable?.current_order_id],
+  const tableIds = tables.map(t => t.id);
+  const { data: allActiveOrders = [] } = useQuery({
+    queryKey: ["active-orders", tableIds],
     queryFn: async () => {
+      if (tableIds.length === 0) return [];
       const { data, error } = await supabase
         .from("orders")
         .select("*")
-        .eq("id", selectedTable!.current_order_id!)
-        .single();
+        .in("table_id", tableIds)
+        .neq("status", "cerrado")
+        .neq("status", "cancelado")
+        .order("created_at", { ascending: true });
       if (error) throw error;
       return data;
     },
-    enabled: !!selectedTable?.current_order_id,
+    enabled: tableIds.length > 0,
   });
+
+  const activeOrdersForSelectedTable = selectedTable
+    ? allActiveOrders.filter(o => o.table_id === selectedTable.id)
+    : [];
+
+  const selectedOrder = activeOrderId
+    ? allActiveOrders.find(o => o.id === activeOrderId)
+    : null;
 
   const tableAt = (x: number, y: number) =>
     tables.find((t) => t.x_position === x && t.y_position === y);
 
   const handleTableClick = (table: Table) => {
-    if (table.status === "libre") {
-      setSelectedTable(null);
-      setDialogTable(table);
-      setDinerCount(1);
-      setComment("");
-    } else if (table.status === "ocupada") {
-      setSelectedTable(table);
-    }
+    setSelectedTable(table);
+    setActiveOrderId(null); // Reset detail view to show Dashboard
   };
 
   const handleOpenTable = async () => {
@@ -238,17 +245,17 @@ export default function TablesMapPage() {
       }
 
       qc.invalidateQueries({ queryKey: ["orders"] });
+      qc.invalidateQueries({ queryKey: ["active-orders"] });
       qc.invalidateQueries({ queryKey: ["tables"] });
       qc.invalidateQueries({ queryKey: ["sales-orders"] });
       toast.success("Mesa cerrada y cobro registrado");
       setCheckoutOpen(false);
 
-      if (targetOrderId === selectedTable?.current_order_id) {
-        setSelectedTable(null);
-      } else {
-        setCheckoutOrderOverride(null);
-        qc.invalidateQueries({ queryKey: ["order-items", selectedTable?.current_order_id] });
+      if (targetOrderId === activeOrderId) {
+        setActiveOrderId(null);
       }
+      setCheckoutOrderOverride(null);
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       toast.error(err?.message || "Error al cerrar mesa");
@@ -286,17 +293,86 @@ export default function TablesMapPage() {
   const openTableButton = (
     <Button onClick={handleOpenTable} disabled={openTable.isPending} className="w-full h-12 text-base font-semibold">
       {openTable.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-      Abrir mesa
+      Abrir nueva cuenta
     </Button>
+  );
+
+  // ── TableDashboard component ──
+  const renderTableDashboard = () => (
+    <div className="flex-1 flex flex-col pt-4 overflow-y-auto">
+      <div className="px-6 pb-4">
+        <Button
+          className="w-full h-12 text-base font-bold text-white shadow-md bg-green-500 hover:bg-green-600"
+          onClick={() => {
+            if (selectedTable) {
+              setDialogTable(selectedTable);
+              setDinerCount(1);
+              setComment("");
+            }
+          }}
+        >
+          <Plus className="h-5 w-5 mr-2" />
+          Abrir Nueva Cuenta
+        </Button>
+      </div>
+
+      <div className="flex-1 px-4 space-y-3 pb-8">
+        <Label className="text-sm text-muted-foreground px-2 font-medium">Cuentas Activas ({activeOrdersForSelectedTable.length})</Label>
+
+        {activeOrdersForSelectedTable.length === 0 ? (
+          <div className="flex flex-col items-center justify-center p-8 text-center text-muted-foreground bg-accent/30 rounded-2xl border border-dashed mx-2 mt-4">
+            <ShoppingCart className="h-10 w-10 mb-3 opacity-20" />
+            <p className="text-sm font-medium">Mesa vacía</p>
+            <p className="text-xs mt-1">Acá aparecerán los pedidos de la mesa.</p>
+          </div>
+        ) : (
+          activeOrdersForSelectedTable.map(order => (
+            <button
+              key={order.id}
+              onClick={() => setActiveOrderId(order.id)}
+              className="w-full text-left bg-card hover:bg-accent border shadow-sm p-4 rounded-xl flex items-center justify-between transition-all"
+            >
+              <div>
+                <p className="font-bold text-base flex items-center gap-2">
+                  <span>Venta #{order.order_number}</span>
+                  {order.client_name && (
+                    <span className="text-xs font-normal text-muted-foreground bg-accent px-2 py-0.5 rounded-full">
+                      {order.client_name}
+                    </span>
+                  )}
+                </p>
+                <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground font-medium">
+                  {order.waiter_id && waiterNameMap[order.waiter_id] && (
+                    <span>🧑‍🍳 {waiterNameMap[order.waiter_id]}</span>
+                  )}
+                  {order.diner_count && (
+                    <span>👤 x{order.diner_count}</span>
+                  )}
+                </div>
+              </div>
+              <div className="text-right flex flex-col items-end gap-1">
+                <span className="text-lg font-bold text-primary">
+                  ${(order.total_amount || 0).toLocaleString()}
+                </span>
+                <span className="text-[10px] uppercase font-bold text-primary/80 bg-primary/10 px-2 py-0.5 rounded-sm">
+                  {order.status}
+                </span>
+              </div>
+            </button>
+          ))
+        )}
+      </div>
+    </div>
   );
 
   // ── Table grid (shared between mobile and desktop) ──
   const mobileTableGrid = (
     <div className="grid grid-cols-3 gap-3 p-4">
       {tables.map((table) => {
-        const isOccupied = table.status === "ocupada";
+        const orderCount = allActiveOrders.filter(o => o.table_id === table.id).length;
+        const isOccupied = orderCount > 0;
         const isSelected = selectedTable?.id === table.id;
-        const isPrinted = isOccupied && table.printed_control;
+        const isPrinted = table.printed_control; // O simplified check
         return (
           <button
             key={table.id}
@@ -363,7 +439,7 @@ export default function TablesMapPage() {
                 /* Compact single-column when panel is open */
                 <div className="flex flex-col gap-2 p-2">
                   {tables.map((table) => {
-                    const isOccupied = table.status === "ocupada";
+                    const isOccupied = allActiveOrders.some(o => o.table_id === table.id);
                     const isSelected = selectedTable?.id === table.id;
                     return (
                       <button
@@ -386,13 +462,13 @@ export default function TablesMapPage() {
               )}
             </div>
 
-            {/* Right: order detail panel (Mobile Split View Logic) */}
+            {/* Right: order detail panel / Dashboard */}
             {selectedTable && (
               <div className="flex-1 overflow-hidden flex flex-col bg-background">
-                {selectedOrder ? (
+                {activeOrderId && selectedOrder ? (
                   <OrderDetailPanel
                     order={selectedOrder}
-                    waiterName={selectedTable.current_waiter_id && waiterNameMap[selectedTable.current_waiter_id] ? waiterNameMap[selectedTable.current_waiter_id] : undefined}
+                    waiterName={selectedOrder.waiter_id && waiterNameMap[selectedOrder.waiter_id] ? waiterNameMap[selectedOrder.waiter_id] : undefined}
                     onCheckout={(order) => {
                       setCheckoutOrderId(order.id);
                       setCheckoutOrderNumber(order.order_number);
@@ -405,9 +481,14 @@ export default function TablesMapPage() {
                     onSplitSuccess={handleSplitSuccess}
                   />
                 ) : (
-                  <div className="flex items-center justify-center flex-1">
-                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                  </div>
+                  <>
+                    <div className="bg-primary text-primary-foreground h-14 flex items-center px-4 gap-3 shrink-0">
+                      <div className="flex-1">
+                        <h2 className="font-bold">Mesa {selectedTable.name}</h2>
+                      </div>
+                    </div>
+                    {renderTableDashboard()}
+                  </>
                 )}
               </div>
             )}
@@ -426,8 +507,9 @@ export default function TablesMapPage() {
                 Array.from({ length: GRID_COLS }).map((_, x) => {
                   const table = tableAt(x, y);
                   if (table) {
-                    const isOccupied = table.status === "ocupada";
-                    const isPrinted = isOccupied && table.printed_control;
+                    const activeCount = allActiveOrders.filter(o => o.table_id === table.id).length;
+                    const isOccupied = activeCount > 0;
+                    const isPrinted = table.printed_control;
                     return (
                       <button
                         key={`${x}-${y}`}
@@ -464,24 +546,33 @@ export default function TablesMapPage() {
       {!isMobile && (
         <Sheet open={!!selectedTable} onOpenChange={(v) => !v && setSelectedTable(null)}>
           <SheetContent className="w-full sm:max-w-md p-0 flex flex-col gap-0 border-l border-border/50 shadow-2xl">
-            {selectedOrder ? (
-              <OrderDetailPanel
-                order={selectedOrder}
-                waiterName={selectedTable?.current_waiter_id ? waiterNameMap[selectedTable.current_waiter_id] : undefined}
-                onCheckout={(order) => {
-                  setCheckoutOrderId(order.id);
-                  setCheckoutOrderNumber(order.order_number);
-                  if (selectedTable) setCheckoutTable(selectedTable);
-                  setCheckoutConsumedTotal(order.total_amount);
-                  setCheckoutOrderOverride(null);
-                  setCheckoutOpen(true);
-                }}
-                onMoveTable={() => setMoveTableOpen(true)}
-                onSplitSuccess={handleSplitSuccess}
-              />
+            {activeOrderId && selectedOrder ? (
+              <div className="flex flex-col h-full w-full">
+                <div className="bg-card border-b border-border/50 h-14 flex items-center px-4 shrink-0 transition-colors hover:bg-accent cursor-pointer" onClick={() => setActiveOrderId(null)}>
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  <span className="font-medium text-sm">Volver al Dashboard</span>
+                </div>
+                <OrderDetailPanel
+                  order={selectedOrder}
+                  waiterName={selectedOrder.waiter_id ? waiterNameMap[selectedOrder.waiter_id] : undefined}
+                  onCheckout={(order) => {
+                    setCheckoutOrderId(order.id);
+                    setCheckoutOrderNumber(order.order_number);
+                    if (selectedTable) setCheckoutTable(selectedTable);
+                    setCheckoutConsumedTotal(order.total_amount);
+                    setCheckoutOrderOverride(null);
+                    setCheckoutOpen(true);
+                  }}
+                  onMoveTable={() => setMoveTableOpen(true)}
+                  onSplitSuccess={handleSplitSuccess}
+                />
+              </div>
             ) : (
-              <div className="flex items-center justify-center flex-1">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              <div className="flex flex-col h-full w-full">
+                <div className="bg-secondary/20 h-16 flex flex-col justify-center px-6 shrink-0 border-b border-border">
+                  <h2 className="font-bold text-lg">Mesa {selectedTable?.name}</h2>
+                </div>
+                {renderTableDashboard()}
               </div>
             )}
           </SheetContent>
@@ -492,19 +583,31 @@ export default function TablesMapPage() {
       {isMobile && selectedTable && (
         <div className="fixed inset-0 z-50 bg-background flex flex-col">
           <div className="bg-primary text-primary-foreground h-14 flex items-center px-4 gap-3 shrink-0">
-            <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-white/10" onClick={() => setSelectedTable(null)}>
-              <X className="h-5 w-5" />
-            </Button>
-            <div className="flex-1">
-              <h2 className="font-bold">Mesa {selectedTable.name}</h2>
-              {selectedOrder && <p className="text-xs opacity-90">Venta #{selectedOrder.order_number}</p>}
-            </div>
+            {activeOrderId ? (
+              <>
+                <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-white/10" onClick={() => setActiveOrderId(null)}>
+                  <ArrowLeft className="h-5 w-5" />
+                </Button>
+                <div className="flex-1">
+                  <h2 className="font-bold">Venta #{selectedOrder?.order_number}</h2>
+                </div>
+              </>
+            ) : (
+              <>
+                <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-white/10" onClick={() => setSelectedTable(null)}>
+                  <X className="h-5 w-5" />
+                </Button>
+                <div className="flex-1">
+                  <h2 className="font-bold">Mesa {selectedTable.name}</h2>
+                </div>
+              </>
+            )}
           </div>
-          <div className="flex-1 overflow-auto">
-            {selectedOrder ? (
+          <div className="flex-1 overflow-auto flex flex-col">
+            {activeOrderId && selectedOrder ? (
               <OrderDetailPanel
                 order={selectedOrder}
-                waiterName={selectedTable?.current_waiter_id ? waiterNameMap[selectedTable.current_waiter_id] : undefined}
+                waiterName={selectedOrder.waiter_id ? waiterNameMap[selectedOrder.waiter_id] : undefined}
                 onCheckout={(order) => {
                   setCheckoutOrderId(order.id);
                   setCheckoutOrderNumber(order.order_number);
@@ -517,9 +620,7 @@ export default function TablesMapPage() {
                 onSplitSuccess={handleSplitSuccess}
               />
             ) : (
-              <div className="flex items-center justify-center h-full">
-                <Loader2 className="h-6 w-6 animate-spin" />
-              </div>
+              renderTableDashboard()
             )}
           </div>
         </div>
