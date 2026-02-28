@@ -71,19 +71,6 @@ export function OrderStep2({ cart, existingItems = [], total, onAddToCart, onRem
   }, [editingProduct?.id]);
 
   const handleSelectProduct = (p: Product) => {
-    if (isMobile) {
-      // On mobile, add directly with qty 1
-      const cartItem: CartItem = {
-        product_id: p.id,
-        product_name: p.name,
-        quantity: 1,
-        unit_price: p.price,
-        notes: null,
-        modifiers: [],
-      };
-      onAddToCart(cartItem);
-      return;
-    }
     setEditingProduct(p);
     setQty(1);
     setItemNotes("");
@@ -187,10 +174,11 @@ export function OrderStep2({ cart, existingItems = [], total, onAddToCart, onRem
                 <p className="text-sm font-semibold">Pendiente</p>
                 {cart.map((item, i) => (
                   <div key={i} className="flex items-center justify-between text-sm">
-                    <div className="flex-1">
+                    <button className="flex-1 text-left" onClick={() => { setShowMobileCart(false); handleEditCartItem(i); }}>
                       <span>{item.quantity} {item.product_name}</span>
+                      {item.notes && <span className="text-xs text-muted-foreground ml-1">({item.notes})</span>}
                       <span className="ml-2 text-muted-foreground">{(item.quantity * item.unit_price).toLocaleString("es-CO", { minimumFractionDigits: 2 })}</span>
-                    </div>
+                    </button>
                     <button onClick={() => onRemoveFromCart(i)} className="text-muted-foreground hover:text-destructive p-1">
                       <X className="h-4 w-4" />
                     </button>
@@ -235,17 +223,84 @@ export function OrderStep2({ cart, existingItems = [], total, onAddToCart, onRem
       );
     }
 
+    // Mobile product editing overlay
+    if (editingProduct) {
+      return (
+        <div className="flex flex-col h-full bg-background">
+          <div className="bg-primary text-primary-foreground h-14 flex items-center px-4 gap-3 shrink-0">
+            <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-primary/80" onClick={handleCancel}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <h2 className="font-bold flex-1 truncate">{editingProduct.name}</h2>
+            <span className="text-sm font-semibold">$ {itemTotal.toLocaleString()}</span>
+          </div>
+
+          <div className="flex-1 overflow-auto p-4 space-y-4">
+            {/* Quantity */}
+            <div className="flex items-center justify-center gap-4">
+              <Button size="icon" variant="outline" className="h-10 w-10" onClick={() => setQty(Math.max(1, qty - 1))}>
+                <Minus className="h-4 w-4" />
+              </Button>
+              <span className="text-2xl font-bold w-12 text-center">{qty}</span>
+              <Button size="icon" variant="outline" className="h-10 w-10" onClick={() => setQty(qty + 1)}>
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {/* Modifiers */}
+            {modifierGroups.length > 0 && (
+              <div className="space-y-3">
+                <p className="text-sm font-semibold text-muted-foreground">Modificadores</p>
+                {modifierGroups.map((group) => (
+                  <Select key={group.id} value={selectedModifiers[group.id]?.option_id || ""} onValueChange={(val) => handleModifierChange(group.id, val)}>
+                    <SelectTrigger className="h-10">
+                      <SelectValue placeholder={group.public_name || group.name} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {group.options.map((opt) => (
+                        <SelectItem key={opt.id} value={opt.id}>
+                          {opt.name} {opt.price_extra > 0 ? `(+$${opt.price_extra.toLocaleString()})` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ))}
+              </div>
+            )}
+
+            {/* Notes */}
+            <div className="space-y-2">
+              <p className="text-sm font-semibold text-muted-foreground">Comentario</p>
+              <Input
+                placeholder="Ej: Sin cebolla, bien cocido..."
+                value={itemNotes}
+                onChange={(e) => setItemNotes(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Confirm button */}
+          <div className="border-t border-border p-4 bg-card">
+            <Button className="w-full h-12 text-base font-semibold" onClick={handleConfirm}>
+              <Check className="h-5 w-5 mr-2" />
+              {editingCartIndex !== null ? "Actualizar" : "Agregar"} — $ {itemTotal.toLocaleString()}
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
     // Mobile product selection view
     return (
       <div className="flex flex-col h-full">
         {/* Search bar */}
         <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-navbar">
-          <Button variant="ghost" size="icon" onClick={onBack} className="shrink-0 text-navbar-foreground hover:bg-white/10">
+          <Button variant="ghost" size="icon" onClick={onBack} className="shrink-0 text-navbar-foreground hover:bg-primary/80">
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Buscar producto..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 bg-white" />
+            <Input placeholder="Buscar producto..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 bg-background" />
           </div>
         </div>
 
