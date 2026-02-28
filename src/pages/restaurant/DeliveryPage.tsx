@@ -1,21 +1,18 @@
 import { useState } from "react";
-import { Search, Plus, Loader2, Truck, CheckCircle, XCircle, MapPin, Phone, ChevronRight } from "lucide-react";
+import { Search, Plus, Loader2, Truck, MapPin, Phone, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useOrders } from "@/hooks/useOrders";
 import { useOrderItems } from "@/hooks/useOrderItems";
 import { NewDeliverySheet } from "@/components/restaurant/NewDeliverySheet";
+import { WebOrderInboxCard } from "@/components/restaurant/WebOrderInboxCard";
 import { OrderDetailPanel } from "@/components/restaurant/OrderDetailPanel";
 import { CheckoutDialog } from "@/components/restaurant/CheckoutDialog";
 import { useRestaurantInfo } from "@/hooks/useRestaurantInfo";
-import { reprintOrder } from "@/lib/printService";
 import type { Order } from "@/types/database";
-import { format, formatDistanceToNow } from "date-fns";
-import { es } from "date-fns/locale";
+import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -41,8 +38,6 @@ export default function DeliveryPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [sheetOpen, setSheetOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
-  const [rejectOrderId, setRejectOrderId] = useState<string | null>(null);
-  const [rejectReason, setRejectReason] = useState("");
 
   const [checkoutOrder, setCheckoutOrder] = useState<Order | null>(null);
   const [closing, setClosing] = useState(false);
@@ -50,11 +45,9 @@ export default function DeliveryPage() {
   const isMobile = useIsMobile();
   const qc = useQueryClient();
 
-  // Inbox: pedidos web entrantes
   const { data: inboxOrders = [], isLoading: loadInbox } = useOrders(["pendiente_online"]);
   const webInbox = inboxOrders.filter((o) => o.type === "domicilio");
 
-  // Active delivery orders
   const { data: allActive = [], isLoading: loadActive } = useOrders(["pendiente", "en_preparacion"]);
   const activeDeliveries = allActive.filter((o) => o.type === "domicilio");
 
@@ -74,42 +67,6 @@ export default function DeliveryPage() {
   const { data: checkoutItems = [] } = useOrderItems(checkoutOrder?.id ?? null);
   const checkoutActiveItems = checkoutItems.filter((i) => i.status !== "cancelado");
   const consumedTotal = checkoutActiveItems.reduce((s, i) => s + i.quantity * i.unit_price, 0);
-
-  const handleAcceptOrder = async (orderId: string) => {
-    try {
-      const { error } = await supabase
-        .from("orders")
-        .update({ status: "en_preparacion" })
-        .eq("id", orderId);
-      if (error) throw error;
-      qc.invalidateQueries({ queryKey: ["orders"] });
-      toast.success("Pedido aceptado");
-
-      // Auto-print online orders when accepted by the cashier
-      await reprintOrder(orderId);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (err: any) {
-      toast.error(err?.message || "Error al aceptar");
-    }
-  };
-
-  const handleRejectOrder = async () => {
-    if (!rejectOrderId) return;
-    try {
-      const { error } = await supabase
-        .from("orders")
-        .update({ status: "cancelado", rejection_reason: rejectReason || null })
-        .eq("id", rejectOrderId);
-      if (error) throw error;
-      qc.invalidateQueries({ queryKey: ["orders"] });
-      toast.success("Pedido rechazado");
-      setRejectOrderId(null);
-      setRejectReason("");
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (err: any) {
-      toast.error(err?.message || "Error al rechazar");
-    }
-  };
 
   const handleCheckout = async (data: { tipAmount: number; paymentMethod: string; grandTotal: number }) => {
     if (!checkoutOrder) return;
@@ -146,32 +103,12 @@ export default function DeliveryPage() {
       toast.success("Domicilio cerrado y cobro registrado");
       setCheckoutOrder(null);
       setSelectedOrderId(null);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       toast.error(err?.message || "Error al cerrar pedido");
     } finally {
       setClosing(false);
     }
   };
-
-  // ─── Shared dialogs ───
-  const rejectDialog = (
-    <Dialog open={!!rejectOrderId} onOpenChange={(v) => { if (!v) setRejectOrderId(null); }}>
-      <DialogContent className="sm:max-w-sm">
-        <DialogHeader>
-          <DialogTitle>Rechazar Pedido</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-2">
-          <Label className="text-xs">Motivo (opcional)</Label>
-          <Textarea placeholder="Razón del rechazo..." value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} rows={3} />
-        </div>
-        <DialogFooter className="gap-2 sm:gap-0">
-          <Button variant="outline" onClick={() => setRejectOrderId(null)}>Cancelar</Button>
-          <Button variant="destructive" onClick={handleRejectOrder}>Confirmar Rechazo</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
 
   const checkoutDialog = (
     <CheckoutDialog
@@ -190,18 +127,11 @@ export default function DeliveryPage() {
   if (isMobile) {
     return (
       <div className="flex flex-col h-full">
-        {/* Search */}
         <div className="px-4 pt-3 pb-2">
           <Label className="text-xs text-muted-foreground">Buscar domicilio</Label>
-          <Input
-            placeholder=""
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="mt-1"
-          />
+          <Input placeholder="" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="mt-1" />
         </div>
 
-        {/* Status filter tabs */}
         <div className="flex items-center gap-2 px-4 pb-3">
           {statusFilters.map((f) => (
             <button
@@ -220,36 +150,16 @@ export default function DeliveryPage() {
         {/* Delivery inbox */}
         {webInbox.length > 0 && (
           <div className="px-4 pb-2">
-            <div className="bg-orange-50 rounded-lg border border-orange-200 p-3 space-y-2">
-              <div className="flex items-center gap-2">
+            <div className="bg-orange-50 rounded-lg border border-orange-200 space-y-0 overflow-hidden">
+              <div className="flex items-center gap-2 px-4 py-2 border-b border-orange-100">
                 <Truck className="h-4 w-4 text-orange-600" />
                 <span className="text-xs font-bold uppercase text-orange-700">Web - Domicilio ({webInbox.length})</span>
               </div>
-              {webInbox.map((o) => (
-                <div key={o.id} className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="font-bold text-sm">#{o.order_number}</span>
-                      <span className="text-sm ml-2">{o.client_name ?? "Cliente"}</span>
-                    </div>
-                    <span className="font-bold text-sm">${o.total_amount.toLocaleString()}</span>
-                  </div>
-                  {o.delivery_address && (
-                    <div className="flex items-start gap-1 text-xs text-muted-foreground">
-                      <MapPin className="h-3 w-3 mt-0.5 shrink-0" />
-                      <span className="truncate">{o.delivery_address}</span>
-                    </div>
-                  )}
-                  <div className="flex gap-1.5 justify-end">
-                    <Button size="sm" variant="destructive" className="h-9 text-xs" onClick={() => { setRejectOrderId(o.id); setRejectReason(""); }}>
-                      <XCircle className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button size="sm" className="h-9 text-xs bg-green-600 hover:bg-green-700 text-white" onClick={() => handleAcceptOrder(o.id)}>
-                      <CheckCircle className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
+              <div className="divide-y divide-orange-100/50">
+                {webInbox.map((o) => (
+                  <WebOrderInboxCard key={o.id} order={o} restaurantName={restaurantInfo?.restaurant_name ?? undefined} compact />
+                ))}
+              </div>
             </div>
           </div>
         )}
@@ -257,9 +167,7 @@ export default function DeliveryPage() {
         {/* Delivery list */}
         <div className="flex-1 overflow-auto">
           {loadActive ? (
-            <div className="flex justify-center py-8">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-            </div>
+            <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
           ) : filtered.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-8">Sin domicilios en curso.</p>
           ) : (
@@ -286,17 +194,14 @@ export default function DeliveryPage() {
           )}
         </div>
 
-        {/* Fixed bottom button */}
         <div className="border-t border-border p-4 bg-card">
           <Button onClick={() => setSheetOpen(true)} className="w-full h-12 text-base font-semibold gap-2">
-            <Plus className="h-5 w-5" />
-            Nuevo Domicilio
+            <Plus className="h-5 w-5" /> Nuevo Domicilio
           </Button>
         </div>
 
         <NewDeliverySheet open={sheetOpen} onOpenChange={setSheetOpen} />
 
-        {/* Mobile: order detail as full-screen overlay */}
         {selectedOrder && (
           <div className="fixed inset-0 z-50 bg-background flex flex-col">
             <div className="bg-navbar text-navbar-foreground h-14 flex items-center px-4 gap-3 shrink-0">
@@ -305,7 +210,6 @@ export default function DeliveryPage() {
               </Button>
               <h2 className="font-bold">Pedido {selectedOrder.order_number}</h2>
             </div>
-            {/* Delivery info banner */}
             {(selectedOrder.delivery_address || selectedOrder.delivery_phone) && (
               <div className="px-4 py-2 bg-blue-50 border-b border-blue-200 space-y-1">
                 {selectedOrder.delivery_address && (
@@ -317,8 +221,7 @@ export default function DeliveryPage() {
                 <div className="flex items-center gap-4">
                   {selectedOrder.delivery_phone && (
                     <div className="flex items-center gap-1 text-sm text-blue-700">
-                      <Phone className="h-3.5 w-3.5" />
-                      <span>{selectedOrder.delivery_phone}</span>
+                      <Phone className="h-3.5 w-3.5" /><span>{selectedOrder.delivery_phone}</span>
                     </div>
                   )}
                   {(selectedOrder.delivery_fee ?? 0) > 0 && (
@@ -330,42 +233,30 @@ export default function DeliveryPage() {
               </div>
             )}
             <div className="flex-1 overflow-auto">
-              <OrderDetailPanel
-                order={selectedOrder}
-                onCheckout={(order) => setCheckoutOrder(order)}
-              />
+              <OrderDetailPanel order={selectedOrder} onCheckout={(order) => setCheckoutOrder(order)} />
             </div>
           </div>
         )}
 
         {checkoutDialog}
-        {rejectDialog}
       </div>
     );
   }
 
-  // ─── DESKTOP LAYOUT (unchanged) ───
+  // ─── DESKTOP LAYOUT ───
   return (
     <div className="flex flex-col h-full">
-      {/* Top bar */}
       <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-card">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar domicilio por cliente/ID..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9"
-          />
+          <Input placeholder="Buscar domicilio por cliente/ID..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9" />
         </div>
         <Button onClick={() => setSheetOpen(true)} className="gap-1.5">
-          <Plus className="h-4 w-4" />
-          Nuevo Domicilio
+          <Plus className="h-4 w-4" /> Nuevo Domicilio
         </Button>
       </div>
 
       <div className="flex flex-1 overflow-hidden">
-        {/* Section A: Inbox + Active List */}
         <div className="w-2/5 overflow-auto border-r border-border flex flex-col">
           {/* Web Inbox */}
           {(webInbox.length > 0 || loadInbox) && (
@@ -377,68 +268,25 @@ export default function DeliveryPage() {
                 </span>
               </div>
               {loadInbox ? (
-                <div className="flex justify-center py-4">
-                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                </div>
+                <div className="flex justify-center py-4"><Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /></div>
               ) : (
                 <div className="divide-y divide-border">
                   {webInbox.map((o) => (
-                    <div
-                      key={o.id}
-                      className="px-4 py-3 bg-destructive/5 animate-pulse-subtle space-y-2 border-l-4 border-destructive"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-sm">#{o.order_number}</span>
-                        <span className="text-xs text-muted-foreground">
-                          hace {formatDistanceToNow(new Date(o.created_at), { locale: es })}
-                        </span>
-                      </div>
-                      <div className="text-sm font-medium">{o.client_name ?? "Cliente Web"}</div>
-                      {o.delivery_address && (
-                        <div className="flex items-start gap-1 text-xs text-muted-foreground">
-                          <MapPin className="h-3 w-3 mt-0.5 shrink-0" />
-                          <span>{o.delivery_address}</span>
-                        </div>
-                      )}
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-sm">${o.total_amount.toLocaleString()}</span>
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            className="h-8 text-xs gap-1"
-                            onClick={() => { setRejectOrderId(o.id); setRejectReason(""); }}
-                          >
-                            <XCircle className="h-3.5 w-3.5" />
-                            Rechazar
-                          </Button>
-                          <Button
-                            size="sm"
-                            className="h-8 text-xs gap-1 bg-green-600 hover:bg-green-700 text-white"
-                            onClick={() => handleAcceptOrder(o.id)}
-                          >
-                            <CheckCircle className="h-3.5 w-3.5" />
-                            Aceptar
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
+                    <WebOrderInboxCard key={o.id} order={o} restaurantName={restaurantInfo?.restaurant_name ?? undefined} />
                   ))}
                 </div>
               )}
             </div>
           )}
 
-          {/* Active deliveries list */}
+          {/* Active deliveries */}
           <div className="flex-1 overflow-auto">
             <div className="px-4 py-2 bg-muted/50 flex items-center gap-2">
               <Truck className="h-4 w-4 text-primary" />
               <span className="text-xs font-bold uppercase tracking-wide">Domicilios Activos ({filtered.length})</span>
             </div>
             {loadActive ? (
-              <div className="flex justify-center py-8">
-                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-              </div>
+              <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
             ) : filtered.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-8">Sin domicilios en curso.</p>
             ) : (
@@ -456,10 +304,7 @@ export default function DeliveryPage() {
                   {filtered.map((o) => (
                     <TableRow
                       key={o.id}
-                      className={`cursor-pointer transition-colors ${selectedOrderId === o.id
-                        ? "bg-yellow-100 hover:bg-yellow-100"
-                        : "hover:bg-muted/50"
-                        }`}
+                      className={`cursor-pointer transition-colors ${selectedOrderId === o.id ? "bg-yellow-100 hover:bg-yellow-100" : "hover:bg-muted/50"}`}
                       onClick={() => setSelectedOrderId(o.id)}
                     >
                       <TableCell className="font-mono text-xs font-bold">{o.order_number}</TableCell>
@@ -472,9 +317,7 @@ export default function DeliveryPage() {
                       <TableCell className="text-sm">
                         <div>{o.client_name ?? "—"}</div>
                         {o.delivery_address && (
-                          <div className="text-[10px] text-muted-foreground truncate max-w-[120px]">
-                            📍 {o.delivery_address}
-                          </div>
+                          <div className="text-[10px] text-muted-foreground truncate max-w-[120px]">📍 {o.delivery_address}</div>
                         )}
                       </TableCell>
                       <TableCell className="text-right font-medium text-sm">
@@ -488,11 +331,10 @@ export default function DeliveryPage() {
           </div>
         </div>
 
-        {/* Section B: Detail panel */}
+        {/* Detail panel */}
         <div className="w-3/5 h-full overflow-hidden">
           {selectedOrder ? (
             <div className="flex flex-col h-full">
-              {/* Delivery info banner */}
               {(selectedOrder.delivery_address || selectedOrder.delivery_phone) && (
                 <div className="px-4 py-2 bg-blue-50 border-b border-blue-200 space-y-1">
                   {selectedOrder.delivery_address && (
@@ -504,8 +346,7 @@ export default function DeliveryPage() {
                   <div className="flex items-center gap-4">
                     {selectedOrder.delivery_phone && (
                       <div className="flex items-center gap-1 text-sm text-blue-700">
-                        <Phone className="h-3.5 w-3.5" />
-                        <span>{selectedOrder.delivery_phone}</span>
+                        <Phone className="h-3.5 w-3.5" /><span>{selectedOrder.delivery_phone}</span>
                       </div>
                     )}
                     {(selectedOrder.delivery_fee ?? 0) > 0 && (
@@ -517,10 +358,7 @@ export default function DeliveryPage() {
                 </div>
               )}
               <div className="flex-1 overflow-hidden">
-                <OrderDetailPanel
-                  order={selectedOrder}
-                  onCheckout={(order) => setCheckoutOrder(order)}
-                />
+                <OrderDetailPanel order={selectedOrder} onCheckout={(order) => setCheckoutOrder(order)} />
               </div>
             </div>
           ) : (
@@ -533,7 +371,6 @@ export default function DeliveryPage() {
 
       <NewDeliverySheet open={sheetOpen} onOpenChange={setSheetOpen} />
       {checkoutDialog}
-      {rejectDialog}
     </div>
   );
 }
