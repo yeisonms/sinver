@@ -109,7 +109,30 @@ export default function TablesMapPage() {
   const [checkoutOrderNumber, setCheckoutOrderNumber] = useState<number | null>(null);
   const [checkoutTable, setCheckoutTable] = useState<Table | null>(null);
   const [checkoutConsumedTotal, setCheckoutConsumedTotal] = useState(0);
+  const [checkoutOrderOverride, setCheckoutOrderOverride] = useState<any>(null);
   const [closing, setClosing] = useState(false);
+
+  const handleSplitSuccess = async (newOrderId: string) => {
+    try {
+      const { data: newOrderData, error } = await supabase
+        .from("orders")
+        .select("*")
+        .eq("id", newOrderId)
+        .single();
+      if (error) throw error;
+      if (newOrderData) {
+        setCheckoutOrderId(newOrderData.id);
+        setCheckoutOrderNumber(newOrderData.order_number);
+        setCheckoutTable(selectedTable);
+        setCheckoutConsumedTotal(newOrderData.total_amount || 0);
+        setCheckoutOrderOverride(newOrderData);
+        setCheckoutOpen(true);
+      }
+    } catch (err) {
+      console.error("Error fetching split order for checkout:", err);
+      toast.error("Cuenta dividida, pero no se pudo abrir el cobro automáticamente.");
+    }
+  };
 
   // Fetch order info for selected table (to get order_number)
   const { data: selectedOrder } = useQuery({
@@ -160,15 +183,16 @@ export default function TablesMapPage() {
   };
 
   const handleCheckout = async (data: { tipAmount: number; paymentMethod: string; grandTotal: number }) => {
-    if (!checkoutOrderId || !checkoutTable) return;
+    const targetOrderId = checkoutOrderOverride?.id || checkoutOrderId;
+    if (!targetOrderId || !checkoutTable) return;
     setClosing(true);
     try {
       // Get existing items total
       const { data: orderItems } = await supabase
         .from("order_items")
         .select("quantity, unit_price")
-        .eq("order_id", checkoutOrderId)
-        .eq("status", "activo");
+        .eq("order_id", targetOrderId)
+        .neq("status", "cancelado");
       const consumedTotal = (orderItems ?? []).reduce((s, i) => s + i.unit_price * i.quantity, 0);
 
       const { data: openRegister } = await supabase
@@ -178,7 +202,7 @@ export default function TablesMapPage() {
         .maybeSingle();
 
       const { error: payErr } = await supabase.from("payments").insert({
-        order_id: checkoutOrderId,
+        order_id: targetOrderId,
         cash_register_id: openRegister?.id ?? null,
         amount: data.grandTotal,
         method: data.paymentMethod,
@@ -194,14 +218,23 @@ export default function TablesMapPage() {
           closed_at: new Date().toISOString(),
           payment_method: data.paymentMethod,
         })
-        .eq("id", checkoutOrderId);
+        .eq("id", targetOrderId);
       if (orderErr) throw orderErr;
 
       if (checkoutTable.id) {
-        await supabase
-          .from("tables")
-          .update({ status: "libre", current_order_id: null, current_waiter_id: null, printed_control: false })
-          .eq("id", checkoutTable.id);
+        const { count: remainingCount } = await supabase
+          .from("orders")
+          .select("id", { count: "exact", head: true })
+          .eq("table_id", checkoutTable.id)
+          .neq("status", "cerrado")
+          .neq("status", "cancelado");
+
+        if (remainingCount === 0) {
+          await supabase
+            .from("tables")
+            .update({ status: "libre", current_order_id: null, current_waiter_id: null, printed_control: false })
+            .eq("id", checkoutTable.id);
+        }
       }
 
       qc.invalidateQueries({ queryKey: ["orders"] });
@@ -209,7 +242,13 @@ export default function TablesMapPage() {
       qc.invalidateQueries({ queryKey: ["sales-orders"] });
       toast.success("Mesa cerrada y cobro registrado");
       setCheckoutOpen(false);
-      setSelectedTable(null);
+
+      if (targetOrderId === selectedTable?.current_order_id) {
+        setSelectedTable(null);
+      } else {
+        setCheckoutOrderOverride(null);
+        qc.invalidateQueries({ queryKey: ["order-items", selectedTable?.current_order_id] });
+      }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       toast.error(err?.message || "Error al cerrar mesa");
@@ -359,9 +398,11 @@ export default function TablesMapPage() {
                       setCheckoutOrderNumber(order.order_number);
                       setCheckoutTable(selectedTable);
                       setCheckoutConsumedTotal(order.total_amount);
+                      setCheckoutOrderOverride(null);
                       setCheckoutOpen(true);
                     }}
                     onMoveTable={() => setMoveTableOpen(true)}
+                    onSplitSuccess={handleSplitSuccess}
                   />
                 ) : (
                   <div className="flex items-center justify-center flex-1">
@@ -432,9 +473,11 @@ export default function TablesMapPage() {
                   setCheckoutOrderNumber(order.order_number);
                   if (selectedTable) setCheckoutTable(selectedTable);
                   setCheckoutConsumedTotal(order.total_amount);
+                  setCheckoutOrderOverride(null);
                   setCheckoutOpen(true);
                 }}
                 onMoveTable={() => setMoveTableOpen(true)}
+                onSplitSuccess={handleSplitSuccess}
               />
             ) : (
               <div className="flex items-center justify-center flex-1">
@@ -467,9 +510,11 @@ export default function TablesMapPage() {
                   setCheckoutOrderNumber(order.order_number);
                   if (selectedTable) setCheckoutTable(selectedTable);
                   setCheckoutConsumedTotal(order.total_amount);
+                  setCheckoutOrderOverride(null);
                   setCheckoutOpen(true);
                 }}
                 onMoveTable={() => setMoveTableOpen(true)}
+                onSplitSuccess={handleSplitSuccess}
               />
             ) : (
               <div className="flex items-center justify-center h-full">
@@ -510,9 +555,14 @@ export default function TablesMapPage() {
       {canCheckout && (
         <CheckoutDialog
           open={checkoutOpen}
-          onOpenChange={setCheckoutOpen}
-          title="Cerrar Cuenta"
-          subtitle={`Mesa #${checkoutOrderNumber ?? ""}`}
+          onOpenChange={(v) => {
+            if (!v) {
+              setCheckoutOpen(false);
+              if (checkoutOrderOverride) setCheckoutOrderOverride(null);
+            }
+          }}
+          title={checkoutOrderOverride ? "Cobrar Cuenta Dividida" : "Cerrar Cuenta"}
+          subtitle={checkoutOrderOverride ? `Pedido Alterno (Mesa ${checkoutTable?.name})` : `Mesa #${checkoutOrderNumber ?? ""}`}
           consumedTotal={checkoutConsumedTotal}
           closing={closing}
           tipRate={tipRate}

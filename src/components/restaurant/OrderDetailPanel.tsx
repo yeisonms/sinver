@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useHasPermission } from "@/hooks/useRolePermissions";
-import { Search, Plus, Check, Pencil, X, Loader2, ArrowRightLeft, Printer } from "lucide-react";
+import { Search, Plus, Check, Pencil, X, Loader2, ArrowRightLeft, Printer, Scissors } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,20 +22,23 @@ import { printComanda, printControlReceipt } from "@/lib/printService";
 import { useRestaurantInfo } from "@/hooks/useRestaurantInfo";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { SplitBillDialog } from "./SplitBillDialog";
 
 interface Props {
   order: Order;
   waiterName?: string;
   onCheckout: (order: Order) => void;
   onMoveTable?: () => void;
+  onSplitSuccess?: (newOrderId: string) => void;
 }
 
-export function OrderDetailPanel({ order, waiterName, onCheckout, onMoveTable }: Props) {
+export function OrderDetailPanel({ order, waiterName, onCheckout, onMoveTable, onSplitSuccess }: Props) {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { info: restaurantInfo } = useRestaurantInfo();
   const [cancelItem, setCancelItem] = useState<OrderItemRow | null>(null);
   const [cancelReason, setCancelReason] = useState("");
+  const [splitOpen, setSplitOpen] = useState(false);
   const { data: canCharge = false } = useHasPermission("charge_table");
 
   const { data: items = [], isLoading: loadingItems } = useOrderItems(order.id);
@@ -261,13 +264,25 @@ export function OrderDetailPanel({ order, waiterName, onCheckout, onMoveTable }:
             % Descuento
           </Button>
           {canCharge && (
-            <Button
-              className="h-12 flex-[2] rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-base shadow-premium hover:shadow-premium-hover transition-all"
-              onClick={() => onCheckout(order)}
-              disabled={activeTotal === 0}
-            >
-              Cobrar Orden
-            </Button>
+            <>
+              {onSplitSuccess && order.type === "mesa" && activeItems.length > 0 && (
+                <Button
+                  className="h-12 w-12 shrink-0 rounded-xl bg-orange-100 text-orange-600 hover:bg-orange-200 border border-orange-200 shadow-sm transition-all"
+                  variant="outline"
+                  onClick={() => setSplitOpen(true)}
+                  title="Dividir Cuenta"
+                >
+                  <Scissors className="h-5 w-5" />
+                </Button>
+              )}
+              <Button
+                className="h-12 flex-[2] rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-base shadow-premium hover:shadow-premium-hover transition-all"
+                onClick={() => onCheckout(order)}
+                disabled={activeTotal === 0}
+              >
+                Cobrar Orden
+              </Button>
+            </>
           )}
         </div>
       </div>
@@ -304,6 +319,16 @@ export function OrderDetailPanel({ order, waiterName, onCheckout, onMoveTable }:
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <SplitBillDialog
+        open={splitOpen}
+        onOpenChange={setSplitOpen}
+        orderId={order.id}
+        items={items}
+        onSplitSuccess={(newId) => {
+          if (onSplitSuccess) onSplitSuccess(newId);
+        }}
+      />
     </div>
   );
 }

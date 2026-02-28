@@ -65,6 +65,7 @@ export default function TableTakeOrderPage() {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [moveTableOpen, setMoveTableOpen] = useState(false);
   const [closing, setClosing] = useState(false);
+  const [checkoutOrderOverride, setCheckoutOrderOverride] = useState<any>(null);
 
   // Fetch current user's profile name for the receipt
   const { data: currentProfile } = useQuery({
@@ -218,30 +219,47 @@ export default function TableTakeOrderPage() {
       toast.success("Comanda enviada a cocina");
       navigate(getReturnUrl());
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (err: any) {
-      toast.error(err?.message || "Error al enviar comanda");
+    } catch (e: any) {
+      toast.error(e.message || "Error al enviar a cocina");
+      qc.invalidateQueries({ queryKey: ["orders"] });
     } finally {
       setSubmitting(false);
     }
   };
 
+  const handleSplitSuccess = async (newOrderId: string) => {
+    // 1. Fetch the new branched order details so we can checkout immediately
+    try {
+      const { data: newOrderData, error } = await supabase
+        .from("orders")
+        .select("*")
+        .eq("id", newOrderId)
+        .single();
+
+      if (error) throw error;
+
+      if (newOrderData) {
+        setCheckoutOpen(true);
+        // We override the default checkoutOrder behavior dynamically here
+        // Set this temporary state to tell the checkout modal which ID to process.
+        // To be safe, we temporarily override `order` inside `checkoutOpen`.
+
+        // Let's pass it to a new state called `checkoutOrderOverride`
+        setCheckoutOrderOverride(newOrderData as any);
+      }
+    } catch (err) {
+      console.error("Error fetching split order for checkout:", err);
+      toast.error("Cuenta dividida, pero no se pudo abrir el cobro automáticamente.");
+    }
+  };
+
   const handleCheckout = async (data: { tipAmount: number; paymentMethod: string; grandTotal: number }) => {
-    if (!orderId || !order) return;
+    // Determine which order we're checking out
+    const targetOrder = checkoutOrderOverride || order;
+    if (!targetOrder) return;
+
     setClosing(true);
     try {
-      if (cart.length > 0) {
-        const items = cart.map((item) => ({
-          order_id: orderId,
-          product_id: item.product_id,
-          quantity: item.quantity,
-          unit_price: item.unit_price,
-          notes: item.notes || null,
-          status: "activo",
-        }));
-        const { error: itemsErr } = await supabase.from("order_items").insert(items);
-        if (itemsErr) throw itemsErr;
-      }
-
       const { data: openRegister } = await supabase
         .from("cash_registers")
         .select("id")
@@ -249,54 +267,66 @@ export default function TableTakeOrderPage() {
         .maybeSingle();
 
       const { error: payErr } = await supabase.from("payments").insert({
-        order_id: orderId,
+        order_id: targetOrder.id,
         cash_register_id: openRegister?.id ?? null,
         amount: data.grandTotal,
         method: data.paymentMethod,
       });
       if (payErr) throw payErr;
 
+      // Ensure we hit the database to calculate total_amount directly for the specific order.
+      // `consumedTotal` at the file scope maps to the *active* page order, not the override one.
+      const { data: splitItems } = await supabase
+        .from("order_items")
+        .select("quantity, unit_price")
+        .eq("order_id", targetOrder.id)
+        .neq("status", "cancelado");
+
+      const overrideConsumedTotal = (splitItems || []).reduce((s, i) => s + i.quantity * i.unit_price, 0);
+
       const { error: orderErr } = await supabase
         .from("orders")
         .update({
           status: "cerrado",
-          total_amount: consumedTotal,
+          total_amount: overrideConsumedTotal,
           tip_amount: data.tipAmount,
           closed_at: new Date().toISOString(),
           payment_method: data.paymentMethod,
         })
-        .eq("id", orderId);
+        .eq("id", targetOrder.id);
       if (orderErr) throw orderErr;
 
-      const { data: verifyOrder } = await supabase
-        .from("orders")
-        .select("status")
-        .eq("id", orderId)
-        .maybeSingle();
-      if (verifyOrder && verifyOrder.status !== "cerrado") {
-        throw new Error("La orden no se pudo actualizar. Verifica las políticas de seguridad (RLS).");
+      if (targetOrder.table_id) {
+        const { count: remainingCount } = await supabase
+          .from("orders")
+          .select("id", { count: "exact", head: true })
+          .eq("table_id", targetOrder.table_id)
+          .neq("status", "cerrado")
+          .neq("status", "cancelado");
+
+        if (remainingCount === 0) {
+          await supabase.from("tables").update({ status: "libre", current_order_id: null, printed_control: false }).eq("id", targetOrder.table_id);
+        }
       }
 
-      if (order.table_id) {
-        const { error: tableErr } = await supabase
-          .from("tables")
-          .update({
-            status: "libre",
-            current_order_id: null,
-            current_waiter_id: null,
-          })
-          .eq("id", order.table_id);
-        if (tableErr) throw tableErr;
-      }
-
+      toast.success("Pago registrado exitosamente");
+      qc.invalidateQueries({ queryKey: ["temp_orders"] });
       qc.invalidateQueries({ queryKey: ["orders"] });
       qc.invalidateQueries({ queryKey: ["sales-orders"] });
       qc.invalidateQueries({ queryKey: ["tables"] });
-      toast.success("Pedido cerrado y cobro registrado");
-      navigate(getReturnUrl());
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (err: any) {
-      toast.error(err?.message || "Error al cerrar mesa");
+
+      setCheckoutOpen(false);
+
+      // If we just settled the main order of the page, bounce out.
+      if (targetOrder.id === order?.id) {
+        navigate(getReturnUrl());
+      } else {
+        // We settled a child-split, so reload the same page data
+        setCheckoutOrderOverride(null);
+        qc.invalidateQueries({ queryKey: ["order-items", orderId] });
+      }
+    } catch (e: any) {
+      toast.error(e.message || "Error al procesar el pago");
     } finally {
       setClosing(false);
     }
@@ -374,16 +404,36 @@ export default function TableTakeOrderPage() {
       </div>
 
       {canCheckout && (
-        <CheckoutDialog
-          open={checkoutOpen}
-          onOpenChange={setCheckoutOpen}
-          title="Cerrar Cuenta"
-          subtitle={`Pedido #${order?.order_number ?? ""}`}
-          consumedTotal={consumedTotal}
-          closing={closing}
-          tipRate={tipRate}
-          onConfirm={handleCheckout}
-        />
+        <>
+          {checkoutOrderOverride ? (
+            <CheckoutDialog
+              open={checkoutOpen}
+              onOpenChange={(v) => {
+                if (!v) {
+                  setCheckoutOpen(false);
+                  setCheckoutOrderOverride(null);
+                }
+              }}
+              title="Cobrar Cuenta Dividida"
+              subtitle={`Pedido Alterno (Mesa ${order?.tables?.name})`}
+              consumedTotal={checkoutOrderOverride.total_amount || 0}
+              closing={closing}
+              tipRate={tipRate}
+              onConfirm={handleCheckout}
+            />
+          ) : (
+            <CheckoutDialog
+              open={checkoutOpen}
+              onOpenChange={(v) => { if (!v) setCheckoutOpen(false); }}
+              title="Cobrar Orden Activa"
+              subtitle={`Mesa ${order?.tables?.name}`}
+              consumedTotal={consumedTotal}
+              closing={closing}
+              tipRate={tipRate}
+              onConfirm={handleCheckout}
+            />
+          )}
+        </>
       )}
 
       {order?.tables && (
