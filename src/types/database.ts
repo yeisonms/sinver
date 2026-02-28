@@ -42,6 +42,7 @@ export interface Order {
   delivery_phone: string | null;
   delivery_fee: number | null;
   rejection_reason: string | null;
+  estimated_time: number | null;
 }
 
 export interface SelectedModifier {

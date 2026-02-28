@@ -102,6 +102,7 @@ export function NewDeliverySheet({ open, onOpenChange }: Props) {
           delivery_phone: deliveryPhone || null,
           delivery_fee: Number(deliveryFee) || 0,
           rejection_reason: null,
+          estimated_time: null,
         },
         items: cart,
       });

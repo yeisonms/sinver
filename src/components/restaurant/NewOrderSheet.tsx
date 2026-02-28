@@ -79,6 +79,7 @@ export function NewOrderSheet({ open, onOpenChange }: Props) {
           delivery_phone: null,
           delivery_fee: null,
           rejection_reason: null,
+          estimated_time: null,
         },
         items: cart,
       });

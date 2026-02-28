@@ -1,21 +1,17 @@
 import { useState } from "react";
-import { Search, Plus, Loader2, ShoppingBag, CheckCircle, XCircle, ChevronRight } from "lucide-react";
+import { Search, Plus, Loader2, ShoppingBag, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useOrders } from "@/hooks/useOrders";
 import { useOrderItems } from "@/hooks/useOrderItems";
 import { NewOrderSheet } from "@/components/restaurant/NewOrderSheet";
+import { WebOrderInboxCard } from "@/components/restaurant/WebOrderInboxCard";
 import { OrderDetailPanel } from "@/components/restaurant/OrderDetailPanel";
 import { CheckoutDialog } from "@/components/restaurant/CheckoutDialog";
 import { useRestaurantInfo } from "@/hooks/useRestaurantInfo";
-import { reprintOrder } from "@/lib/printService";
 import type { Order } from "@/types/database";
-import { format, formatDistanceToNow } from "date-fns";
-import { es } from "date-fns/locale";
+import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -41,8 +37,6 @@ export default function CounterPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [sheetOpen, setSheetOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
-  const [rejectOrderId, setRejectOrderId] = useState<string | null>(null);
-  const [rejectReason, setRejectReason] = useState("");
 
   const [checkoutOrder, setCheckoutOrder] = useState<Order | null>(null);
   const [closing, setClosing] = useState(false);
@@ -73,42 +67,6 @@ export default function CounterPage() {
   const { data: checkoutItems = [] } = useOrderItems(checkoutOrder?.id ?? null);
   const checkoutActiveItems = checkoutItems.filter((i) => i.status !== "cancelado");
   const consumedTotal = checkoutActiveItems.reduce((s, i) => s + i.quantity * i.unit_price, 0);
-
-  const handleAcceptOrder = async (orderId: string) => {
-    try {
-      const { error } = await supabase
-        .from("orders")
-        .update({ status: "en_preparacion" })
-        .eq("id", orderId);
-      if (error) throw error;
-      qc.invalidateQueries({ queryKey: ["orders"] });
-      toast.success("Pedido aceptado");
-
-      // Auto-print online pickup orders when accepted by the cashier
-      await reprintOrder(orderId);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (err: any) {
-      toast.error(err?.message || "Error al aceptar");
-    }
-  };
-
-  const handleRejectOrder = async () => {
-    if (!rejectOrderId) return;
-    try {
-      const { error } = await supabase
-        .from("orders")
-        .update({ status: "cancelado", rejection_reason: rejectReason || null })
-        .eq("id", rejectOrderId);
-      if (error) throw error;
-      qc.invalidateQueries({ queryKey: ["orders"] });
-      toast.success("Pedido rechazado");
-      setRejectOrderId(null);
-      setRejectReason("");
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (err: any) {
-      toast.error(err?.message || "Error al rechazar");
-    }
-  };
 
   const handleCheckout = async (data: { tipAmount: number; paymentMethod: string; grandTotal: number }) => {
     if (!checkoutOrder) return;
@@ -145,7 +103,6 @@ export default function CounterPage() {
       toast.success("Pedido cerrado y cobro registrado");
       setCheckoutOrder(null);
       setSelectedOrderId(null);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       toast.error(err?.message || "Error al cerrar pedido");
     } finally {
@@ -157,7 +114,7 @@ export default function CounterPage() {
   if (isMobile) {
     return (
       <div className="flex flex-col h-full">
-        {/* Top Header (Search & Actions) */}
+        {/* Top Header */}
         <div className="px-4 pt-4 pb-3 space-y-3">
           <div className="flex items-center gap-3">
             <div className="relative flex-1">
@@ -174,8 +131,6 @@ export default function CounterPage() {
               Crear pedido
             </Button>
           </div>
-
-          {/* Status filter tabs */}
           <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
             {statusFilters.map((f) => (
               <button
@@ -195,27 +150,16 @@ export default function CounterPage() {
         {/* Pickup inbox */}
         {pickupInbox.length > 0 && (
           <div className="px-4 pb-2">
-            <div className="bg-orange-50 rounded-lg border border-orange-200 p-3 space-y-2">
-              <div className="flex items-center gap-2">
+            <div className="bg-orange-50 rounded-lg border border-orange-200 space-y-0 overflow-hidden">
+              <div className="flex items-center gap-2 px-4 py-2 border-b border-orange-100">
                 <ShoppingBag className="h-4 w-4 text-orange-600" />
                 <span className="text-xs font-bold uppercase text-orange-700">Web - Recoger ({pickupInbox.length})</span>
               </div>
-              {pickupInbox.map((o) => (
-                <div key={o.id} className="flex items-center justify-between">
-                  <div>
-                    <span className="font-bold text-sm">#{o.order_number}</span>
-                    <span className="text-sm ml-2">{o.client_name ?? "Cliente"}</span>
-                  </div>
-                  <div className="flex gap-1.5">
-                    <Button size="sm" variant="destructive" className="h-9 text-xs" onClick={() => { setRejectOrderId(o.id); setRejectReason(""); }}>
-                      <XCircle className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button size="sm" className="h-9 text-xs bg-green-600 hover:bg-green-700 text-white" onClick={() => handleAcceptOrder(o.id)}>
-                      <CheckCircle className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
+              <div className="divide-y divide-orange-100/50">
+                {pickupInbox.map((o) => (
+                  <WebOrderInboxCard key={o.id} order={o} restaurantName={restaurantInfo?.restaurant_name ?? undefined} compact />
+                ))}
+              </div>
             </div>
           </div>
         )}
@@ -251,7 +195,6 @@ export default function CounterPage() {
 
         <NewOrderSheet open={sheetOpen} onOpenChange={setSheetOpen} />
 
-        {/* Mobile: order detail as full-screen overlay */}
         {selectedOrder && (
           <div className="fixed inset-0 z-50 bg-background flex flex-col">
             <div className="bg-navbar text-navbar-foreground h-14 flex items-center px-4 gap-3 shrink-0">
@@ -279,23 +222,6 @@ export default function CounterPage() {
           tipRate={tipRate}
           onConfirm={handleCheckout}
         />
-
-        {/* Reject dialog */}
-        <Dialog open={!!rejectOrderId} onOpenChange={(v) => { if (!v) setRejectOrderId(null); }}>
-          <DialogContent className="sm:max-w-sm">
-            <DialogHeader>
-              <DialogTitle>Rechazar Pedido</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-2">
-              <Label className="text-xs">Motivo (opcional)</Label>
-              <Textarea placeholder="Razón del rechazo..." value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} rows={3} />
-            </div>
-            <DialogFooter className="gap-2 sm:gap-0">
-              <Button variant="outline" onClick={() => setRejectOrderId(null)}>Cancelar</Button>
-              <Button variant="destructive" onClick={handleRejectOrder}>Confirmar Rechazo</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </div>
     );
   }
@@ -303,8 +229,8 @@ export default function CounterPage() {
   // Desktop layout
   return (
     <div className="flex flex-col h-full bg-background/50">
-      {/* Top bar floating */}
-      <div className="mx-6 mt-4 mb-4 Re flex items-center gap-4 px-6 py-4 bg-card/80 backdrop-blur-xl border border-white/20 shadow-premium-soft rounded-2xl">
+      {/* Top bar */}
+      <div className="mx-6 mt-4 mb-4 flex items-center gap-4 px-6 py-4 bg-card/80 backdrop-blur-xl border border-white/20 shadow-premium-soft rounded-2xl">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
           <Input
@@ -322,7 +248,7 @@ export default function CounterPage() {
 
       {/* Split view */}
       <div className="flex flex-1 overflow-hidden px-6 pb-6 gap-6">
-        {/* Left: Order list (40%) */}
+        {/* Left: Order list (45%) */}
         <div className="w-[45%] bg-card shadow-premium rounded-2xl border border-white/40 flex flex-col overflow-hidden">
           {/* Pickup Inbox */}
           {(pickupInbox.length > 0 || loadInbox) && (
@@ -340,45 +266,7 @@ export default function CounterPage() {
               ) : (
                 <div className="divide-y divide-orange-100/50">
                   {pickupInbox.map((o) => (
-                    <div
-                      key={o.id}
-                      className="px-5 py-4 hover:bg-white transition-colors border-l-4 border-l-primary"
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-bold text-base text-foreground">#{o.order_number}</span>
-                        <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded-full">
-                          hace {formatDistanceToNow(new Date(o.created_at), { locale: es })}
-                        </span>
-                      </div>
-                      <div className="text-sm font-medium text-foreground/80">{o.client_name ?? "Cliente Web"}</div>
-                      {o.delivery_phone && (
-                        <div className="text-sm text-muted-foreground mt-0.5 hover:text-primary transition-colors cursor-pointer w-fit">
-                          📞 {o.delivery_phone}
-                        </div>
-                      )}
-                      <div className="flex items-center justify-between mt-3">
-                        <span className="font-bold text-lg text-foreground">${o.total_amount.toLocaleString()}</span>
-                        <div className="flex gap-2 bg-background/50 p-1 rounded-lg">
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            className="h-9 px-3 rounded-lg text-xs gap-1.5 shadow-sm"
-                            onClick={() => { setRejectOrderId(o.id); setRejectReason(""); }}
-                          >
-                            <XCircle className="h-4 w-4" />
-                            Rechazar
-                          </Button>
-                          <Button
-                            size="sm"
-                            className="h-9 px-3 rounded-lg text-xs gap-1.5 shadow-sm"
-                            onClick={() => handleAcceptOrder(o.id)}
-                          >
-                            <CheckCircle className="h-4 w-4" />
-                            Aceptar
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
+                    <WebOrderInboxCard key={o.id} order={o} restaurantName={restaurantInfo?.restaurant_name ?? undefined} />
                   ))}
                 </div>
               )}
@@ -476,28 +364,6 @@ export default function CounterPage() {
         tipRate={tipRate}
         onConfirm={handleCheckout}
       />
-
-      {/* Reject dialog */}
-      <Dialog open={!!rejectOrderId} onOpenChange={(v) => { if (!v) setRejectOrderId(null); }}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Rechazar Pedido</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-2">
-            <Label className="text-xs">Motivo (opcional)</Label>
-            <Textarea
-              placeholder="Razón del rechazo..."
-              value={rejectReason}
-              onChange={(e) => setRejectReason(e.target.value)}
-              rows={3}
-            />
-          </div>
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setRejectOrderId(null)}>Cancelar</Button>
-            <Button variant="destructive" onClick={handleRejectOrder}>Confirmar Rechazo</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
