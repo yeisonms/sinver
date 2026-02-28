@@ -7,7 +7,7 @@ import { OrderStep1 } from "./OrderStep1";
 import { OrderStep2 } from "./OrderStep2";
 import type { OrderItem, Customer } from "@/types/database";
 
-export interface CartItem extends Omit<OrderItem, "id" | "order_id"> {}
+export interface CartItem extends Omit<OrderItem, "id" | "order_id"> { }
 
 interface CustomerSelection {
   customer: Customer | null;
@@ -63,7 +63,7 @@ export function NewOrderSheet({ open, onOpenChange }: Props) {
       await createOrder.mutateAsync({
         order: {
           table_id: null,
-          waiter_id: null,
+          waiter_id: user?.id || null,
           client_name: customerSelection.displayName || null,
           customer_id: customerSelection.customer?.id || null,
           general_notes: notes || null,

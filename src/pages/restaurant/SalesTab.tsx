@@ -104,6 +104,15 @@ export default function SalesTab() {
     },
   });
 
+  const { data: paymentMethods = [] } = useQuery({
+    queryKey: ["all-payment-methods-sales"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("payment_methods").select("id, name").eq("is_active", true).order("created_at", { ascending: true });
+      if (error) throw error;
+      return data as { id: string; name: string }[];
+    },
+  });
+
   const profileMap = useMemo(() => Object.fromEntries(profiles.map((p) => [p.id, p.full_name])), [profiles]);
   const tableMap = useMemo(() => Object.fromEntries(tables.map((t) => [t.id, t.name])), [tables]);
 
@@ -119,7 +128,7 @@ export default function SalesTab() {
     }
     if (typeFilter !== "all") result = result.filter((o) => o.type === typeFilter);
     if (waiterFilter !== "all") result = result.filter((o) => o.waiter_id === waiterFilter);
-    if (paymentFilter !== "all") result = result.filter((o) => o.payment_method === paymentFilter);
+    if (paymentFilter !== "all") result = result.filter((o) => o.payment_method?.toLowerCase() === paymentFilter.toLowerCase());
     return result;
   }, [orders, statusFilter, typeFilter, waiterFilter, paymentFilter]);
 
@@ -282,9 +291,9 @@ export default function SalesTab() {
           <SelectTrigger className="w-[130px] h-7 text-xs"><SelectValue placeholder="Medio de pago" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Medio de pago</SelectItem>
-            <SelectItem value="efectivo">Efectivo</SelectItem>
-            <SelectItem value="tarjeta">Tarjeta</SelectItem>
-            <SelectItem value="transferencia">Transferencia</SelectItem>
+            {paymentMethods.map((pm) => (
+              <SelectItem key={pm.id} value={pm.name} className="capitalize">{pm.name}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
