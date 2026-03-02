@@ -6,6 +6,7 @@ import { LogOut, ArrowLeft, Menu, RefreshCw, UtensilsCrossed, Monitor, Truck, Se
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { DateTimeHeader } from "@/components/ui/DateTimeHeader";
 
 interface MobileNavItem {
   title: string;
@@ -26,7 +27,6 @@ const mobileNavItems: MobileNavItem[] = [
   { title: "Mostrador", url: "/restaurant/counter", icon: Monitor, emoji: "🛍️" },
   { title: "Domicilios", url: "/restaurant/delivery", icon: Truck, emoji: "🛵" },
   { title: "Ventas", url: "/admin/sales", icon: DollarSign, emoji: "💰", allowedRoles: ["admin"] },
-  { title: "Configuración", url: "/admin/tables", icon: Settings, emoji: "⚙️", allowedRoles: ["admin"] },
 ];
 
 export default function RestaurantLayout() {
@@ -48,11 +48,11 @@ export default function RestaurantLayout() {
     return (
       <div className="min-h-screen flex flex-col w-full bg-background">
         {/* Mobile Navbar */}
-        <header className="bg-navbar text-navbar-foreground h-14 flex items-center px-4 justify-between shrink-0 z-50">
+        <header className="bg-[#555555] text-white h-14 flex items-center px-4 justify-between shrink-0 z-50">
           <div className="flex items-center gap-3">
             <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="text-navbar-foreground hover:bg-white/10">
+                <Button variant="ghost" size="icon" className="text-white hover:bg-white/10">
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
@@ -68,11 +68,10 @@ export default function RestaurantLayout() {
                       <button
                         key={item.url}
                         onClick={() => { navigate(item.url); setDrawerOpen(false); }}
-                        className={`w-full flex items-center gap-3 px-5 py-3.5 text-left text-base transition-colors ${
-                          isActive
-                            ? "bg-primary text-primary-foreground font-semibold rounded-lg mx-2 w-auto"
-                            : "text-foreground hover:bg-muted"
-                        }`}
+                        className={`w-full flex items-center gap-3 px-5 py-3.5 text-left text-base transition-colors ${isActive
+                          ? "bg-primary text-primary-foreground font-semibold rounded-lg mx-2 w-auto"
+                          : "text-foreground hover:bg-muted"
+                          }`}
                       >
                         <span className="text-lg">{item.emoji}</span>
                         {item.title}
@@ -92,10 +91,10 @@ export default function RestaurantLayout() {
                 </div>
               </SheetContent>
             </Sheet>
-            <h1 className="text-lg font-bold">{pageTitle}</h1>
+            <h1 className="text-lg font-bold">Restaurante</h1>
           </div>
           <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" className="text-navbar-foreground hover:bg-white/10" onClick={() => window.location.reload()}>
+            <Button variant="ghost" size="icon" className="text-white hover:bg-white/10" onClick={() => window.location.reload()}>
               <RefreshCw className="h-5 w-5" />
             </Button>
           </div>
@@ -110,14 +109,18 @@ export default function RestaurantLayout() {
   // Desktop layout
   return (
     <div className="min-h-screen flex flex-col w-full bg-background">
-      <header className="bg-navbar text-navbar-foreground shadow-sm">
-        <div className="flex items-center h-14 px-4 justify-between">
+      {/* Dynamic Date & Time Widget (image_0.png) */}
+      <DateTimeHeader />
+
+      {/* POS Sub-Navigation Bar (Dark Grey) */}
+      <header className="bg-[#555555] text-white shadow-sm">
+        <div className="flex items-center h-12 px-4 justify-between">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" onClick={() => navigate("/admin/products")} className="text-navbar-foreground/70 hover:bg-white/10">
+            <Button variant="ghost" size="sm" onClick={() => navigate("/admin/products")} className="text-white/80 hover:bg-white/10 hover:text-white">
               <ArrowLeft className="h-4 w-4 mr-1" />
               <span className="text-xs">Admin</span>
             </Button>
-            <span className="text-lg font-bold tracking-tight">🍽️ Restaurante</span>
+            <span className="text-lg font-bold tracking-tight">Restaurante</span>
             <nav className="flex items-center gap-0.5 ml-4">
               {desktopTabs.map((tab) => {
                 const isActive = location.pathname.startsWith(tab.url);
@@ -125,11 +128,10 @@ export default function RestaurantLayout() {
                   <NavLink
                     key={tab.url}
                     to={tab.url}
-                    className={`px-5 py-2 rounded-md text-sm font-medium transition-colors ${
-                      isActive
-                        ? "text-primary-foreground bg-primary"
-                        : "text-navbar-foreground/70 hover:text-navbar-foreground hover:bg-white/10"
-                    }`}
+                    className={`px-5 py-2 rounded-md text-sm font-medium transition-colors ${isActive
+                      ? "text-primary-foreground bg-primary"
+                      : "text-navbar-foreground/70 hover:text-navbar-foreground hover:bg-white/10"
+                      }`}
                     activeClassName=""
                   >
                     {tab.title}
@@ -138,7 +140,7 @@ export default function RestaurantLayout() {
               })}
             </nav>
           </div>
-          <Button variant="ghost" size="sm" onClick={async () => { await signOut(); navigate("/auth", { replace: true }); }} className="text-navbar-foreground/70 hover:text-destructive hover:bg-white/10">
+          <Button variant="ghost" size="sm" onClick={async () => { await signOut(); navigate("/auth", { replace: true }); }} className="text-white/80 hover:text-red-400 hover:bg-white/10">
             <LogOut className="h-4 w-4 mr-1" />
             <span className="text-xs">Salir</span>
           </Button>

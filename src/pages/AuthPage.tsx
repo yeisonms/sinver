@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, ShieldAlert } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function AuthPage() {
   const [email, setEmail] = useState("");
@@ -20,6 +21,7 @@ export default function AuthPage() {
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const { session, isActive, role, profileLoading } = useAuth();
+  const isMobile = useIsMobile();
 
   // Show inactive alert if redirected from ProtectedRoute
   useEffect(() => {
@@ -31,10 +33,10 @@ export default function AuthPage() {
   // If already logged in and active, redirect
   useEffect(() => {
     if (session && !profileLoading && isActive === true) {
-      const dest = role === "admin" ? "/admin/products" : "/restaurant/tables";
+      const dest = role === "admin" && !isMobile ? "/admin/products" : "/restaurant/tables";
       navigate(dest, { replace: true });
     }
-  }, [session, isActive, role, profileLoading, navigate]);
+  }, [session, isActive, role, profileLoading, navigate, isMobile]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,7 +77,7 @@ export default function AuthPage() {
           return;
         }
 
-        const dest = profile.role === "admin" ? "/admin/products" : "/restaurant/tables";
+        const dest = profile.role === "admin" && !isMobile ? "/admin/products" : "/restaurant/tables";
         navigate(dest, { replace: true });
       }
     } catch (error: any) {

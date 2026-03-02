@@ -110,10 +110,7 @@ const mobileNavItems = [
   { title: "Mostrador", url: "/restaurant/counter", icon: ShoppingCart, emoji: "🛍️" },
   { title: "Mesas", url: "/restaurant/tables", icon: UtensilsCrossed, emoji: "🍽️" },
   { title: "Domicilios", url: "/restaurant/delivery", icon: UtensilsCrossed, emoji: "🛵" },
-  { title: "Productos", url: "/admin/products", icon: UtensilsCrossed, emoji: "📦", allowedRoles: ["admin"] as string[] },
   { title: "Ventas", url: "/admin/sales", icon: DollarSign, emoji: "💰", allowedRoles: ["admin"] as string[] },
-  { title: "Tienda Online", url: "/admin/online-store", icon: Store, emoji: "🛒", allowedRoles: ["admin"] as string[] },
-  { title: "Configuración", url: "/admin/tables", icon: Settings, emoji: "⚙️", allowedRoles: ["admin"] as string[] },
 ];
 
 export default function AdminLayout() {
