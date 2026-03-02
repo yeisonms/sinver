@@ -17,6 +17,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
 import type { Product } from "@/types/database";
+import { ImportProductsModal } from "@/components/admin/ImportProductsModal";
 
 const emptyForm = {
   name: "",
@@ -30,7 +31,7 @@ const emptyForm = {
 };
 
 export default function ProductsPage() {
-  const { data: products = [], isLoading: loadingProducts } = useProducts();
+  const { data: products = [], isLoading: loadingProducts, refetch: refetchProducts } = useProducts();
   const { data: categories = [], isLoading: loadingCategories } = useCategories();
   const { data: modifierGroups = [] } = useModifierGroups();
   const createProduct = useCreateProduct();
@@ -48,6 +49,7 @@ export default function ProductsPage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [selectedModifierGroups, setSelectedModifierGroups] = useState<string[]>([]);
   const [modifierPopoverOpen, setModifierPopoverOpen] = useState(false);
+  const [importModalOpen, setImportModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const openCreate = () => {
@@ -185,8 +187,8 @@ export default function ProductsPage() {
           <button
             onClick={() => setSelectedCategory(null)}
             className={`w-full text-left px-4 py-3 rounded-xl text-sm font-medium transition-all ${!selectedCategory
-                ? "bg-primary/10 text-primary"
-                : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
+              ? "bg-primary/10 text-primary"
+              : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
               }`}
           >
             Todas las categorías
@@ -201,8 +203,8 @@ export default function ProductsPage() {
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.id)}
                 className={`w-full text-left px-4 py-3 rounded-xl text-sm font-medium transition-all ${selectedCategory === cat.id
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
                   }`}
               >
                 {cat.name}
@@ -245,6 +247,15 @@ export default function ProductsPage() {
                 className="h-10 pl-9 rounded-xl bg-background border-border/50 shadow-sm transition-all focus:border-primary/50"
               />
             </div>
+
+            <Button
+              variant="outline"
+              onClick={() => setImportModalOpen(true)}
+              className="w-full sm:w-auto rounded-xl shadow-premium gap-2 h-10 border-green-600 text-green-700 hover:bg-green-50"
+            >
+              <Upload className="h-4 w-4" /> Importar Excel
+            </Button>
+
             <Button onClick={openCreate} className="w-full sm:w-auto rounded-xl shadow-premium gap-2 h-10">
               <Plus className="h-4 w-4" /> Nuevo Producto
             </Button>
@@ -500,6 +511,13 @@ export default function ProductsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Import Modal */}
+      <ImportProductsModal
+        open={importModalOpen}
+        onClose={() => setImportModalOpen(false)}
+        onSuccess={() => refetchProducts()}
+      />
     </div>
   );
 }
