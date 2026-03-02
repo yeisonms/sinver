@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { useOrders } from "@/hooks/useOrders";
+import { useAudioStore } from "@/hooks/useAudioStore";
 
 export function AudioAlertProvider({ children }: { children: React.ReactNode }) {
     const [isBlocked, setIsBlocked] = useState(false);
@@ -13,7 +14,12 @@ export function AudioAlertProvider({ children }: { children: React.ReactNode }) 
     // Bind strictly to the global React Query state so that it updates instantly
     // the moment the CounterPage finishes accepting/rejecting the order and invalidates the cache.
     const { data: inboxOrders = [] } = useOrders(isPublicMenu ? [] : ["pendiente_online"]);
-    const pendingCount = isPublicMenu ? 0 : inboxOrders.length;
+    const { silencedIds } = useAudioStore();
+
+    // Filter out orders that the user has immediately acknowledged (silenced)
+    // but haven't yet been fully processed with WhatsApp timings.
+    const activeAlarms = inboxOrders.filter((o) => !silencedIds.includes(o.id));
+    const pendingCount = isPublicMenu ? 0 : activeAlarms.length;
 
     // 4. Handle audio playback based on count bounds
     useEffect(() => {

@@ -11,6 +11,7 @@ import { reprintOrder } from "@/lib/printService";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import type { Order } from "@/types/database";
+import { useAudioStore } from "@/hooks/useAudioStore";
 
 const REJECT_REASONS = [
   "Producto Agotado",
@@ -31,6 +32,7 @@ export function WebOrderInboxCard({ order, restaurantName, compact }: Props) {
   const [rejectReason, setRejectReason] = useState("");
   const [loading, setLoading] = useState(false);
   const qc = useQueryClient();
+  const { silenceOrder } = useAudioStore();
 
   const handleConfirmAccept = async () => {
     setLoading(true);
@@ -85,6 +87,21 @@ export function WebOrderInboxCard({ order, restaurantName, compact }: Props) {
     window.open(url, "_blank");
   };
 
+  const handleWhatsAppReject = () => {
+    const phone = order.delivery_phone?.replace(/\D/g, "") || "";
+    if (!phone) {
+      toast.error("Este pedido no tiene teléfono registrado");
+      return;
+    }
+    if (!rejectReason) {
+      toast.error("Selecciona un motivo primero para enviarlo por WhatsApp");
+      return;
+    }
+    const message = `Hola ${order.client_name || "Cliente"}, nos comunicamos respecto a tu pedido #${order.order_number}.\n\nLamentablemente, *no podremos procesar tu pedido* en esta ocasión.\n\n*Motivo:* ${rejectReason}\n\nTe pedimos disculpas por los inconvenientes causados.\n${restaurantName || ""}`;
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+    window.open(url, "_blank");
+  };
+
   const o = order;
 
   return (
@@ -120,14 +137,21 @@ export function WebOrderInboxCard({ order, restaurantName, compact }: Props) {
               size="sm"
               variant="destructive"
               className="h-9 px-3 rounded-lg text-xs gap-1.5"
-              onClick={() => { setActionState("reject"); setRejectReason(""); }}
+              onClick={() => {
+                silenceOrder(order.id);
+                setActionState("reject");
+                setRejectReason("");
+              }}
             >
               <XCircle className="h-4 w-4" /> Rechazar
             </Button>
             <Button
               size="sm"
               className="h-9 px-3 rounded-lg text-xs gap-1.5"
-              onClick={() => setActionState("accept")}
+              onClick={() => {
+                silenceOrder(order.id);
+                setActionState("accept");
+              }}
             >
               <CheckCircle className="h-4 w-4" /> Aceptar
             </Button>
@@ -163,6 +187,18 @@ export function WebOrderInboxCard({ order, restaurantName, compact }: Props) {
               {loading ? "Guardando..." : "Confirmar Aceptación"}
             </Button>
           </div>
+
+          {/* WhatsApp button inside accept panel */}
+          {o.delivery_phone && (
+            <Button
+              size="sm"
+              className="w-full h-9 mt-2 bg-[#25D366] hover:bg-[#1da851] text-white gap-2 rounded-lg text-xs font-semibold shadow-sm"
+              onClick={handleWhatsApp}
+            >
+              <MessageCircle className="h-4 w-4" />
+              Enviar WhatsApp al Cliente
+            </Button>
+          )}
         </div>
       )}
 
@@ -195,19 +231,21 @@ export function WebOrderInboxCard({ order, restaurantName, compact }: Props) {
               {loading ? "Guardando..." : "Confirmar Rechazo"}
             </Button>
           </div>
-        </div>
-      )}
 
-      {/* WhatsApp button */}
-      {o.delivery_phone && (
-        <Button
-          size="sm"
-          className="w-full h-9 bg-[#25D366] hover:bg-[#1da851] text-white gap-2 rounded-lg text-xs font-semibold"
-          onClick={handleWhatsApp}
-        >
-          <MessageCircle className="h-4 w-4" />
-          Enviar WhatsApp al Cliente
-        </Button>
+          {/* WhatsApp Reject button */}
+          {o.delivery_phone && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full h-9 mt-2 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 gap-2 rounded-lg text-xs font-semibold"
+              onClick={handleWhatsAppReject}
+              disabled={!rejectReason}
+            >
+              <MessageCircle className="h-4 w-4 text-[#25D366]" />
+              Enviar Motivo por WhatsApp
+            </Button>
+          )}
+        </div>
       )}
     </div>
   );
