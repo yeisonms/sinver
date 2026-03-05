@@ -24,3 +24,8 @@ dist-ssr
 *.sw?
 
 *.exe
+
+# Environment Variables
+.env
+.env.*
+!.env.example
