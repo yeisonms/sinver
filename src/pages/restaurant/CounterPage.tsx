@@ -72,15 +72,17 @@ export default function CounterPage() {
     if (!checkoutOrder) return;
     setClosing(true);
     try {
-      const { data: openRegister } = await supabase
+      const { data: openRegisters } = await supabase
         .from("cash_registers")
         .select("id")
         .eq("status", "open")
-        .maybeSingle();
+        .order("opened_at", { ascending: false })
+        .limit(1);
+      const openRegisterId = openRegisters?.[0]?.id ?? null;
 
       const { error: payErr } = await supabase.from("payments").insert({
         order_id: checkoutOrder.id,
-        cash_register_id: openRegister?.id ?? null,
+        cash_register_id: openRegisterId,
         amount: data.grandTotal,
         method: data.paymentMethod,
       });

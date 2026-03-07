@@ -23,6 +23,7 @@ import PrintersPage from "@/pages/admin/PrintersPage";
 import GeneralSettingsPage from "@/pages/admin/GeneralSettingsPage";
 import PaymentMethodsPage from "@/pages/admin/PaymentMethodsPage";
 import RolePermissionsPage from "@/pages/admin/RolePermissionsPage";
+import ExpensesPage from "@/pages/admin/ExpensesPage";
 import AuthPage from "@/pages/AuthPage";
 import NotFound from "./pages/NotFound";
 import { CartProvider } from "@/contexts/CartContext";
@@ -73,13 +74,14 @@ const App = () => (
                   <Route path="modifiers" element={<ModifiersPage />} />
                   <Route path="tables" element={<TablesPage />} />
                   <Route path="sales" element={<SalesPage />} />
+                  <Route path="gastos" element={<ExpensesPage />} />
                   <Route path="online-store" element={<OnlineStoreSettingsPage />} />
                   <Route path="team" element={<TeamPage />} />
                   <Route path="printers" element={<PrintersPage />} />
                   <Route path="payment-methods" element={<PaymentMethodsPage />} />
                   <Route path="settings" element={<GeneralSettingsPage />} />
                   <Route path="permissions" element={<RolePermissionsPage />} />
-              </Route>
+                </Route>
                 <Route
                   path="/restaurant"
                   element={

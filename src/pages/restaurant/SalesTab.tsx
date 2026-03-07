@@ -460,9 +460,6 @@ export default function SalesTab() {
                 Filtros
               </Button>
             )}
-            <Button size="sm" className="bg-amber-500 hover:bg-amber-600 text-white text-xs h-8">
-              Abrir la caja
-            </Button>
           </div>
         </div>
 

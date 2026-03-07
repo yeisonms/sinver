@@ -10,6 +10,7 @@ import {
   Settings,
   LogOut,
   Menu,
+  TrendingDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -26,6 +27,7 @@ interface NavSection {
 const allMainSections: NavSection[] = [
   { title: "Productos", url: "/admin/products", icon: UtensilsCrossed, match: ["/admin/products", "/admin/categories", "/admin/modifiers"] },
   { title: "Ventas", url: "/admin/sales", icon: DollarSign, match: ["/admin/sales"], allowedRoles: ["admin"] },
+  { title: "Gastos", url: "/admin/gastos", icon: TrendingDown, match: ["/admin/gastos"], allowedRoles: ["admin"] },
   { title: "Restaurante", url: "/restaurant/counter", icon: ShoppingCart, match: ["/restaurant"] },
   { title: "Tienda Online", url: "/admin/online-store", icon: Store, match: ["/admin/online-store"], allowedRoles: ["admin"] },
   { title: "Configuración", url: "/admin/tables", icon: Settings, match: ["/admin/tables", "/admin/settings", "/admin/team", "/admin/printers", "/admin/payment-methods", "/admin/permissions"], allowedRoles: ["admin"] },
@@ -52,6 +54,9 @@ const subTabs: Record<string, { title: string; url: string }[]> = {
   ],
   "/admin/sales": [
     { title: "Ventas", url: "/admin/sales" },
+  ],
+  "/admin/gastos": [
+    { title: "Gastos", url: "/admin/gastos" },
   ],
   "/admin/online-store": [
     { title: "Configuración", url: "/admin/online-store" },

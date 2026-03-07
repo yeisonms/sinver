@@ -131,3 +131,24 @@ export interface PaymentMethod {
   is_active: boolean;
   created_at: string;
 }
+
+export interface ExpenseCategory {
+  id: string;
+  name: string;
+  created_at: string;
+}
+
+export interface Expense {
+  id: string;
+  expense_date: string;
+  amount: number;
+  category_id: string;
+  provider: string | null;
+  payment_method: string | null;
+  receipt_type: string | null;
+  notes: string | null;
+  cash_register_id: string | null;
+  created_at: string;
+  expense_categories?: ExpenseCategory;
+  cash_registers?: CashRegister;
+}

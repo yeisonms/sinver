@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { format, startOfDay, endOfDay, differenceInMinutes } from "date-fns";
-import { CalendarIcon, Loader2, Printer, Trash2 } from "lucide-react";
+import { CalendarIcon, Loader2, Printer, Trash2, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,7 +41,9 @@ export default function ArqueosTab() {
   const [dateFrom, setDateFrom] = useState<Date>(startOfDay(now));
   const [dateTo, setDateTo] = useState<Date>(endOfDay(now));
   const [showOpenDialog, setShowOpenDialog] = useState(false);
+  const [showCloseDialog, setShowCloseDialog] = useState(false);
   const [startAmount, setStartAmount] = useState("");
+  const [endAmount, setEndAmount] = useState("");
   const [openDate, setOpenDate] = useState(format(now, "yyyy-MM-dd"));
   const [openTime, setOpenTime] = useState(format(now, "HH:mm:ss"));
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -75,6 +77,48 @@ export default function ArqueosTab() {
     const amount = parseFloat(startAmount) || 0;
     const dateTime = new Date(`${openDate}T${openTime}`).toISOString();
     openCashMutation.mutate({ amount, dateTime });
+  };
+
+  const closeCashMutation = useMutation({
+    mutationFn: async ({ id, amount, dateTime }: { id: string; amount: number; dateTime: string }) => {
+      const register = registers.find((r) => r.id === id);
+      if (!register) throw new Error("Arqueo no encontrado");
+
+      const expectedAmount = register.start_amount + register.total_sold - register.total_withdrawn;
+      const difference = amount - expectedAmount;
+
+      const { error } = await supabase.from("cash_registers").update({
+        end_amount: amount,
+        difference: difference,
+        status: "closed",
+        closed_at: dateTime,
+      }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["cash-registers"] });
+      toast.success("Caja cerrada correctamente");
+      setShowCloseDialog(false);
+      setEndAmount("");
+    },
+    onError: (err: any) => {
+      toast.error("Error al cerrar caja: " + err.message);
+    },
+  });
+
+  const handleCloseCash = () => {
+    if (!selectedId) return;
+    const amount = parseFloat(endAmount) || 0;
+    const dateTime = new Date(`${openDate}T${openTime}`).toISOString();
+    closeCashMutation.mutate({ id: selectedId, amount, dateTime });
+  };
+
+  const handleOpenCloseDialog = () => {
+    const n = new Date();
+    setOpenDate(format(n, "yyyy-MM-dd"));
+    setOpenTime(format(n, "HH:mm:ss"));
+    setEndAmount("");
+    setShowCloseDialog(true);
   };
 
   const handleOpenDialog = () => {
@@ -120,8 +164,11 @@ export default function ArqueosTab() {
   const selectedRegister = registers.find((r) => r.id === selectedId);
 
   return (
-    <div className="flex h-full">
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+    <div className="flex h-full relative">
+      <div className={cn(
+        "flex-1 flex flex-col min-w-0 overflow-hidden",
+        selectedId ? "hidden md:flex" : "flex"
+      )}>
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-card">
           <h1 className="text-sm font-bold tracking-tight uppercase text-foreground">Arqueos</h1>
@@ -132,32 +179,69 @@ export default function ArqueosTab() {
 
         {/* Dialog Nuevo Arqueo */}
         <Dialog open={showOpenDialog} onOpenChange={setShowOpenDialog}>
-          <DialogContent className="sm:max-w-[420px] p-0 overflow-hidden">
+          <DialogContent className="sm:max-w-[480px] p-0 overflow-hidden">
             <div className="bg-amber-500 px-4 py-2">
               <h2 className="text-sm font-bold uppercase tracking-wide text-white">Nuevo Arqueo de Caja</h2>
             </div>
             <div className="p-4 space-y-4">
-              <div className="flex items-center gap-3">
-                <label className="text-xs text-muted-foreground w-28 shrink-0">Hora de apertura *</label>
-                <Input type="date" value={openDate} onChange={(e) => setOpenDate(e.target.value)} className="h-8 text-xs" />
-                <Input type="time" step="1" value={openTime} onChange={(e) => setOpenTime(e.target.value)} className="h-8 text-xs" />
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                <label className="text-xs font-semibold sm:font-normal text-muted-foreground w-full sm:w-28 shrink-0">Hora de apertura *</label>
+                <div className="flex items-center gap-2 flex-1">
+                  <Input type="date" value={openDate} onChange={(e) => setOpenDate(e.target.value)} className="h-9 sm:h-8 text-xs flex-1" />
+                  <Input type="time" step="1" value={openTime} onChange={(e) => setOpenTime(e.target.value)} className="h-9 sm:h-8 text-xs flex-1" />
+                </div>
               </div>
-              <div className="flex items-center gap-3">
-                <label className="text-xs text-muted-foreground w-28 shrink-0">Monto Inicial *</label>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                <label className="text-xs font-semibold sm:font-normal text-muted-foreground w-full sm:w-28 shrink-0">Monto Inicial *</label>
                 <Input
                   type="number"
                   placeholder="0"
                   value={startAmount}
                   onChange={(e) => setStartAmount(e.target.value)}
                   min={0}
-                  className="h-8 text-xs border-amber-300 focus-visible:ring-amber-400"
+                  className="h-9 sm:h-8 text-xs border-amber-300 focus-visible:ring-amber-400 w-full sm:flex-1"
                 />
               </div>
             </div>
-            <DialogFooter className="px-4 pb-4">
-              <Button variant="outline" size="sm" onClick={() => setShowOpenDialog(false)}>Cancelar</Button>
-              <Button size="sm" className="bg-amber-500 hover:bg-amber-600 text-white" onClick={handleOpenCash} disabled={openCashMutation.isPending}>
+            <DialogFooter className="px-4 pb-4 flex flex-col sm:flex-row gap-2">
+              <Button variant="outline" size="sm" onClick={() => setShowOpenDialog(false)} className="w-full sm:w-auto order-1 sm:order-none">Cancelar</Button>
+              <Button size="sm" className="bg-amber-500 hover:bg-amber-600 text-white w-full sm:w-auto" onClick={handleOpenCash} disabled={openCashMutation.isPending}>
                 {openCashMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Iniciar Arqueo"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog Cerrar Arqueo */}
+        <Dialog open={showCloseDialog} onOpenChange={setShowCloseDialog}>
+          <DialogContent className="sm:max-w-[480px] p-0 overflow-hidden">
+            <div className="bg-red-500 px-4 py-2">
+              <h2 className="text-sm font-bold uppercase tracking-wide text-white">Cerrar Arqueo de Caja</h2>
+            </div>
+            <div className="p-4 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                <label className="text-xs font-semibold sm:font-normal text-muted-foreground w-full sm:w-28 shrink-0">Hora de cierre *</label>
+                <div className="flex items-center gap-2 flex-1">
+                  <Input type="date" value={openDate} onChange={(e) => setOpenDate(e.target.value)} className="h-9 sm:h-8 text-xs flex-1" />
+                  <Input type="time" step="1" value={openTime} onChange={(e) => setOpenTime(e.target.value)} className="h-9 sm:h-8 text-xs flex-1" />
+                </div>
+              </div>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                <label className="text-xs font-semibold sm:font-normal text-muted-foreground w-full sm:w-28 shrink-0">Efectivo Físico *</label>
+                <Input
+                  type="number"
+                  placeholder="0"
+                  value={endAmount}
+                  onChange={(e) => setEndAmount(e.target.value)}
+                  min={0}
+                  className="h-9 sm:h-8 text-xs border-red-300 focus-visible:ring-red-400 w-full sm:flex-1"
+                />
+              </div>
+            </div>
+            <DialogFooter className="px-4 pb-4 flex flex-col sm:flex-row sm:justify-end gap-2 sm:gap-0">
+              <Button variant="outline" size="sm" onClick={() => setShowCloseDialog(false)} className="w-full sm:w-auto order-1 sm:order-none">Cancelar</Button>
+              <Button size="sm" variant="destructive" className="w-full sm:w-auto" onClick={handleCloseCash} disabled={closeCashMutation.isPending}>
+                {closeCashMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirmar Cierre"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -280,10 +364,23 @@ export default function ArqueosTab() {
       </div>
 
       {/* Right: Detail panel */}
-      <div className="w-80 border-l border-border flex flex-col shrink-0 bg-card">
+      <div className={cn(
+        "w-full md:w-80 border-l border-border flex-col shrink-0 bg-card absolute md:static inset-0 z-10 md:z-auto h-full overflow-hidden",
+        selectedId ? "flex" : "hidden md:flex"
+      )}>
         <div className="flex items-center justify-between px-4 py-2 bg-amber-500">
-          <h2 className="text-sm font-bold uppercase tracking-wide text-white">Arqueo de Caja</h2>
+          <div className="flex items-center gap-2">
+            <button className="md:hidden text-white hover:opacity-80 active:opacity-60 transition-opacity" onClick={() => setSelectedId(null)}>
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+            <h2 className="text-sm font-bold uppercase tracking-wide text-white">Arqueo de Caja</h2>
+          </div>
           <div className="flex items-center gap-0.5">
+            {selectedRegister?.status === "open" && (
+              <Button size="sm" variant="destructive" className="h-7 text-xs px-2 mr-2" onClick={handleOpenCloseDialog}>
+                Cerrar Caja
+              </Button>
+            )}
             <Button variant="ghost" size="icon" className="h-7 w-7 text-white hover:bg-amber-600"><Printer className="h-3.5 w-3.5" /></Button>
             <Button variant="ghost" size="icon" className="h-7 w-7 text-white hover:bg-amber-600"><Trash2 className="h-3.5 w-3.5" /></Button>
           </div>

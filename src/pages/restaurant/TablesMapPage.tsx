@@ -202,15 +202,17 @@ export default function TablesMapPage() {
         .neq("status", "cancelado");
       const consumedTotal = (orderItems ?? []).reduce((s, i) => s + i.unit_price * i.quantity, 0);
 
-      const { data: openRegister } = await supabase
+      const { data: openRegisters } = await supabase
         .from("cash_registers")
         .select("id")
         .eq("status", "open")
-        .maybeSingle();
+        .order("opened_at", { ascending: false })
+        .limit(1);
+      const openRegisterId = openRegisters?.[0]?.id ?? null;
 
       const { error: payErr } = await supabase.from("payments").insert({
         order_id: targetOrderId,
-        cash_register_id: openRegister?.id ?? null,
+        cash_register_id: openRegisterId,
         amount: data.grandTotal,
         method: data.paymentMethod,
       });

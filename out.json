@@ -1,0 +1,50 @@
+[
+  {
+    "id": "ac559ef3-1d18-4133-949b-0a76da2169a3",
+    "amount": 14000,
+    "order_id": "ce703b61-8d55-4413-98a6-b924fb03540a",
+    "method": "Transferencia",
+    "created_at": "2026-03-07T02:09:43.923491+00:00",
+    "cash_register_id": "ca4ea9aa-2a9b-4296-b15b-be01f5cefbf7"
+  },
+  {
+    "id": "ef1f0f04-814d-4626-8e46-fa3804fd324d",
+    "amount": 3000,
+    "order_id": "958b5f66-784a-4d95-9b52-720ab5d17d57",
+    "method": "Transferencia",
+    "created_at": "2026-03-07T02:09:16.965366+00:00",
+    "cash_register_id": "ca4ea9aa-2a9b-4296-b15b-be01f5cefbf7"
+  },
+  {
+    "id": "52cb9749-9c62-4e0a-baa9-0d3ae42be989",
+    "amount": 15300,
+    "order_id": "f368ea84-c492-4bed-9399-f6cc685f713a",
+    "method": "Transferencia",
+    "created_at": "2026-03-07T02:07:19.458044+00:00",
+    "cash_register_id": "ca4ea9aa-2a9b-4296-b15b-be01f5cefbf7"
+  },
+  {
+    "id": "1ee90cea-c402-4dbd-bc32-898fe88f78c9",
+    "amount": 23000,
+    "order_id": "85243983-ebcc-40a4-b408-e7d26b645a9f",
+    "method": "Transferencia",
+    "created_at": "2026-03-07T02:06:41.602021+00:00",
+    "cash_register_id": "ca4ea9aa-2a9b-4296-b15b-be01f5cefbf7"
+  },
+  {
+    "id": "811d1d57-ba66-42c3-971e-7a6ceea845db",
+    "amount": 12000,
+    "order_id": "f7ef815d-af14-4341-a629-a7bc3a11e7cb",
+    "method": "Transferencia",
+    "created_at": "2026-03-07T02:05:53.090574+00:00",
+    "cash_register_id": "ca4ea9aa-2a9b-4296-b15b-be01f5cefbf7"
+  },
+  {
+    "id": "78a8d6e3-42ff-493e-9175-927eca62ef8f",
+    "amount": 15000,
+    "order_id": "a2d14cbd-9fab-4328-9e43-42421ca4bb0e",
+    "method": "Transferencia",
+    "created_at": "2026-03-07T02:05:04.963183+00:00",
+    "cash_register_id": "ca4ea9aa-2a9b-4296-b15b-be01f5cefbf7"
+  }
+]
