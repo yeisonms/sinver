@@ -19,6 +19,7 @@ export interface Product {
   is_available: boolean;
   is_tax_included: boolean;
   is_favorite: boolean;
+  is_visible_online: boolean;
 }
 
 export interface Order {

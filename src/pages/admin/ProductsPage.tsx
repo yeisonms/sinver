@@ -28,6 +28,7 @@ const emptyForm = {
   image_url: "",
   is_available: true,
   is_tax_included: false,
+  is_visible_online: true,
 };
 
 export default function ProductsPage() {
@@ -72,6 +73,7 @@ export default function ProductsPage() {
       image_url: p.image_url || "",
       is_available: p.is_available,
       is_tax_included: p.is_tax_included,
+      is_visible_online: p.is_visible_online ?? true,
     });
     setImageFile(null);
     setImagePreview(p.image_url || null);
@@ -134,6 +136,7 @@ export default function ProductsPage() {
         description: form.description || null,
         image_url: imageUrl || null,
         cost: form.cost || null,
+        is_visible_online: form.is_visible_online,
       };
       if (editing) {
         await updateProduct.mutateAsync({ id: editing.id, ...payload });
@@ -497,6 +500,10 @@ export default function ProductsPage() {
             <div className="flex items-center justify-between">
               <Label>Disponible</Label>
               <Switch checked={form.is_available} onCheckedChange={(v) => setForm({ ...form, is_available: v })} />
+            </div>
+            <div className="flex items-center justify-between">
+              <Label>Disponible en Tienda Online</Label>
+              <Switch checked={form.is_visible_online} onCheckedChange={(v) => setForm({ ...form, is_visible_online: v })} />
             </div>
             <div className="flex items-center justify-between">
               <Label>IVA Incluido</Label>
