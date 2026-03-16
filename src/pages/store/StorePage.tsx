@@ -73,6 +73,7 @@ export default function StorePage() {
   const storeCategoryIds = new Set(storeCategories.map((c) => c.id));
 
   const filteredProducts = products.filter((p) => {
+    if (p.is_visible_online === false) return false;
     if (p.category_id && !storeCategoryIds.has(p.category_id)) return false;
     if (search && !p.name.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
