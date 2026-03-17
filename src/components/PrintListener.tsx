@@ -26,22 +26,33 @@ export default function PrintListener() {
           table: "print_jobs",
         },
         async (payload) => {
-          console.log("🚨 ¡NUEVO TRABAJO DE IMPRESIÓN DESDE LA NUBE!", payload.new);
-          
+          console.log("🚨 ¡TRABAJO DE IMPRESIÓN DETECTADO!", payload.new);
+
+          // 2. Reclamar el trabajo atómicamente para evitar impresiones duplicadas
+          // Si hay 2 pestañas abiertas (o React Strict Mode), ambas intentarán actualizarlo,
+          // pero la base de datos solo le dará permiso a una.
+          const { data: claimData, error: claimError } = await supabase
+            .from("print_jobs")
+            .update({ status: "printed" })
+            .eq("id", payload.new.id)
+            .eq("status", "pending")
+            .select("id")
+            .maybeSingle();
+
+          if (claimError || !claimData) {
+            console.log("⚠️ Trabajo ya procesado por otra pestaña o dispositivo ignorando.");
+            return; // Alguien más ya lo imprimió
+          }
+
           try {
             const printOptions = payload.new.payload as PrintComandaOptions;
             
-            // 2. Execute the physical local print job
+            // 3. Ejecutar la impresión física local
             await executePrintJob(printOptions);
             
-            // Optional: Mark the job as completed in DB so we don't process it again on reload
-            await supabase
-              .from("print_jobs")
-              .update({ status: "printed" })
-              .eq("id", payload.new.id);
-              
           } catch (error) {
             console.error("Error procesando trabajo de impresión en segundo plano:", error);
+            // Opcional: Podríamos revertir el status a 'pending' aquí si falla
             toast.error("Fallo de Impresión", {
               description: "No se pudo procesar un ticket entrante desde la nube."
             });
