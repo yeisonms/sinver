@@ -30,6 +30,7 @@ import { CartProvider } from "@/contexts/CartContext";
 import StorePage from "@/pages/store/StorePage";
 import CheckoutPage from "@/pages/store/CheckoutPage";
 import { AudioAlertProvider } from "@/components/AudioAlertProvider";
+import PrintListener from "@/components/PrintListener";
 
 function RoleRedirect() {
   const { role } = useAuth();
@@ -48,6 +49,7 @@ const App = () => (
         <CartProvider>
           <BrowserRouter>
             <AudioAlertProvider>
+              <PrintListener />
               <Routes>
                 <Route path="/menu" element={<StorePage />} />
                 <Route path="/menu/checkout" element={<CheckoutPage />} />
