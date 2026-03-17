@@ -184,10 +184,28 @@ async function sendViaHTTP(payload: Uint8Array, ip: string, port: number): Promi
 }
 
 /**
- * Groups order items by their assigned printers via category_printers,
- * then sends ESC/POS commands to each printer using RawBT on Android or HTTP otherwise.
+ * Drops a formatted print job into the Supabase 'print_jobs' queue.
+ * This is safe to call from any mobile phone or external device.
  */
 export async function printComanda(opts: PrintComandaOptions): Promise<void> {
+  try {
+    // Send to Supabase to be picked up by the desktop listener
+    const { error } = await supabase.from('print_jobs').insert({ payload: opts as any });
+    if (error) throw error;
+    console.log("✅ Trabajo de impresión enviado a la nube");
+  } catch (err) {
+    console.error("❌ Error enviando trabajo de impresión:", err);
+    toast.error("Error de impresión", {
+      description: "No se pudo enviar el ticket a la cola en la nube.",
+    });
+  }
+}
+
+/**
+ * Resolves printer routing and sends RAW thermal data across the local IP network.
+ * Only the designated PC/Cashier station running the listener should call this.
+ */
+export async function executePrintJob(opts: PrintComandaOptions): Promise<void> {
   const { items } = opts;
 
   if (items.length === 0) {
