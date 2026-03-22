@@ -321,7 +321,7 @@ export default function DeliveryPage() {
                         )}
                       </TableCell>
                       <TableCell className="text-right font-medium text-sm">
-                        ${((o.total_amount || 0) + (o.delivery_fee || 0)).toLocaleString()}
+                        ${(o.total_amount || 0).toLocaleString()}
                       </TableCell>
                     </TableRow>
                   ))}

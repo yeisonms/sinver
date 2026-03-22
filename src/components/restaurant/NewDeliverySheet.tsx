@@ -92,7 +92,7 @@ export function NewDeliverySheet({ open, onOpenChange }: Props) {
           general_notes: notes || null,
           status: "pendiente",
           type: "domicilio",
-          total_amount: total,
+          total_amount: total + (Number(deliveryFee) || 0),
           tip_amount: 0,
           diner_count: null,
           closed_at: null,
