@@ -75,13 +75,19 @@ export function OrderDetailPanel({ order, waiterName, onCheckout, onMoveTable, o
 
   const handleConfirmCancel = async () => {
     if (!cancelItem || !cancelReason.trim()) return;
-    await cancelItemMut.mutateAsync({
-      itemId: cancelItem.id,
-      reason: cancelReason.trim(),
-      orderId: order.id,
-    });
-    setCancelItem(null);
-    setCancelReason("");
+    try {
+      await cancelItemMut.mutateAsync({
+        itemId: cancelItem.id,
+        reason: cancelReason.trim(),
+        orderId: order.id,
+      });
+      setCancelItem(null);
+      setCancelReason("");
+      toast.success("Producto cancelado correctamente");
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Error al cancelar: " + (err.message || "Desconocido"));
+    }
   };
 
   const handleEditClient = async () => {
