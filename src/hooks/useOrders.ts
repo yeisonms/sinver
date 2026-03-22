@@ -37,14 +37,18 @@ export function useCreateOrder() {
       if (orderError) throw orderError;
 
       if (items.length > 0) {
-        const orderItems = items.map(({ product_name, modifiers, ...item }) => ({
-          order_id: newOrder.id,
-          product_id: item.product_id,
-          quantity: item.quantity,
-          unit_price: item.unit_price,
-          notes: item.notes || null,
-          status: "activo",
-        }));
+        const orderItems = items.map(({ product_name, modifiers, ...item }) => {
+          const modText = modifiers?.map(m => m.option_name).join(", ") || "";
+          const finalNotes = [modText, item.notes].filter(Boolean).join(" - ");
+          return {
+            order_id: newOrder.id,
+            product_id: item.product_id,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            notes: finalNotes || null,
+            status: "activo",
+          };
+        });
         const { error: itemsError } = await supabase
           .from("order_items")
           .insert(orderItems);
@@ -60,13 +64,17 @@ export function useCreateOrder() {
 
         const typeLabel = order.type === "domicilio" ? "DOMICILIO" : order.type === "recoger" ? "RECOGER" : "MESA";
         const orderLabel = `${typeLabel} #${newOrder.order_number}`;
-        const printItems = items.map((item) => ({
-          product_id: item.product_id,
-          product_name: item.product_name,
-          quantity: item.quantity,
-          notes: item.notes || null,
-          category_id: categoryMap.get(item.product_id) || null,
-        }));
+        const printItems = items.map((item) => {
+          const modText = item.modifiers?.map(m => m.option_name).join(", ") || "";
+          const finalNotes = [modText, item.notes].filter(Boolean).join(" - ");
+          return {
+            product_id: item.product_id,
+            product_name: item.product_name,
+            quantity: item.quantity,
+            notes: finalNotes || null,
+            category_id: categoryMap.get(item.product_id) || null,
+          };
+        });
         // Fetch waiter name for ticket
         let waiterName: string | undefined;
         if (order.waiter_id) {

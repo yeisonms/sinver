@@ -62,11 +62,22 @@ export function useCancelOrderItem() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ itemId, reason, orderId }: { itemId: string; reason: string; orderId: string }) => {
-      const { error } = await supabase
+      const { data: canceledItem, error } = await supabase
         .from("order_items")
         .update({ status: "cancelado", cancellation_reason: reason })
-        .eq("id", itemId);
+        .eq("id", itemId)
+        .select()
+        .single();
       if (error) throw error;
+
+      if (canceledItem) {
+        const discount = canceledItem.quantity * canceledItem.unit_price;
+        const { data: orderData } = await supabase.from("orders").select("total_amount").eq("id", orderId).single();
+        if (orderData) {
+          await supabase.from("orders").update({ total_amount: Math.max(0, orderData.total_amount - discount) }).eq("id", orderId);
+        }
+      }
+
       return orderId;
     },
     onSuccess: (_d, vars) => {

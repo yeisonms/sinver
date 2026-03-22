@@ -20,7 +20,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { printComanda, printControlReceipt } from "@/lib/printService";
 import { useRestaurantInfo } from "@/hooks/useRestaurantInfo";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { SplitBillDialog } from "./SplitBillDialog";
 
@@ -39,10 +39,25 @@ export function OrderDetailPanel({ order, waiterName, onCheckout, onMoveTable, o
   const [cancelItem, setCancelItem] = useState<OrderItemRow | null>(null);
   const [cancelReason, setCancelReason] = useState("");
   const [splitOpen, setSplitOpen] = useState(false);
+  const [editClientOpen, setEditClientOpen] = useState(false);
+  const [editingClientName, setEditingClientName] = useState("");
+  const [savingClient, setSavingClient] = useState(false);
   const { data: canCharge = false } = useHasPermission("charge_table");
 
   const { data: items = [], isLoading: loadingItems } = useOrderItems(order.id);
   const cancelItemMut = useCancelOrderItem();
+
+  const { data: waiterProfile } = useQuery({
+    queryKey: ["profile", order.waiter_id],
+    queryFn: async () => {
+      if (!order.waiter_id) return null;
+      const { data } = await supabase.from("profiles").select("full_name").eq("id", order.waiter_id).maybeSingle();
+      return data;
+    },
+    enabled: !!order.waiter_id,
+  });
+
+  const displayWaiterName = waiterName || waiterProfile?.full_name || "—";
 
   const activeItems = items.filter((i) => i.status !== "cancelado");
   const cancelledItems = items.filter((i) => i.status === "cancelado");
@@ -60,13 +75,38 @@ export function OrderDetailPanel({ order, waiterName, onCheckout, onMoveTable, o
 
   const handleConfirmCancel = async () => {
     if (!cancelItem || !cancelReason.trim()) return;
-    await cancelItemMut.mutateAsync({
-      itemId: cancelItem.id,
-      reason: cancelReason.trim(),
-      orderId: order.id,
-    });
-    setCancelItem(null);
-    setCancelReason("");
+    try {
+      await cancelItemMut.mutateAsync({
+        itemId: cancelItem.id,
+        reason: cancelReason.trim(),
+        orderId: order.id,
+      });
+      setCancelItem(null);
+      setCancelReason("");
+      toast.success("Producto cancelado correctamente");
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Error al cancelar: " + (err.message || "Desconocido"));
+    }
+  };
+
+  const handleEditClient = async () => {
+    if (!editingClientName.trim()) return;
+    setSavingClient(true);
+    try {
+      const { error } = await supabase
+        .from("orders")
+        .update({ client_name: editingClientName.trim() })
+        .eq("id", order.id);
+      if (error) throw error;
+      toast.success("Cliente actualizado");
+      qc.invalidateQueries({ queryKey: ["orders"] });
+      setEditClientOpen(false);
+    } catch (err: any) {
+      toast.error("Error al actualizar cliente");
+    } finally {
+      setSavingClient(false);
+    }
   };
 
   const handlePrintControl = async () => {
@@ -119,7 +159,7 @@ export function OrderDetailPanel({ order, waiterName, onCheckout, onMoveTable, o
         footerMessage: (restaurantInfo as any)?.footer_message ?? "",
         tableName: tableName || "?",
         orderNumber: order.order_number ?? 0,
-        waiterName: waiterName || "—",
+        waiterName: displayWaiterName,
         items: activeItems.map(i => ({ name: pMap.get(i.product_id)?.name || "Producto", quantity: i.quantity, unit_price: i.unit_price })),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         tipPercentage: (restaurantInfo as any)?.default_tip_percentage ?? 0,
@@ -144,10 +184,7 @@ export function OrderDetailPanel({ order, waiterName, onCheckout, onMoveTable, o
           <span className="font-bold text-xl tracking-tight">#{order.order_number}</span>
         </div>
         <div className="flex items-center gap-2">
-          <Button size="icon" variant="ghost" className="h-9 w-9 text-primary hover:bg-primary/20 hover:text-primary rounded-full transition-colors">
-            <Check className="h-4 w-4" />
-          </Button>
-          <Button size="icon" variant="ghost" className="h-9 w-9 text-primary hover:bg-primary/20 hover:text-primary rounded-full transition-colors">
+          <Button onClick={() => { setEditingClientName(order.client_name || ""); setEditClientOpen(true); }} size="icon" variant="ghost" className="h-9 w-9 text-primary hover:bg-primary/20 hover:text-primary rounded-full transition-colors" title="Editar Cliente">
             <Pencil className="h-4 w-4" />
           </Button>
         </div>
@@ -161,17 +198,11 @@ export function OrderDetailPanel({ order, waiterName, onCheckout, onMoveTable, o
         </div>
         <div className="flex items-center justify-between">
           <span className="text-muted-foreground font-medium">Mesero</span>
-          <span className="font-semibold text-foreground">{waiterName || "—"}</span>
+          <span className="font-semibold text-foreground">{displayWaiterName}</span>
         </div>
         <div className="flex items-center justify-between">
           <span className="text-muted-foreground font-medium">Cliente</span>
           <span className="font-semibold text-foreground">{order.client_name || "—"}</span>
-        </div>
-        <div className="flex items-center justify-between pt-1">
-          <span className="text-muted-foreground font-medium">Seguimiento</span>
-          <button className="text-primary font-semibold text-xs uppercase tracking-wide hover:text-primary/80 transition-colors">
-            Ver Detalles
-          </button>
         </div>
       </div>
 
@@ -286,6 +317,32 @@ export function OrderDetailPanel({ order, waiterName, onCheckout, onMoveTable, o
           )}
         </div>
       </div>
+
+      {/* Edit client dialog */}
+      <Dialog open={editClientOpen} onOpenChange={setEditClientOpen}>
+        <DialogContent className="sm:max-w-sm rounded-2xl border-0 shadow-premium">
+          <DialogHeader>
+            <DialogTitle className="text-center text-xl font-bold tracking-tight mb-2">Editar Cliente</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 mb-2">
+            <Label className="text-xs font-semibold text-foreground/80 uppercase tracking-wider">Nombre del Cliente</Label>
+            <Input
+              autoFocus
+              value={editingClientName}
+              onChange={(e) => setEditingClientName(e.target.value)}
+              placeholder="Ej. Juan Pérez"
+              className="h-12 border-border/50 text-base"
+            />
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="ghost" onClick={() => setEditClientOpen(false)} className="w-full font-semibold">Cancelar</Button>
+            <Button onClick={handleEditClient} disabled={savingClient} className="w-full font-bold shadow-premium">
+              {savingClient && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Guardar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Cancel confirmation dialog */}
       <Dialog open={!!cancelItem} onOpenChange={(v) => { if (!v) setCancelItem(null); }}>

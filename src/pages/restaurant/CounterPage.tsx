@@ -63,6 +63,7 @@ export default function CounterPage() {
   });
 
   const selectedOrder = active.find((o) => o.id === selectedOrderId) ?? null;
+  const waiterName = (selectedOrder as any)?.profiles?.full_name || undefined;
 
   const { data: checkoutItems = [] } = useOrderItems(checkoutOrder?.id ?? null);
   const checkoutActiveItems = checkoutItems.filter((i) => i.status !== "cancelado");
@@ -208,6 +209,7 @@ export default function CounterPage() {
             <div className="flex-1 overflow-auto">
               <OrderDetailPanel
                 order={selectedOrder}
+                waiterName={waiterName}
                 onCheckout={(order) => setCheckoutOrder(order)}
               />
             </div>
@@ -338,6 +340,7 @@ export default function CounterPage() {
           {selectedOrder ? (
             <OrderDetailPanel
               order={selectedOrder}
+              waiterName={waiterName}
               onCheckout={(order) => setCheckoutOrder(order)}
             />
           ) : (
