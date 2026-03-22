@@ -68,7 +68,7 @@ export function CheckoutDialog({
   const [paymentMethod, setPaymentMethod] = useState("");
   const [paidWith, setPaidWith] = useState("");
   const [tipInput, setTipInput] = useState("");
-  const [tipEnabled, setTipEnabled] = useState(true);
+  const [tipEnabled, setTipEnabled] = useState(false);
   const [tipInitialized, setTipInitialized] = useState(false);
   const isMobile = useIsMobile();
 
@@ -80,7 +80,7 @@ export function CheckoutDialog({
       // We will set default method when methods load
       setPaidWith("");
       setTipInitialized(false);
-      setTipEnabled(tipRate > 0);
+      setTipEnabled(false);
       setTipInput("");
     }
   }, [open]);
@@ -97,7 +97,7 @@ export function CheckoutDialog({
     if (open && !tipInitialized && tipRate > 0 && consumedTotal > 0) {
       const calculated = Math.round(consumedTotal * (tipRate / 100));
       setTipInitialized(true);
-      setTipEnabled(true);
+      setTipEnabled(false);
       setTipInput(String(calculated));
     }
   }, [open, tipRate, consumedTotal, tipInitialized]);
@@ -105,12 +105,12 @@ export function CheckoutDialog({
   const tipAmount = tipEnabled ? Math.max(0, parseFloat(tipInput) || 0) : 0;
   const grandTotal = consumedTotal + tipAmount;
 
-  const paidAmount = parseFloat(paidWith) || 0;
-  const change = paidAmount - grandTotal;
+  const effectivePaid = paidWith === "" ? grandTotal : (parseFloat(paidWith) || 0);
+  const change = paidWith === "" ? 0 : effectivePaid - grandTotal;
 
   // Consider "efectivo" matching dynamic for change calculator
   const isCash = paymentMethod.toLowerCase() === "efectivo";
-  const canSubmit = isCash ? paidAmount >= grandTotal : !!paymentMethod;
+  const canSubmit = isCash ? effectivePaid >= grandTotal : !!paymentMethod;
 
   const checkoutContent = (
     <div className="space-y-5">
@@ -159,9 +159,9 @@ export function CheckoutDialog({
           </div>
           <div>
             <Label className="text-sm font-medium">Vuelto</Label>
-            <p className={`text-2xl font-bold mt-2 ${paidAmount === 0 ? "text-muted-foreground" : change >= 0 ? "text-green-600" : "text-destructive"
+            <p className={`text-2xl font-bold mt-2 ${paidWith === "" ? "text-muted-foreground" : change >= 0 ? "text-green-600" : "text-destructive"
               }`}>
-              $ {change >= 0 ? change.toLocaleString("es-CO", { minimumFractionDigits: 1 }) : `(${Math.abs(change).toLocaleString()})`}
+              $ {change >= 0 ? change.toLocaleString("es-CO", { minimumFractionDigits: 0 }) : `(${Math.abs(change).toLocaleString()})`}
             </p>
           </div>
         </div>

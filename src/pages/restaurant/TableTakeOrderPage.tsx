@@ -160,14 +160,18 @@ export default function TableTakeOrderPage() {
         .in("id", productIds);
       const categoryMap = new Map((products || []).map((p) => [p.id, p.category_id]));
 
-      const items = cart.map((item) => ({
-        order_id: orderId,
-        product_id: item.product_id,
-        quantity: item.quantity,
-        unit_price: item.unit_price,
-        notes: item.notes || null,
-        status: "activo",
-      }));
+      const items = cart.map((item) => {
+        const modText = item.modifiers?.map((m) => m.option_name).join(", ") || "";
+        const finalNotes = [modText, item.notes].filter(Boolean).join(" - ");
+        return {
+          order_id: orderId,
+          product_id: item.product_id,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          notes: finalNotes || null,
+          status: "activo",
+        };
+      });
       const { error: itemsErr } = await supabase.from("order_items").insert(items);
       if (itemsErr) throw itemsErr;
 
@@ -186,13 +190,17 @@ export default function TableTakeOrderPage() {
       if (order?.type === "recoger") orderLabel = `MOSTRADOR #${order?.order_number ?? "?"}`;
       if (order?.type === "domicilio") orderLabel = `DOMICILIO #${order?.order_number ?? "?"}`;
 
-      const printItems = cart.map((item) => ({
-        product_id: item.product_id,
-        product_name: item.product_name,
-        quantity: item.quantity,
-        notes: item.notes || null,
-        category_id: categoryMap.get(item.product_id) || null,
-      }));
+      const printItems = cart.map((item) => {
+        const modText = item.modifiers?.map((m) => m.option_name).join(", ") || "";
+        const finalNotes = [modText, item.notes].filter(Boolean).join(" - ");
+        return {
+          product_id: item.product_id,
+          product_name: item.product_name,
+          quantity: item.quantity,
+          notes: finalNotes || null,
+          category_id: categoryMap.get(item.product_id) || null,
+        };
+      });
       // Fetch waiter name for ticket
       let waiterName: string | undefined;
       if (order?.waiter_id) {
