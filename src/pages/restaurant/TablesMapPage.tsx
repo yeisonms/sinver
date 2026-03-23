@@ -550,7 +550,7 @@ export default function TablesMapPage() {
           <SheetContent className="w-full sm:max-w-md p-0 flex flex-col gap-0 border-l border-border/50 shadow-2xl">
             {activeOrderId && selectedOrder ? (
               <div className="flex flex-col h-full w-full">
-                <div className="bg-card border-b border-border/50 h-14 flex items-center px-4 shrink-0 transition-colors hover:bg-accent cursor-pointer" onClick={() => setActiveOrderId(null)}>
+                <div className="bg-card border-b border-border/50 h-10 flex items-center px-4 shrink-0 transition-colors hover:bg-accent cursor-pointer" onClick={() => setActiveOrderId(null)}>
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   <span className="font-medium text-sm">Volver al Dashboard</span>
                 </div>
