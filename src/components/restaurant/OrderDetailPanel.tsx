@@ -178,10 +178,10 @@ export function OrderDetailPanel({ order, waiterName, onCheckout, onMoveTable, o
   return (
     <div className="flex flex-col h-full bg-card rounded-2xl overflow-hidden relative">
       {/* Refined Header */}
-      <div className="bg-primary/10 text-primary px-6 py-4 flex items-center justify-between border-b border-primary/10">
-        <div className="flex flex-col">
-          <span className="text-xs uppercase tracking-widest font-semibold opacity-80">Orden Activa</span>
-          <span className="font-bold text-xl tracking-tight">#{order.order_number}</span>
+      <div className="bg-primary/10 text-primary px-6 py-3 flex items-center justify-between border-b border-primary/10">
+        <div className="flex items-center gap-2">
+          <span className="text-sm uppercase tracking-widest font-bold opacity-90">Orden Activa</span>
+          <span className="font-extrabold text-lg tracking-tight">#{order.order_number}</span>
         </div>
         <div className="flex items-center gap-2">
           <Button onClick={() => { setEditingClientName(order.client_name || ""); setEditClientOpen(true); }} size="icon" variant="ghost" className="h-9 w-9 text-primary hover:bg-primary/20 hover:text-primary rounded-full transition-colors" title="Editar Cliente">
@@ -191,7 +191,7 @@ export function OrderDetailPanel({ order, waiterName, onCheckout, onMoveTable, o
       </div>
 
       {/* Info blocks with better typography */}
-      <div className="px-6 py-5 space-y-3 border-b border-border/50 text-sm bg-background/30">
+      <div className="px-6 py-3 space-y-1.5 border-b border-border/50 text-sm bg-background/30">
         <div className="flex items-center justify-between">
           <span className="text-muted-foreground font-medium">Hora Inicio</span>
           <span className="font-semibold text-foreground">{format(new Date(order.created_at), "dd/MM/yy HH:mm")}</span>
@@ -207,28 +207,30 @@ export function OrderDetailPanel({ order, waiterName, onCheckout, onMoveTable, o
       </div>
 
       {/* Primary Action Section */}
-      <div className="p-6 pb-2 space-y-3">
-        {onMoveTable && (
+      <div className="p-5 pb-2 space-y-3">
+        <div className="flex items-center gap-3">
+          {onMoveTable && (
+            <Button
+              className="flex-1 h-10 gap-2 font-semibold bg-secondary/80 text-foreground hover:bg-secondary transition-colors text-xs"
+              variant="ghost"
+              onClick={onMoveTable}
+            >
+              <ArrowRightLeft className="h-4 w-4" />
+              Trasladar
+            </Button>
+          )}
           <Button
-            className="w-full h-11 gap-2 font-semibold bg-secondary/80 text-foreground hover:bg-secondary transition-colors"
+            className="flex-1 h-10 gap-2 font-semibold bg-secondary/80 text-foreground hover:bg-secondary transition-colors text-xs"
             variant="ghost"
-            onClick={onMoveTable}
+            onClick={handlePrintControl}
+            disabled={activeItems.length === 0}
           >
-            <ArrowRightLeft className="h-4 w-4" />
-            Trasladar Mesa
+            <Printer className="h-4 w-4" />
+            Imprimir
           </Button>
-        )}
+        </div>
         <Button
-          className="w-full h-11 gap-2 font-semibold bg-secondary/80 text-foreground hover:bg-secondary transition-colors"
-          variant="ghost"
-          onClick={handlePrintControl}
-          disabled={activeItems.length === 0}
-        >
-          <Printer className="h-4 w-4" />
-          Imprimir Control
-        </Button>
-        <Button
-          className="w-full h-12 gap-2 font-bold bg-primary/5 text-primary hover:bg-primary/10 hover:text-primary border-2 border-primary/20 shadow-sm rounded-xl transition-all"
+          className="w-full h-11 gap-2 font-bold bg-primary/5 text-primary hover:bg-primary/10 hover:text-primary border-2 border-primary/20 shadow-sm rounded-xl transition-all"
           variant="outline"
           onClick={handleAddProductsClick}
         >
@@ -285,8 +287,8 @@ export function OrderDetailPanel({ order, waiterName, onCheckout, onMoveTable, o
       </div>
 
       {/* Footer sticky bottom */}
-      <div className="border-t border-border/50 px-6 py-5 bg-background/50 backdrop-blur-md">
-        <div className="flex items-center justify-between mb-4">
+      <div className="border-t border-border/50 px-5 py-4 bg-background/50 backdrop-blur-md">
+        <div className="flex items-center justify-between mb-3">
           <span className="font-semibold text-sm text-muted-foreground uppercase tracking-widest">Total a Pagar</span>
           <span className="text-3xl font-bold tracking-tight text-foreground">${activeTotal.toLocaleString()}</span>
         </div>
