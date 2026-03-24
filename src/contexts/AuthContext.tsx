@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useRef, ReactNode } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -30,9 +30,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isActive, setIsActive] = useState<boolean | null>(null);
   const [role, setRole] = useState<string | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
+  const isProfileLoaded = useRef(false);
 
   const checkProfile = async (userId: string) => {
-    setProfileLoading(true);
+    // Usamos useRef porque el callback de useEffect([]) forma un "stale closure"
+    // y siempre veía `role` como null. Con useRef garantizamos que nunca
+    // se vuelva a mostrar la pantalla de carga una vez descargado el perfil.
+    if (!isProfileLoaded.current) {
+      setProfileLoading(true);
+    }
     const { data } = await supabase
       .from("profiles")
       .select("is_active, role")
@@ -40,6 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .single();
     setIsActive(data?.is_active ?? false);
     setRole(data?.role ?? null);
+    isProfileLoaded.current = true;
     setProfileLoading(false);
   };
 
