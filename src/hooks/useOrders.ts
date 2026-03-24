@@ -95,6 +95,7 @@ export function useCreateOrder() {
           deliveryAddress: order.delivery_address,
           deliveryPhone: order.delivery_phone,
           generalNotes: order.general_notes,
+          totalAmount: newOrder.total_amount,
         }).catch(console.error);
       }
 

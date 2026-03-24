@@ -7,6 +7,7 @@ interface PrintItem {
   quantity: number;
   notes: string | null;
   category_id: string | null;
+  modifiers?: any[];
 }
 
 interface PrinterTarget {
@@ -26,6 +27,7 @@ export interface PrintComandaOptions {
   deliveryAddress?: string | null;
   deliveryPhone?: string | null;
   generalNotes?: string | null;
+  totalAmount?: number;
 }
 
 /**
@@ -85,15 +87,35 @@ function buildTicketPayload(
   // Separator
   parts.push(encoder.encode("================================\n"));
 
-  // === Items with notes ===
+  // === Items with notes and modifiers ===
   for (const item of target.items) {
     parts.push(new Uint8Array([ESC, 0x45, 0x01])); // Bold ON
     parts.push(new Uint8Array([GS, 0x21, 0x11]));  // Double height+width
     parts.push(encoder.encode(`${item.quantity}x ${item.product_name}\n`));
     parts.push(new Uint8Array([GS, 0x21, 0x00]));  // Normal size
     parts.push(new Uint8Array([ESC, 0x45, 0x00])); // Bold OFF
+
+    // Print modifiers, if any
+    if (item.modifiers && item.modifiers.length > 0) {
+      parts.push(new Uint8Array([ESC, 0x45, 0x01])); // Bold ON
+      parts.push(new Uint8Array([ESC, 0x4D, 0x01])); // Font B (smaller base font)
+      parts.push(new Uint8Array([GS, 0x21, 0x11]));  // Double height+width (scales Font B to be intermediate size)
+      for (const mod of item.modifiers) {
+        parts.push(encoder.encode(`  + ${mod.option_name.toUpperCase()}\n`));
+      }
+      parts.push(new Uint8Array([GS, 0x21, 0x00]));  // Normal size
+      parts.push(new Uint8Array([ESC, 0x4D, 0x00])); // Reset to Font A
+      parts.push(new Uint8Array([ESC, 0x45, 0x00])); // Bold OFF
+    }
+
     if (item.notes) {
-      parts.push(encoder.encode(`   (${item.notes.toUpperCase()})\n`));
+      parts.push(new Uint8Array([ESC, 0x45, 0x01])); // Bold ON
+      parts.push(new Uint8Array([ESC, 0x4D, 0x01])); // Font B (smaller base font)
+      parts.push(new Uint8Array([GS, 0x21, 0x11]));  // Double height+width (scales Font B to be intermediate size)
+      parts.push(encoder.encode(`  >>> ${item.notes.toUpperCase()}\n`));
+      parts.push(new Uint8Array([GS, 0x21, 0x00]));  // Normal size
+      parts.push(new Uint8Array([ESC, 0x4D, 0x00])); // Reset to Font A
+      parts.push(new Uint8Array([ESC, 0x45, 0x00])); // Bold OFF
     }
   }
 
@@ -107,6 +129,17 @@ function buildTicketPayload(
     parts.push(new Uint8Array([ESC, 0x45, 0x00])); // Bold OFF
     parts.push(encoder.encode(`${opts.generalNotes}\n`));
     parts.push(encoder.encode("================================\n"));
+  }
+
+  // === TOTAL (solo para Domicilios y Mostrador) ===
+  if ((opts.orderType === "domicilio" || opts.orderType === "recoger") && opts.totalAmount !== undefined) {
+    parts.push(new Uint8Array([ESC, 0x61, 0x02])); // R / Right align
+    parts.push(new Uint8Array([ESC, 0x45, 0x01])); // Bold ON
+    parts.push(new Uint8Array([GS, 0x21, 0x11]));  // Double height+width
+    parts.push(encoder.encode(`TOTAL COBRAR: $${opts.totalAmount.toLocaleString("es-CO")}\n`));
+    parts.push(new Uint8Array([GS, 0x21, 0x00]));  // Normal size
+    parts.push(new Uint8Array([ESC, 0x45, 0x00])); // Bold OFF
+    parts.push(new Uint8Array([ESC, 0x61, 0x00])); // L / Left align
   }
 
   // Extra line feeds so text doesn't get cut
@@ -364,6 +397,7 @@ export async function reprintOrder(orderId: string): Promise<void> {
       quantity: row.quantity,
       notes: row.notes || null,
       category_id: row.products?.category_id || null,
+      modifiers: row.modifiers || [],
     }));
 
     await printComanda({
@@ -375,6 +409,7 @@ export async function reprintOrder(orderId: string): Promise<void> {
       deliveryAddress: order.delivery_address,
       deliveryPhone: order.delivery_phone,
       generalNotes: order.general_notes,
+      totalAmount: order.total_amount,
     });
   } catch (err) {
     console.error("Error en reprintOrder:", err);

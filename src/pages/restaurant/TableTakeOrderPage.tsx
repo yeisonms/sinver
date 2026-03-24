@@ -124,7 +124,7 @@ export default function TableTakeOrderPage() {
 
   const handleAddToCart = (item: CartItem) => {
     setCart((prev) => {
-      const existing = prev.findIndex((c) => c.product_id === item.product_id && c.notes === item.notes);
+      const existing = prev.findIndex((c) => c.product_id === item.product_id && c.notes === item.notes && JSON.stringify(c.modifiers || []) === JSON.stringify(item.modifiers || []));
       if (existing >= 0) {
         const updated = [...prev];
         updated[existing] = { ...updated[existing], quantity: updated[existing].quantity + item.quantity };
@@ -219,6 +219,7 @@ export default function TableTakeOrderPage() {
         waiterName,
         orderType: order?.type || "mesa",
         generalNotes: order?.general_notes,
+        totalAmount: (order?.total_amount || 0) + total,
       }).catch(console.error);
 
       qc.invalidateQueries({ queryKey: ["orders"] });

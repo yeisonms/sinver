@@ -183,7 +183,15 @@ export function OrderDetailPanel({ order, waiterName, onCheckout, onMoveTable, o
           <span className="text-sm uppercase tracking-widest font-bold opacity-90">Orden Activa</span>
           <span className="font-extrabold text-lg tracking-tight">#{order.order_number}</span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
+          {onMoveTable && (
+            <Button onClick={onMoveTable} size="icon" variant="ghost" className="h-9 w-9 text-primary hover:bg-primary/20 hover:text-primary rounded-full transition-colors" title="Trasladar">
+              <ArrowRightLeft className="h-4 w-4" />
+            </Button>
+          )}
+          <Button onClick={handlePrintControl} disabled={activeItems.length === 0} size="icon" variant="ghost" className="h-9 w-9 text-primary hover:bg-primary/20 hover:text-primary rounded-full transition-colors" title="Imprimir Control">
+            <Printer className="h-4 w-4" />
+          </Button>
           <Button onClick={() => { setEditingClientName(order.client_name || ""); setEditClientOpen(true); }} size="icon" variant="ghost" className="h-9 w-9 text-primary hover:bg-primary/20 hover:text-primary rounded-full transition-colors" title="Editar Cliente">
             <Pencil className="h-4 w-4" />
           </Button>
@@ -200,35 +208,16 @@ export function OrderDetailPanel({ order, waiterName, onCheckout, onMoveTable, o
           <span className="text-muted-foreground font-medium">Mesero</span>
           <span className="font-semibold text-foreground">{displayWaiterName}</span>
         </div>
-        <div className="flex items-center justify-between">
-          <span className="text-muted-foreground font-medium">Cliente</span>
-          <span className="font-semibold text-foreground">{order.client_name || "—"}</span>
-        </div>
+        {order.type !== "mesa" && (
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground font-medium">Cliente</span>
+            <span className="font-semibold text-foreground">{order.client_name || "—"}</span>
+          </div>
+        )}
       </div>
 
       {/* Primary Action Section */}
       <div className="p-5 pb-2 space-y-3">
-        <div className="flex items-center gap-3">
-          {onMoveTable && (
-            <Button
-              className="flex-1 h-10 gap-2 font-semibold bg-secondary/80 text-foreground hover:bg-secondary transition-colors text-xs"
-              variant="ghost"
-              onClick={onMoveTable}
-            >
-              <ArrowRightLeft className="h-4 w-4" />
-              Trasladar
-            </Button>
-          )}
-          <Button
-            className="flex-1 h-10 gap-2 font-semibold bg-secondary/80 text-foreground hover:bg-secondary transition-colors text-xs"
-            variant="ghost"
-            onClick={handlePrintControl}
-            disabled={activeItems.length === 0}
-          >
-            <Printer className="h-4 w-4" />
-            Imprimir
-          </Button>
-        </div>
         <Button
           className="w-full h-11 gap-2 font-bold bg-primary/5 text-primary hover:bg-primary/10 hover:text-primary border-2 border-primary/20 shadow-sm rounded-xl transition-all"
           variant="outline"
@@ -256,7 +245,16 @@ export function OrderDetailPanel({ order, waiterName, onCheckout, onMoveTable, o
                 </div>
                 <div className="flex-1 min-w-0 pt-1">
                   <p className="text-sm font-semibold text-foreground leading-tight">{item.product_name}</p>
-                  {item.notes && <p className="text-xs text-muted-foreground mt-1 italic leading-snug">{item.notes}</p>}
+                  {item.modifiers && item.modifiers.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1.5">
+                      {item.modifiers.map((mod: any, idx: number) => (
+                        <span key={idx} className="text-[13px] font-semibold text-foreground/90 bg-secondary/40 px-1.5 py-0.5 rounded shadow-sm border border-border/50">
+                          {mod.option_name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {item.notes && <p className="text-[13px] font-semibold text-foreground/90 mt-1.5 leading-snug bg-secondary/10 p-1.5 rounded-md border-l-2 border-primary/50">{item.notes}</p>}
                 </div>
                 <div className="flex flex-col items-end gap-2 pt-1">
                   <span className="text-sm font-bold text-foreground">${(item.quantity * item.unit_price).toLocaleString()}</span>
@@ -275,9 +273,9 @@ export function OrderDetailPanel({ order, waiterName, onCheckout, onMoveTable, o
                 <div className="bg-secondary/30 text-muted-foreground font-bold text-sm w-8 h-8 rounded-lg flex items-center justify-center shrink-0">
                   {item.quantity}
                 </div>
-                <div className="flex-1 min-w-0 pt-1 line-through">
-                  <p className="text-sm font-medium">{item.product_name}</p>
-                  {item.cancellation_reason && <p className="text-[11px] text-destructive no-underline font-medium mt-1">{item.cancellation_reason}</p>}
+                <div className="flex-1 min-w-0 pt-1">
+                  <p className="text-sm font-medium line-through">{item.product_name}</p>
+                  {item.cancellation_reason && <p className="text-xs text-destructive font-bold mt-1 bg-destructive/10 px-2 py-0.5 rounded-md w-fit">{item.cancellation_reason}</p>}
                 </div>
                 <span className="text-sm font-medium pt-1 line-through">${(item.quantity * item.unit_price).toLocaleString()}</span>
               </div>
