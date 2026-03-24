@@ -183,7 +183,15 @@ export function OrderDetailPanel({ order, waiterName, onCheckout, onMoveTable, o
           <span className="text-sm uppercase tracking-widest font-bold opacity-90">Orden Activa</span>
           <span className="font-extrabold text-lg tracking-tight">#{order.order_number}</span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
+          {onMoveTable && (
+            <Button onClick={onMoveTable} size="icon" variant="ghost" className="h-9 w-9 text-primary hover:bg-primary/20 hover:text-primary rounded-full transition-colors" title="Trasladar">
+              <ArrowRightLeft className="h-4 w-4" />
+            </Button>
+          )}
+          <Button onClick={handlePrintControl} disabled={activeItems.length === 0} size="icon" variant="ghost" className="h-9 w-9 text-primary hover:bg-primary/20 hover:text-primary rounded-full transition-colors" title="Imprimir Control">
+            <Printer className="h-4 w-4" />
+          </Button>
           <Button onClick={() => { setEditingClientName(order.client_name || ""); setEditClientOpen(true); }} size="icon" variant="ghost" className="h-9 w-9 text-primary hover:bg-primary/20 hover:text-primary rounded-full transition-colors" title="Editar Cliente">
             <Pencil className="h-4 w-4" />
           </Button>
@@ -200,35 +208,16 @@ export function OrderDetailPanel({ order, waiterName, onCheckout, onMoveTable, o
           <span className="text-muted-foreground font-medium">Mesero</span>
           <span className="font-semibold text-foreground">{displayWaiterName}</span>
         </div>
-        <div className="flex items-center justify-between">
-          <span className="text-muted-foreground font-medium">Cliente</span>
-          <span className="font-semibold text-foreground">{order.client_name || "—"}</span>
-        </div>
+        {order.type !== "mesa" && (
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground font-medium">Cliente</span>
+            <span className="font-semibold text-foreground">{order.client_name || "—"}</span>
+          </div>
+        )}
       </div>
 
       {/* Primary Action Section */}
       <div className="p-5 pb-2 space-y-3">
-        <div className="flex items-center gap-3">
-          {onMoveTable && (
-            <Button
-              className="flex-1 h-10 gap-2 font-semibold bg-secondary/80 text-foreground hover:bg-secondary transition-colors text-xs"
-              variant="ghost"
-              onClick={onMoveTable}
-            >
-              <ArrowRightLeft className="h-4 w-4" />
-              Trasladar
-            </Button>
-          )}
-          <Button
-            className="flex-1 h-10 gap-2 font-semibold bg-secondary/80 text-foreground hover:bg-secondary transition-colors text-xs"
-            variant="ghost"
-            onClick={handlePrintControl}
-            disabled={activeItems.length === 0}
-          >
-            <Printer className="h-4 w-4" />
-            Imprimir
-          </Button>
-        </div>
         <Button
           className="w-full h-11 gap-2 font-bold bg-primary/5 text-primary hover:bg-primary/10 hover:text-primary border-2 border-primary/20 shadow-sm rounded-xl transition-all"
           variant="outline"
