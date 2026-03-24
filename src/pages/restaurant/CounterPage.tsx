@@ -49,7 +49,7 @@ export default function CounterPage() {
   const pickupInbox = inboxOrders.filter((o) => o.type === "recoger");
 
   const { data: allActive = [], isLoading: loadActive } = useOrders(["pendiente", "en_preparacion"]);
-  const active = allActive.filter((o) => o.type !== "mesa");
+  const active = allActive.filter((o) => o.type === "recoger");
 
   const filtered = active.filter((o) => {
     if (statusFilter !== "all" && o.status !== statusFilter) return false;
