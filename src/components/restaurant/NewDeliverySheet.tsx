@@ -63,7 +63,7 @@ export function NewDeliverySheet({ open, onOpenChange }: Props) {
 
   const handleAddToCart = (item: CartItem) => {
     setCart((prev) => {
-      const existing = prev.findIndex((c) => c.product_id === item.product_id && c.notes === item.notes);
+      const existing = prev.findIndex((c) => c.product_id === item.product_id && c.notes === item.notes && JSON.stringify(c.modifiers || []) === JSON.stringify(item.modifiers || []));
       if (existing >= 0) {
         const updated = [...prev];
         updated[existing] = { ...updated[existing], quantity: updated[existing].quantity + item.quantity };

@@ -256,7 +256,16 @@ export function OrderDetailPanel({ order, waiterName, onCheckout, onMoveTable, o
                 </div>
                 <div className="flex-1 min-w-0 pt-1">
                   <p className="text-sm font-semibold text-foreground leading-tight">{item.product_name}</p>
-                  {item.notes && <p className="text-xs text-muted-foreground mt-1 italic leading-snug">{item.notes}</p>}
+                  {item.modifiers && item.modifiers.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1.5">
+                      {item.modifiers.map((mod: any, idx: number) => (
+                        <span key={idx} className="text-[13px] font-semibold text-foreground/90 bg-secondary/40 px-1.5 py-0.5 rounded shadow-sm border border-border/50">
+                          {mod.option_name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {item.notes && <p className="text-[13px] font-semibold text-foreground/90 mt-1.5 leading-snug bg-secondary/10 p-1.5 rounded-md border-l-2 border-primary/50">{item.notes}</p>}
                 </div>
                 <div className="flex flex-col items-end gap-2 pt-1">
                   <span className="text-sm font-bold text-foreground">${(item.quantity * item.unit_price).toLocaleString()}</span>
@@ -275,9 +284,9 @@ export function OrderDetailPanel({ order, waiterName, onCheckout, onMoveTable, o
                 <div className="bg-secondary/30 text-muted-foreground font-bold text-sm w-8 h-8 rounded-lg flex items-center justify-center shrink-0">
                   {item.quantity}
                 </div>
-                <div className="flex-1 min-w-0 pt-1 line-through">
-                  <p className="text-sm font-medium">{item.product_name}</p>
-                  {item.cancellation_reason && <p className="text-[11px] text-destructive no-underline font-medium mt-1">{item.cancellation_reason}</p>}
+                <div className="flex-1 min-w-0 pt-1">
+                  <p className="text-sm font-medium line-through">{item.product_name}</p>
+                  {item.cancellation_reason && <p className="text-xs text-destructive font-bold mt-1 bg-destructive/10 px-2 py-0.5 rounded-md w-fit">{item.cancellation_reason}</p>}
                 </div>
                 <span className="text-sm font-medium pt-1 line-through">${(item.quantity * item.unit_price).toLocaleString()}</span>
               </div>

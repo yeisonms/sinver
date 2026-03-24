@@ -11,6 +11,7 @@ export interface OrderItemRow {
   status?: string;
   cancellation_reason?: string | null;
   product_name?: string;
+  modifiers?: any[];
 }
 
 export function useOrderItems(orderId: string | null) {
@@ -33,6 +34,7 @@ export function useOrderItems(orderId: string | null) {
         status: item.status ?? "activo",
         cancellation_reason: item.cancellation_reason ?? null,
         product_name: item.products?.name ?? "Producto",
+        modifiers: item.modifiers ?? [],
       }));
     },
     refetchInterval: 5000,
