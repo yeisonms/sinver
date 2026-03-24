@@ -219,6 +219,7 @@ export default function TableTakeOrderPage() {
         waiterName,
         orderType: order?.type || "mesa",
         generalNotes: order?.general_notes,
+        totalAmount: (order?.total_amount || 0) + total,
       }).catch(console.error);
 
       qc.invalidateQueries({ queryKey: ["orders"] });
