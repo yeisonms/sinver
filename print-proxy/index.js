@@ -1,13 +1,28 @@
 // print-proxy/index.js
 const express = require('express');
-const cors = require('cors');
 const net = require('net');
 
 const app = express();
 const PORT = 8081;
 
-// Enable CORS for the local dev server and production frontend if served elsewhere
-app.use(cors());
+/**
+ * CORS + Chrome Private Network Access fix.
+ * Chrome (v94+) sends a preflight with 'Access-Control-Request-Private-Network: true'
+ * for any HTTPS→localhost request. We must respond with the matching Allow header.
+ */
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Printer-IP, X-Printer-Port');
+  // This is the critical header Chrome requires for Private Network Access
+  res.setHeader('Access-Control-Allow-Private-Network', 'true');
+
+  if (req.method === 'OPTIONS') {
+    // Preflight response – must return 200/204 quickly
+    return res.sendStatus(204);
+  }
+  next();
+});
 
 // Parse raw binary body
 app.use(express.raw({ type: '*/*', limit: '10mb' }));

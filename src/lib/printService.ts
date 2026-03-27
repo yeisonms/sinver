@@ -246,10 +246,42 @@ export async function executePrintJob(opts: PrintComandaOptions): Promise<void> 
     return;
   }
 
-  // 1. Get unique category IDs
-  const categoryIds = [...new Set(items.map((i) => i.category_id).filter(Boolean))] as string[];
+  // 1. Always re-fetch category_id by product_id at runtime.
+  //    This is more reliable than trusting whatever was stored in the print_jobs payload,
+  //    which can have null category_ids if the products query was slow/incomplete at order time.
+  const productIds = [...new Set(items.map((i) => i.product_id).filter(Boolean))];
+  if (productIds.length === 0) {
+    console.warn("⚠️ printComanda: Ningún item tiene product_id válido");
+    return;
+  }
+
+  const { data: productRows, error: prodErr } = await supabase
+    .from("products")
+    .select("id, category_id")
+    .in("id", productIds);
+
+  if (prodErr) {
+    console.error("❌ Error consultando products:", prodErr);
+    return;
+  }
+
+  // Build a fresh category map from live DB data
+  const prodCategoryMap = new Map<string, string>(
+    (productRows || [])
+      .filter((p) => p.category_id)
+      .map((p) => [p.id, p.category_id as string])
+  );
+
+  // Enrich items with the freshly resolved category_id
+  const enrichedItems = items.map((item) => ({
+    ...item,
+    category_id: prodCategoryMap.get(item.product_id) ?? item.category_id,
+  }));
+
+  const categoryIds = [...new Set(enrichedItems.map((i) => i.category_id).filter(Boolean))] as string[];
   if (categoryIds.length === 0) {
-    console.warn("⚠️ printComanda: Ningún item tiene category_id");
+    console.warn("⚠️ printComanda: Ningún item tiene category_id. Verifica que los productos tengan categoría asignada.");
+    toast.warning("Sin categorías en los productos", { description: "Los productos del pedido no tienen categoría. Asigna una categoría para habilitar la impresión." });
     return;
   }
 

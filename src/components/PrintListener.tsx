@@ -1,21 +1,56 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { executePrintJob, type PrintComandaOptions } from "@/lib/printService";
 import { toast } from "sonner";
 
+export const PRINT_MODE_KEY = "sinver_print_mode";
+
 /**
- * PrintListener runs stealthily in the background. It listens to Supabase Realtime
- * for new 'print_jobs' inserted by mobile phones (waiters) or the local computer.
- * When a job arrives, it executes the local ESC/POS translation and pushes to localhost:8081.
+ * PrintListener — Background daemon that picks up print jobs from Supabase Realtime.
+ *
+ * IMPORTANT: This component is only active if the user has explicitly enabled
+ * "Print Mode" on this device (stored in localStorage as sinver_print_mode=enabled).
+ *
+ * This prevents multiple open tabs or remote devices from competing to claim
+ * the same print job, which was causing silent failures.
  */
 export default function PrintListener() {
   const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  const [isPrintModeEnabled, setIsPrintModeEnabled] = useState(
+    () => localStorage.getItem(PRINT_MODE_KEY) === "enabled"
+  );
+
+  // Listen for localStorage changes from other components (e.g. PrintersPage toggle)
+  useEffect(() => {
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === PRINT_MODE_KEY) {
+        setIsPrintModeEnabled(e.newValue === "enabled");
+      }
+    };
+    // Also listen for same-tab changes via a custom event
+    const handleCustom = (e: Event) => {
+      const newValue = (e as CustomEvent<string>).detail;
+      setIsPrintModeEnabled(newValue === "enabled");
+    };
+    window.addEventListener("storage", handleStorage);
+    window.addEventListener("sinver_print_mode_changed", handleCustom);
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("sinver_print_mode_changed", handleCustom);
+    };
+  }, []);
 
   useEffect(() => {
-    // Si estamos en un celular, no queremos actuar como servidor de impresión
-    if (isMobile) return;
+    // Only desktop + explicitly enabled sessions act as a print server
+    if (isMobile || !isPrintModeEnabled) {
+      if (!isMobile && !isPrintModeEnabled) {
+        console.log("🖨️ Modo Impresión desactivado en este dispositivo. Actívalo en Ajustes → Impresoras.");
+      }
+      return;
+    }
 
-    // 1. Subscribe to new insertions on the 'print_jobs' table
+    console.log("📡 Modo Impresión ACTIVO — escuchando trabajos de Supabase...");
+
     const channel = supabase
       .channel("print-jobs-listener")
       .on(
@@ -26,39 +61,55 @@ export default function PrintListener() {
           table: "print_jobs",
         },
         async (payload) => {
-          console.log("🚨 ¡NUEVO TRABAJO DE IMPRESIÓN DESDE LA NUBE!", payload.new);
-          
+          console.log("🚨 ¡TRABAJO DE IMPRESIÓN DETECTADO!", payload.new);
+
+          // 2. Reclamar el trabajo atómicamente para evitar impresiones duplicadas
+          // Si hay 2 pestañas abiertas (o React Strict Mode), ambas intentarán actualizarlo,
+          // pero la base de datos solo le dará permiso a una.
+          const { data: claimData, error: claimError } = await supabase
+            .from("print_jobs")
+            .update({ status: "printed" })
+            .eq("id", payload.new.id)
+            .eq("status", "pending")
+            .select("id")
+            .maybeSingle();
+
+          if (claimError || !claimData) {
+            console.log("⚠️ Trabajo ya procesado por otra pestaña o dispositivo ignorando.");
+            return; // Alguien más ya lo imprimió
+          }
+
           try {
             const printOptions = payload.new.payload as PrintComandaOptions;
             
-            // 2. Execute the physical local print job
+            // 3. Ejecutar la impresión física local
             await executePrintJob(printOptions);
             
-            // Optional: Mark the job as completed in DB so we don't process it again on reload
-            await supabase
-              .from("print_jobs")
-              .update({ status: "printed" })
-              .eq("id", payload.new.id);
-              
           } catch (error) {
             console.error("Error procesando trabajo de impresión en segundo plano:", error);
+            // Opcional: Podríamos revertir el status a 'pending' aquí si falla
             toast.error("Fallo de Impresión", {
-              description: "No se pudo procesar un ticket entrante desde la nube."
+              description: "No se pudo enviar el ticket a la impresora física.",
             });
           }
         }
       )
       .subscribe((status) => {
         if (status === "SUBSCRIBED") {
-          console.log("📡 Escuchando trabajos de impresión remotos...");
+          console.log("📡 [PrintListener] Suscrito a trabajos de impresión remotos.");
+          toast.success("Modo Impresión Activo", {
+            description: "Este equipo imprimirá las comandas de cocina.",
+            duration: 3000,
+          });
+        } else if (status === "CHANNEL_ERROR") {
+          console.error("❌ [PrintListener] Error en canal de Supabase Realtime.");
         }
       });
 
-    // 3. Cleanup the subscription if component unmounts
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [isMobile, isPrintModeEnabled]);
 
-  return null; // This is a background daemon component, it renders nothing.
+  return null;
 }
