@@ -5,8 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Printer, Wifi, Loader2, CheckCircle2, XCircle, Save, Plus, Trash2 } from "lucide-react";
+import { Printer, Wifi, Loader2, CheckCircle2, XCircle, Save, Plus, Trash2, MonitorCheck } from "lucide-react";
+import { PRINT_MODE_KEY } from "@/components/PrintListener";
 
 type TestStatus = "idle" | "testing" | "success" | "error";
 
@@ -16,8 +18,26 @@ export default function PrintersPage() {
   const createPrinter = useCreatePrinter();
   const deletePrinter = useDeletePrinter();
 
+  const [printMode, setPrintMode] = useState(
+    () => localStorage.getItem(PRINT_MODE_KEY) === "enabled"
+  );
+
+  const handlePrintModeToggle = (checked: boolean) => {
+    const value = checked ? "enabled" : "disabled";
+    localStorage.setItem(PRINT_MODE_KEY, value);
+    setPrintMode(checked);
+    window.dispatchEvent(new CustomEvent("sinver_print_mode_changed", { detail: value }));
+    toast.success(checked ? "✅ Modo Impresión Activado" : "🔕 Modo Impresión Desactivado", {
+      description: checked
+        ? "Este equipo recibirá y enviará comandas a cocina."
+        : "Este equipo no procesará trabajos de impresión.",
+    });
+  };
+
   const [edits, setEdits] = useState<Record<string, { ip: string; port: string }>>({});
   const [testStatus, setTestStatus] = useState<Record<string, TestStatus>>({});
+
+
 
   // Create Modal State
   const [createOpen, setCreateOpen] = useState(false);
@@ -177,6 +197,32 @@ export default function PrintersPage() {
           <Plus className="h-4 w-4" /> Nueva Impresora
         </Button>
       </div>
+
+      {/* Print Mode Toggle Card */}
+      <Card className={`border-2 transition-colors ${printMode ? "border-green-500/60 bg-green-50/50 dark:bg-green-950/20" : "border-muted"}`}>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <MonitorCheck className={`h-5 w-5 ${printMode ? "text-green-600" : "text-muted-foreground"}`} />
+            Este equipo es la Caja / Servidor de Impresión
+          </CardTitle>
+          <CardDescription>
+            Activa esto <strong>solo en la computadora del local</strong> donde está conectada la impresora.
+            Si lo activas en otro equipo, ambos competirán y las comandas podrían perderse.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-3">
+            <Switch
+              id="print-mode"
+              checked={printMode}
+              onCheckedChange={handlePrintModeToggle}
+            />
+            <Label htmlFor="print-mode" className={`font-semibold ${printMode ? "text-green-700 dark:text-green-400" : "text-muted-foreground"}`}>
+              {printMode ? "ACTIVO — Escuchando comandas" : "INACTIVO — No imprimirá comandas"}
+            </Label>
+          </div>
+        </CardContent>
+      </Card>
 
       {isLoading ? (
         <div className="flex justify-center py-20">
