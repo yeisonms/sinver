@@ -46,7 +46,8 @@ export default function TableTakeOrderPage() {
       const { data, error } = await supabase
         .from("order_items")
         .select("*, products:product_id(name)")
-        .eq("order_id", orderId!);
+        .eq("order_id", orderId!)
+        .neq("status", "cancelado");
       if (error) throw error;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (data ?? []).map((item: any) => ({

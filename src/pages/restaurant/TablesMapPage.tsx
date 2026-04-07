@@ -471,11 +471,11 @@ export default function TablesMapPage() {
                   <OrderDetailPanel
                     order={selectedOrder}
                     waiterName={selectedOrder.waiter_id && waiterNameMap[selectedOrder.waiter_id] ? waiterNameMap[selectedOrder.waiter_id] : undefined}
-                    onCheckout={(order) => {
+                    onCheckout={(order, activeTotal) => {
                       setCheckoutOrderId(order.id);
                       setCheckoutOrderNumber(order.order_number);
                       setCheckoutTable(selectedTable);
-                      setCheckoutConsumedTotal(order.total_amount);
+                      setCheckoutConsumedTotal(activeTotal);
                       setCheckoutOrderOverride(null);
                       setCheckoutOpen(true);
                     }}
@@ -557,11 +557,11 @@ export default function TablesMapPage() {
                 <OrderDetailPanel
                   order={selectedOrder}
                   waiterName={selectedOrder.waiter_id ? waiterNameMap[selectedOrder.waiter_id] : undefined}
-                  onCheckout={(order) => {
+                  onCheckout={(order, activeTotal) => {
                     setCheckoutOrderId(order.id);
                     setCheckoutOrderNumber(order.order_number);
                     if (selectedTable) setCheckoutTable(selectedTable);
-                    setCheckoutConsumedTotal(order.total_amount);
+                    setCheckoutConsumedTotal(activeTotal);
                     setCheckoutOrderOverride(null);
                     setCheckoutOpen(true);
                   }}
@@ -610,11 +610,11 @@ export default function TablesMapPage() {
               <OrderDetailPanel
                 order={selectedOrder}
                 waiterName={selectedOrder.waiter_id ? waiterNameMap[selectedOrder.waiter_id] : undefined}
-                onCheckout={(order) => {
+                onCheckout={(order, activeTotal) => {
                   setCheckoutOrderId(order.id);
                   setCheckoutOrderNumber(order.order_number);
                   if (selectedTable) setCheckoutTable(selectedTable);
-                  setCheckoutConsumedTotal(order.total_amount);
+                  setCheckoutConsumedTotal(activeTotal);
                   setCheckoutOrderOverride(null);
                   setCheckoutOpen(true);
                 }}
