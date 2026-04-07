@@ -27,7 +27,7 @@ import { SplitBillDialog } from "./SplitBillDialog";
 interface Props {
   order: Order;
   waiterName?: string;
-  onCheckout: (order: Order) => void;
+  onCheckout: (order: Order, activeTotal: number) => void;
   onMoveTable?: () => void;
   onSplitSuccess?: (newOrderId: string) => void;
 }
@@ -308,7 +308,7 @@ export function OrderDetailPanel({ order, waiterName, onCheckout, onMoveTable, o
               )}
               <Button
                 className="h-12 flex-[2] rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-base shadow-premium hover:shadow-premium-hover transition-all"
-                onClick={() => onCheckout(order)}
+                onClick={() => onCheckout(order, activeTotal)}
                 disabled={activeTotal === 0}
               >
                 Cobrar Orden
