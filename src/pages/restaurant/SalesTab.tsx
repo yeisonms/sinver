@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { format, startOfDay, endOfDay, startOfMonth, startOfWeek, endOfWeek } from "date-fns";
+import { format, startOfDay, endOfDay, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from "date-fns";
 import { CalendarIcon, Loader2, Pencil, FileText, Printer, Trash2, Filter, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -38,8 +38,10 @@ function buildDateRange(
     }
     case "semanal":
       return { from: startOfWeek(now, { weekStartsOn: 1 }), to: endOfWeek(now, { weekStartsOn: 1 }) };
-    case "mensual":
-      return { from: startOfMonth(now), to: endOfDay(now) };
+    case "mensual": {
+      const d = new Date(dailyYear, dailyMonth, 1);
+      return { from: startOfMonth(d), to: endOfMonth(d) };
+    }
     case "rango":
       return {
         from: customFrom ? startOfDay(customFrom) : startOfDay(now),
@@ -222,9 +224,11 @@ export default function SalesTab() {
             <SelectItem value="rango">Rango</SelectItem>
           </SelectContent>
         </Select>
-        {periodType === "diario" && (
+        {(periodType === "diario" || periodType === "mensual") && (
           <>
-            <Input type="number" value={dailyDay} onChange={(e) => setDailyDay(Number(e.target.value))} className="w-14 h-7 text-xs text-center" min={1} max={31} />
+            {periodType === "diario" && (
+              <Input type="number" value={dailyDay} onChange={(e) => setDailyDay(Number(e.target.value))} className="w-14 h-7 text-xs text-center" min={1} max={31} />
+            )}
             <Select value={String(dailyMonth)} onValueChange={(v) => setDailyMonth(Number(v))}>
               <SelectTrigger className="w-[80px] h-7 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
