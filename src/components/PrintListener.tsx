@@ -111,5 +111,106 @@ export default function PrintListener() {
     };
   }, [isMobile, isPrintModeEnabled]);
 
+  // NUEVO LISTENER PARALELO: Escucha exclusivamente la tabla "cola_impresion"
+  useEffect(() => {
+    if (isMobile || !isPrintModeEnabled) return;
+
+    const colaChannel = supabase
+      .channel("cola-impresion-listener")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "cola_impresion",
+        },
+        async (payload) => {
+          console.log("🚨 REIMPRESIÓN MANUAL DETECTADA!", payload.new);
+          try {
+            const orderId = payload.new.pedido_id;
+            
+            const { data: order, error: orderErr } = await supabase
+              .from("orders")
+              .select("*")
+              .eq("id", orderId)
+              .single();
+
+            if (orderErr || !order) {
+              console.error("❌ Elemento order no encontrado:", orderErr);
+              return;
+            }
+
+            const { data: itemsData, error: itemsErr } = await supabase
+              .from("order_items")
+              .select(`
+                *,
+                products (
+                  name,
+                  category_id
+                )
+              `)
+              .eq("order_id", orderId)
+              .eq("status", "activo");
+
+            if (itemsErr || !itemsData || itemsData.length === 0) {
+              console.warn("⚠️ Sin items para reimprimir");
+              return;
+            }
+
+            let waiterName: string | undefined;
+            if (order.waiter_id) {
+              const { data: profile } = await supabase
+                .from("profiles")
+                .select("full_name")
+                .eq("id", order.waiter_id)
+                .maybeSingle();
+              waiterName = profile?.full_name || undefined;
+            }
+
+            const typeLabel = order.type === "domicilio" ? "DOMICILIO" : order.type === "recoger" ? "RECOGER" : "MESA";
+            const orderLabel = `${typeLabel} #${order.order_number}`;
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const printItems: any[] = itemsData.map((row: any) => ({
+              product_id: row.product_id,
+              product_name: row.products?.name || "Producto",
+              quantity: row.quantity,
+              notes: row.notes || null,
+              category_id: row.products?.category_id || null,
+              modifiers: row.modifiers || [],
+            }));
+
+            // Llamada directa a la función de red local
+            await executePrintJob({
+              items: printItems,
+              orderLabel,
+              clientName: order.client_name || undefined,
+              waiterName,
+              orderType: order.type as "mesa" | "domicilio" | "recoger",
+              deliveryAddress: order.delivery_address,
+              deliveryPhone: order.delivery_phone,
+              generalNotes: order.general_notes,
+              totalAmount: order.total_amount,
+            });
+            console.log("✅ Reimpresión manual enviada a servidor local");
+          } catch (err) {
+            console.error("Error en reimpresión paralela:", err);
+            toast.error("Error de Reimpresión", {
+              description: "Fallo al enviar a las impresoras de cocina.",
+            });
+          }
+        }
+      )
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          console.log("📡 [PrintListener] Suscrito a cola_impresion (reimpresiones manuales).");
+        }
+      });
+
+    return () => {
+      supabase.removeChannel(colaChannel);
+    };
+  }, [isMobile, isPrintModeEnabled]);
+
   return null;
 }

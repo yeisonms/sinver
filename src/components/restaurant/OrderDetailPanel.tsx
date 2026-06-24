@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useHasPermission } from "@/hooks/useRolePermissions";
-import { Search, Plus, Check, Pencil, X, Loader2, ArrowRightLeft, Printer, Scissors } from "lucide-react";
+import { Search, Plus, Check, Pencil, X, Loader2, ArrowRightLeft, Printer, Scissors, RefreshCcw } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -175,6 +175,21 @@ export function OrderDetailPanel({ order, waiterName, onCheckout, onMoveTable, o
     }
   };
 
+  const handleReprint = async () => {
+    try {
+      if (!order || activeItems.length === 0) {
+        toast.error("No hay productos válidos para reimprimir.");
+        return;
+      }
+      const { error } = await supabase.from('cola_impresion').insert({ pedido_id: order.id });
+      if (error) throw error;
+      toast.success("Comanda enviada a reimpresión manual");
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Error al solicitar reimpresión");
+    }
+  };
+
   return (
     <div className="flex flex-col h-full bg-card rounded-2xl overflow-hidden relative">
       {/* Refined Header */}
@@ -191,6 +206,9 @@ export function OrderDetailPanel({ order, waiterName, onCheckout, onMoveTable, o
           )}
           <Button onClick={handlePrintControl} disabled={activeItems.length === 0} size="icon" variant="ghost" className="h-9 w-9 text-primary hover:bg-primary/20 hover:text-primary rounded-full transition-colors" title="Imprimir Control">
             <Printer className="h-4 w-4" />
+          </Button>
+          <Button onClick={handleReprint} disabled={activeItems.length === 0} size="icon" variant="ghost" className="h-9 w-9 text-primary hover:bg-primary/20 hover:text-primary rounded-full transition-colors" title="Reimprimir Comanda">
+            <RefreshCcw className="h-4 w-4" />
           </Button>
           <Button onClick={() => { setEditingClientName(order.client_name || ""); setEditClientOpen(true); }} size="icon" variant="ghost" className="h-9 w-9 text-primary hover:bg-primary/20 hover:text-primary rounded-full transition-colors" title="Editar Cliente">
             <Pencil className="h-4 w-4" />
