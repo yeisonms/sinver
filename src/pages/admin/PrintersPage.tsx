@@ -156,13 +156,18 @@ export default function PrintersPage() {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 5000);
 
-        await fetch(`http://${ip}:${portNum}`, {
+        await fetch(`http://localhost:8081/print`, {
           method: "POST",
-          headers: { "Content-Type": "application/octet-stream" },
+          headers: { 
+            "Content-Type": "application/octet-stream",
+            "X-Printer-IP": ip,
+            "X-Printer-Port": portNum.toString()
+          },
           body: new Blob([payload as any]),
           signal: controller.signal,
-          mode: "no-cors",
-        }).catch(() => { });
+        }).then(res => {
+          if (!res.ok) throw new Error("Error en proxy");
+        });
 
         clearTimeout(timeout);
       }
