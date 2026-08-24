@@ -73,8 +73,9 @@ app.post('/print', (req, res) => {
             if (!res.headersSent) {
                 res.status(200).send('Print job sent successfully');
             }
-            // Wait a moment before closing to ensure buffer flush
-            setTimeout(() => client.destroy(), 500);
+            // Use end() for a graceful TCP FIN instead of destroy() which sends RST
+            // This prevents cheaper printers from hanging port 9100 after multiple prints
+            client.end();
         });
     });
 });
