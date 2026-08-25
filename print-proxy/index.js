@@ -78,8 +78,22 @@ app.post('/print', async (req, res) => {
                 console.log(`[CONNECTED] Sending data to ${printerIp}:${printerPort}...`);
                 client.write(payload, () => {
                     console.log(`[SUCCESS] Data sent successfully to ${printerIp}:${printerPort}`);
-                    client.end(); // Graceful FIN
-                    finish(null, 200, 'Print job sent successfully');
+                    client.end(); // Send FIN packet
+
+                    // Wait for the printer to acknowledge and close the connection
+                    let closed = false;
+                    client.once('close', () => {
+                        closed = true;
+                        finish(null, 200, 'Print job sent successfully');
+                    });
+
+                    // If printer doesn't close within 3 seconds, force destroy
+                    setTimeout(() => {
+                        if (!closed) {
+                            console.log(`[FORCE CLOSE] Printer did not close in time`);
+                            finish(null, 200, 'Print job sent successfully (forced)');
+                        }
+                    }, 3000);
                 });
             });
         });
