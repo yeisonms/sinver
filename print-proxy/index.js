@@ -27,56 +27,64 @@ app.use((req, res, next) => {
 // Parse raw binary body
 app.use(express.raw({ type: '*/*', limit: '10mb' }));
 
-app.post('/print', (req, res) => {
+// Queue system to prevent concurrent connections to the same printer
+const printQueues = {};
+
+app.post('/print', async (req, res) => {
     const printerIp = req.header('X-Printer-IP');
     const printerPort = req.header('X-Printer-Port') || 9100;
 
-    if (!printerIp) {
-        return res.status(400).send('Missing X-Printer-IP header');
-    }
+    if (!printerIp) return res.status(400).send('Missing X-Printer-IP header');
 
     const payload = req.body;
-
     if (!Buffer.isBuffer(payload) || payload.length === 0) {
         return res.status(400).send('Empty or invalid payload');
     }
 
     console.log(`[PRINT] Received job of ${payload.length} bytes for ${printerIp}:${printerPort}`);
 
-    // Create absolute raw TCP socket
-    const client = new net.Socket();
+    // Initialize queue for this IP if it doesn't exist
+    if (!printQueues[printerIp]) {
+        printQueues[printerIp] = Promise.resolve();
+    }
 
-    client.setTimeout(5000); // 5 sec timeout
+    // Enqueue the print job
+    printQueues[printerIp] = printQueues[printerIp].then(() => {
+        return new Promise((resolve) => {
+            const client = new net.Socket();
+            client.setTimeout(5000); // 5 sec timeout
 
-    client.on('error', (err) => {
-        console.error(`[ERROR] Connection to ${printerIp}:${printerPort} failed:`, err.message);
-        if (!res.headersSent) {
-            res.status(500).send(`Failed to connect to printer: ${err.message}`);
-        }
-        client.destroy();
-    });
+            let finished = false;
+            const finish = (err, statusCode, msg) => {
+                if (finished) return;
+                finished = true;
+                if (!res.headersSent) res.status(statusCode).send(msg);
+                if (!client.destroyed) client.destroy();
+                // Add a small 1-second delay before resolving to let the printer clear its internal buffer
+                setTimeout(resolve, 1000); 
+            };
 
-    client.on('timeout', () => {
-        console.error(`[ERROR] Connection to ${printerIp}:${printerPort} timed out.`);
-        if (!res.headersSent) {
-            res.status(504).send('Printer connection timed out');
-        }
-        client.destroy();
-    });
+            client.on('error', (err) => {
+                console.error(`[ERROR] Connection to ${printerIp}:${printerPort} failed:`, err.message);
+                finish(err, 500, `Failed to connect to printer: ${err.message}`);
+            });
 
-    client.connect(printerPort, printerIp, () => {
-        console.log(`[CONNECTED] Sending data to ${printerIp}:${printerPort}...`);
+            client.on('timeout', () => {
+                console.error(`[ERROR] Connection to ${printerIp}:${printerPort} timed out.`);
+                finish(new Error('Timeout'), 504, 'Printer connection timed out');
+            });
 
-        // Send the raw binary ESC/POS commands
-        client.write(payload, () => {
-            console.log(`[SUCCESS] Data sent successfully to ${printerIp}:${printerPort}`);
-            if (!res.headersSent) {
-                res.status(200).send('Print job sent successfully');
-            }
-            // Use end() for a graceful TCP FIN instead of destroy() which sends RST
-            // This prevents cheaper printers from hanging port 9100 after multiple prints
-            client.end();
+            client.connect(printerPort, printerIp, () => {
+                console.log(`[CONNECTED] Sending data to ${printerIp}:${printerPort}...`);
+                client.write(payload, () => {
+                    console.log(`[SUCCESS] Data sent successfully to ${printerIp}:${printerPort}`);
+                    client.end(); // Graceful FIN
+                    finish(null, 200, 'Print job sent successfully');
+                });
+            });
         });
+    }).catch(err => {
+        console.error(`[QUEUE ERROR] for ${printerIp}:`, err);
     });
 });
 
