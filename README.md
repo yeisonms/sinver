@@ -2,7 +2,7 @@
 
 ## Project info
 
-**URL**: sirvo
+**URL**: sirvo v2
 
 ## How can I edit this code?
 
